@@ -1,0 +1,9 @@
+aim_ai:
+  checks:
+    - "AimAI"
+  remove-violations-after: 300
+
+  commands: # {probability} - Выводит проценты вероятности в формеате 0.0000
+    - "1:1 [ai_alert]"
+    - "2:2 [log]"
+    - "5:0 ban {player} Система Raveon заметила ваше нестандартное поведение"

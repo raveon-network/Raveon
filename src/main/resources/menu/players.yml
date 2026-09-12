@@ -1,0 +1,55 @@
+title: '&8Подозреваемые'
+size: 54
+
+decoration:
+  LIGHT_BLUE_STAINED_GLASS_PANE: [ 0,1,2,3,4,5,6,7,8, 45,46,48,49,50,52,53 ]
+
+settings:
+  player_slots: [ 10,11,12,13,14,15,16, 19,20,21,22,23,24,25, 28,29,30,31,32,33,34, 37,38,39,40,41,42,43 ]
+  player_form:
+    material: PLAYER_HEAD
+    display_name: ' &#36cbe9▶ &#F3F3F3{player_name} &#F3F3F3[{cheat_bar}&#F3F3F3] {avg_percent}%'
+    lore:
+      - ''
+      - ' &#c1dce7Последние проверки:'
+      - '{checks}'
+      - ''
+      - ' &#c1dce7Средний риск'
+      - ' &#e2c46eAVG: {avg}'
+      - ''
+      - ' &#c1dce7Последний сервер:'
+      - ' &f{last_server}'
+      - ''
+      - ' &#c1dce7Последний удар:'
+      - ' &f{last_check}'
+      - ''
+      - ' &#36cbe9▶ &#F3F3F3Нажмите &7ЛКМ&#F3F3F3, чтобы следить'
+      - ' &#36cbe9▶ &#F3F3F3Нажмите &7ПКМ&#F3F3F3, чтобы посмотреть историю'
+
+    click_actions:
+      left:
+        - '[player] spec start player {player_name}'
+      right:
+        - '[open-history]'
+
+  empty_value: ' &7—'
+  no_checks_message: ' &7Нет данных'
+
+  bar_symbol: '■'
+  empty_bar_symbol: '&8■'
+
+  check_lines: 3
+  probs_per_line: 7
+
+
+items:
+  previous-item:
+    material: ARROW
+    action: 'previous_page'
+    display_name: '&#36cbe9◀ &#F3F3F3Предыдущая страница'
+    slot: 47
+  next-item:
+    material: ARROW
+    action: 'next_page'
+    display_name: '&#F3F3F3Следующая страница &#36cbe9▶'
+    slot: 51

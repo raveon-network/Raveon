@@ -1,0 +1,40 @@
+title: '&8История {player_name}'
+size: 54
+
+decoration:
+  LIGHT_BLUE_STAINED_GLASS_PANE: [ 45,46,48,49,50,52,53 ]
+
+settings:
+  snapshot_slots: [ 0,1,2,3,4,5,6,7,8, 9,10,11,12,13,14,15,16,17, 18,19,20,21,22,23,24,25,26, 27,28,29,30,31,32,33,34,35, 36,37,38,39,40,41,42,43,44 ]
+
+  snapshot_form:
+    material: GREEN_STAINED_GLASS_PANE
+    display_name: '&fAVG: {snapshot_avg}'
+    lore:
+      - ''
+      - '&7Вер.        &8&l| &7Сервер        &0.&8&l| &7Время'
+      - '&8-------------------------------------'
+      - '{entries}'
+
+  entry_format: '{chance}     &8&l| &f{server}     &8&l| &f{time}  '
+  empty_entries_message: '&7Нет записей'
+  empty_server_value: '—'
+
+  thresholds:
+    0,0: GREEN_STAINED_GLASS_PANE
+    0,35: YELLOW_STAINED_GLASS_PANE
+    0,60: ORANGE_STAINED_GLASS_PANE
+    0,8: RED_STAINED_GLASS_PANE
+
+items:
+  previous-item:
+    material: ARROW
+    action: 'previous_page'
+    display_name: '&#36cbe9◀ &#F3F3F3Предыдущая страница'
+    slot: 47
+
+  next-item:
+    material: ARROW
+    action: 'next_page'
+    display_name: '&#F3F3F3Следующая страница &#36cbe9▶'
+    slot: 51

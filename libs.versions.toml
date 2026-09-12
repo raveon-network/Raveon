@@ -1,0 +1,27 @@
+[versions]
+# --- Build & Tooling ---
+lombok = "1.18.38"
+shadow = "9.3.0"
+spotless = "6.25.0"
+relocations = '0.10.2'
+
+# --- Minecraft-Specific APIs ---
+floodgate-api = "2.2.4-SNAPSHOT"
+geyser-api = "2.9.0-SNAPSHOT"
+packetevents = "2.11.1"
+placeholderapi = "2.11.6"
+viaversion = "5.5.0"
+
+[libraries]
+
+spotless = { group = "com.diffplug.spotless", name = "spotless-plugin-gradle", version.ref = "spotless" }
+lombok = { group = "org.projectlombok", name = "lombok", version.ref = "lombok" }
+relocations = { group = "org.reflections", name = "reflections", version.ref = "relocations" }
+shadow = { "group" = "com.gradleup.shadow", name = "shadow-gradle-plugin", version.ref = "shadow"}
+
+floodgate-api = { group = "org.geysermc.floodgate", name = "api", version.ref = "floodgate-api"}
+geyser-api = { group = "org.geysermc.geyser", name = "api", version.ref = "geyser-api" }
+packetevents-platform = { group = "com.github.retrooper", name = "packetevents-platform", version.ref = "packetevents" }
+packetevents-spigot = { group = "com.github.retrooper", name = "packetevents-spigot", version.ref = "packetevents"}
+placeholderapi = { group = "me.clip", name = "placeholderapi", version.ref = "placeholderapi" }
+viaversion = { group = "com.viaversion", name = "viaversion", version.ref = "viaversion" }

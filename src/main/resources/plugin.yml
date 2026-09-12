@@ -1,0 +1,11 @@
+name: Raveon
+main: ru.raveon.Raveon
+
+version: '${version}'
+api-version: '1.16'
+
+depend:
+  - packetevents
+
+softdepend:
+  - WorldGuard

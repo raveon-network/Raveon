@@ -1,0 +1,37 @@
+database:
+  data_type: 'SQLITE'
+  host: ''
+  port: 3306
+  username: ''
+  password: ''
+  # Если тип базы данных SQLITE, то указывайте название файла
+  # Если тип базы данных MYSQL, то указывайте название таблицы
+  name: 'database'
+
+redis:
+  host: '127.0.0.1'
+  port: 6379
+  timeout: 3000
+  enable: false
+  password: 'password'
+
+placeholder:
+  server_id: 'grief-1'
+  server_name: 'grief #1'
+
+print_to_console: false
+history_entries_per_page: 15
+
+max_local_entries: 20
+max_prob_entries: 10
+
+ai_colors:
+  0,0: '&#00FF00'
+  0,2: '&#94FF47'
+  0,3: '&#C1FF47'
+  0,4: '&#D7FF47'
+  0,5: '&#F5FF47'
+  0,6: '&#FFE447'
+  0,7: '&#FFBE47'
+  0,8: '&#FF7B47'
+  0,9: '&#FF3B3B'

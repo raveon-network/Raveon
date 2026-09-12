@@ -1,0 +1,43 @@
+analyze:
+  # Enable ML check?
+  enable: false
+  # URL for the ML inference API.
+  analyze_server: https://api.raveonai.wtf/v1/inference
+  # The number of ticks to send in a sequence to the ML.
+  sequence: 40
+  # The number of ticks to wait before sending the next sequence.
+  step: 10
+  # The number of ticks to enable collect frames
+  combat: 2
+
+  buffer:
+    # The violation level (VL) at which a flag will be triggered.
+    flag: 50.0
+    # The value to which the buffer is reset after a flag.
+    reset_on_flag: 25.0
+    # The multiplier for increasing the buffer when cheat probability is high (>0.9).
+    # (probability - 0.9) * multiplier
+    multiplier: 100.0
+    # The amount subtracted from the buffer when cheat probability is low (<0.1).
+    decrease: 0.25
+
+  worldguard:
+    # Enable WorldGuard region checking?
+    enabled: true
+    # Regions where the AI check is disabled, grouped by world name.
+    # enabled-regions override disabled-regions when both match.
+    # Use "+" to configure a region for all worlds.
+    # Example:
+    #   disabled-regions:
+    #     "+":
+    #       - "spawn"
+    #     world:
+    #       - "arena"
+    #     world_nether:
+    #       - "nether_hub"
+    disabled-regions: # мир и регион где не будут работать проверки
+      spawn:
+        - "spawn"
+    enabled-regions: # мир и регион, где будут работать проверки
+      spawn:
+        - "pvp"

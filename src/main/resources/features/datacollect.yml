@@ -1,0 +1,27 @@
+frames: 50
+combat_timer: 50
+clear_buffer_on_combat_timeout: true
+
+auto_save:
+  enable: true
+  value: 50
+
+info_statistic:
+  # ACTIONBAR / BOSSBAR
+  type: BOSSBAR
+  line: "&7{player}&f собрал: &7{frames_collecting}&f (буфер: &7{frames_size}&f) отправлено: &7{sending}"
+
+messages:
+  start:
+    help: "&fИспользование: &7/raveon datacollect start <коллектор> <cheat|legit> [название_чита]"
+    none_selected: "&fДля сбора данных читера необходимо указать название чита"
+    start: "&fЗапущен сбор набора данных для &7{target}"
+  stop:
+    help: "&fИспользование: &7/raveon datacollect stop <коллектор>"
+    no_collecting: "&fИгрок {target} не собирает данные"
+    stop: "&fОстановлен сбор набора данных для &7{target}"
+    auto_stop: "&fСбор набора данных остановлен для &7{target}"
+  all:
+    offline: "&fИгрок &7{target} &fоффлайн"
+    already_collecting: "&fДанные уже собираются с &7{target}"
+    none_type: "&fНекорректный тип сбора. Доступно: &7[cheat/legit]"
