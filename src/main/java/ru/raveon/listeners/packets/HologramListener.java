@@ -13,6 +13,7 @@ import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import ru.raveon.Raveon;
+import ru.raveon.utils.SchedulerUtils;
 
 public final class HologramListener extends PacketListenerAbstract implements Listener {
 
@@ -32,7 +33,7 @@ public final class HologramListener extends PacketListenerAbstract implements Li
             return;
         }
 
-        runSync(() -> {
+        runSync(player, () -> {
             if (player.isOnline()) {
                 Raveon.INSTANCE.getHologramManager().handleMovement(player);
             }
@@ -71,12 +72,12 @@ public final class HologramListener extends PacketListenerAbstract implements Li
                 || event.getPacketType() == PacketType.Play.Client.PLAYER_POSITION_AND_ROTATION;
     }
 
-    private void runSync(Runnable task) {
+    private void runSync(Player player, Runnable task) {
         if (Bukkit.isPrimaryThread()) {
             task.run();
             return;
         }
 
-        Bukkit.getScheduler().runTask(Raveon.INSTANCE, task);
+        SchedulerUtils.runEntity(Raveon.INSTANCE, player, task);
     }
 }

@@ -102,6 +102,10 @@ public class PlayerDataManager {
     }
 
     public void onDisconnect(User user) {
+        if (user == null || user.getUUID() == null) {
+            return;
+        }
+
         Raveon.INSTANCE.getPlayerOnlineService()
                 .quit(user.getUUID());
 

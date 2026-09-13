@@ -3,6 +3,7 @@ main: ru.raveon.Raveon
 
 version: '${version}'
 api-version: '1.16'
+folia-supported: true
 
 depend:
   - packetevents

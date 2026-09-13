@@ -9,6 +9,7 @@ import ru.raveon.api.models.monitor.AiSnapshot;
 import ru.raveon.api.models.monitor.MonitorSession;
 import ru.raveon.api.models.monitor.ToggleResult;
 import ru.raveon.config.MainConfigManager;
+import ru.raveon.utils.SchedulerUtils;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,7 +30,7 @@ public final class MonitorManager {
     private final Map<UUID, MonitorSession> sessions = new HashMap<>();
     private final Map<UUID, AiSnapshot> snapshots = new HashMap<>();
 
-    private BukkitTask updateTask;
+    private SchedulerUtils.TaskHandle updateTask;
     private long currentTick;
 
     public ToggleResult toggle(Player viewer, Player target) {
@@ -76,7 +77,7 @@ public final class MonitorManager {
 
         if (!Bukkit.isPrimaryThread()) {
             UUID targetId = target.getUniqueId();
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            SchedulerUtils.run(plugin, () -> {
                 Player onlineTarget = Bukkit.getPlayer(targetId);
                 if (onlineTarget != null) {
                     publish(onlineTarget, probability, buffer);
@@ -125,7 +126,7 @@ public final class MonitorManager {
         }
 
         currentTick = 0L;
-        updateTask = Bukkit.getScheduler().runTaskTimer(
+        updateTask = SchedulerUtils.runTimer(
                 plugin,
                 this::tick,
                 1L,

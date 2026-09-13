@@ -32,6 +32,7 @@ import ru.raveon.service.PlayerOnlineService;
 import ru.raveon.service.analyze.AnalyzeBatchDispatcher;
 import ru.raveon.service.analyze.FlatBufferAnalyzeService;
 import ru.raveon.utils.VersionHelper;
+import ru.raveon.utils.SchedulerUtils;
 import ru.raveon.utils.entity.TargetEntityIndex;
 import ru.raveon.utils.entity.TargetEntityIndexListener;
 
@@ -68,6 +69,7 @@ public class Raveon extends JavaPlugin {
 
     private RedisManager redisManager;
     private PlayerOnlineService playerOnlineService;
+    private SchedulerUtils.TaskHandle heartbeatTask;
 
     @Override
     public void onEnable() {
@@ -89,7 +91,6 @@ public class Raveon extends JavaPlugin {
         this.hologramConfigManager = new HologramConfigManager(this);
         this.punishmentConfigManager = new PunishmentConfigManager(this);
         initRedis();
-
         this.aiResultManager = new AIResultManager();
         this.analyzeBatchDispatcher = new AnalyzeBatchDispatcher(this, checksConfigManager);
         this.analyzeBatchDispatcher.start();
@@ -114,13 +115,12 @@ public class Raveon extends JavaPlugin {
 
         ItemStackServices.setSkullHead(createSkullHead());
 
-        initRedis();
     }
 
     private void initRedis() {
         redisManager = new RedisManager(mainConfigManager.getRedisConfig(), null);
         playerOnlineService = new PlayerOnlineService(redisManager, 60000L);
-        Bukkit.getScheduler().runTaskTimerAsynchronously(this, () -> {
+        heartbeatTask = SchedulerUtils.runTimerAsync(this, () -> {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 playerOnlineService.heartbeat(
                         player.getUniqueId(),
@@ -148,6 +148,12 @@ public class Raveon extends JavaPlugin {
         }
         if (monitorManager != null) {
             monitorManager.shutdown();
+        }
+        if (heartbeatTask != null) {
+            heartbeatTask.cancel();
+        }
+        if (redisManager != null) {
+            redisManager.onDisable();
         }
     }
 

@@ -88,10 +88,16 @@ public class PlayerOnlineService {
     }
 
     public void quit(UUID uuid) {
+        if (uuid == null) {
+            return;
+        }
         quit(uuid.toString());
     }
 
     public void quit(String uuid) {
+        if (uuid == null || uuid.isBlank()) {
+            return;
+        }
         if (!isRedisAvailable()) {
             localOnline.remove(uuid);
             return;
@@ -118,6 +124,9 @@ public class PlayerOnlineService {
 
 
     public void quit(UUID uuid, String anarchyId) {
+        if (uuid == null) {
+            return;
+        }
         quit(uuid.toString(), anarchyId);
     }
 

@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import ru.raveon.Raveon;
 import ru.raveon.checks.Check;
 import ru.raveon.config.anticheat.PunishmentConfigManager;
+import ru.raveon.utils.SchedulerUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -123,7 +124,7 @@ public final class PunishmentManager {
     private void executeConsoleCommand(String commandTemplate, Check check, String verbose, double aiProbability, int checkViolations, int totalViolations) {
         String command = applyPlaceholders(commandTemplate, check, verbose, aiProbability, checkViolations, totalViolations);
 
-        Bukkit.getScheduler().runTask(plugin, () ->
+        SchedulerUtils.run(plugin, () ->
                 Bukkit.dispatchCommand(Bukkit.getConsoleSender(), command)
         );
     }

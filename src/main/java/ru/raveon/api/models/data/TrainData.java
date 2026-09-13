@@ -13,6 +13,7 @@ import ru.raveon.api.events.EndTrainEvent;
 import ru.raveon.api.models.RotationFrame;
 import ru.raveon.api.models.TrainStatisticInfoType;
 import ru.raveon.service.train.UploadService;
+import ru.raveon.utils.SchedulerUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -189,7 +190,7 @@ public class TrainData {
         }
 
         if (target != null) {
-            Bukkit.getScheduler().runTask(Raveon.INSTANCE, () -> new EndTrainEvent(
+            SchedulerUtils.runEntity(Raveon.INSTANCE, target, () -> new EndTrainEvent(
                     target,
                     this,
                     owner,

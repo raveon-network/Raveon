@@ -1,10 +1,12 @@
 package ru.raveon.service.analyze;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import ru.raveon.Raveon;
 import ru.raveon.config.anticheat.ChecksConfigManager;
 import ru.raveon.player.RaveonPlayer;
+import ru.raveon.utils.SchedulerUtils;
 
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -194,14 +196,12 @@ public final class AnalyzeBatchDispatcher {
             return;
         }
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            for (int i = 0; i < batch.size(); i++) {
-                Raveon.INSTANCE.getAiResultManager().handleAnalyzeResult(
-                        batch.get(i).player,
-                        probabilities[i]
-                );
-            }
-        });
+        for (int i = 0; i < batch.size(); i++) {
+            final int index = i;
+            Player player = batch.get(i).player.getBukkitPlayer();
+            SchedulerUtils.runEntity(plugin, player, () -> Raveon.INSTANCE.getAiResultManager()
+                    .handleAnalyzeResult(batch.get(index).player, probabilities[index]));
+        }
     }
 
     private double[] decodeResponse(byte[] body, int expectedCount) {

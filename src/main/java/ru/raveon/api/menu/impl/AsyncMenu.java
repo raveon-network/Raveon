@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import ru.raveon.Raveon;
+import ru.raveon.utils.SchedulerUtils;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -14,7 +15,7 @@ public abstract class AsyncMenu extends AbstractMenu {
 
         async(() -> {
             this.populateInventory();
-            Bukkit.getScheduler().runTaskLater(Raveon.INSTANCE, () -> player.openInventory(menuInventory), 1L);
+            SchedulerUtils.runEntity(Raveon.INSTANCE, player, () -> player.openInventory(menuInventory));
         });
     }
 
@@ -32,6 +33,6 @@ public abstract class AsyncMenu extends AbstractMenu {
     }
 
     private void sync(Runnable runnable) {
-        Bukkit.getScheduler().runTask(Raveon.INSTANCE, runnable);
+        SchedulerUtils.run(Raveon.INSTANCE, runnable);
     }
 }

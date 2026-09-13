@@ -10,6 +10,7 @@ import ru.raveon.api.command.register.SubCommandRegister;
 import ru.raveon.database.model.PlayerAIProbabilityData;
 import ru.raveon.database.model.ViolationRecord;
 import ru.raveon.menu.history.HistoryMenu;
+import ru.raveon.utils.SchedulerUtils;
 
 import java.util.Collections;
 import java.util.List;
@@ -48,25 +49,32 @@ public class HistorySubCommand implements BuildableCommand {
 
             violationStorage.getViolations(uuid, page, limit).thenAccept(records -> {
 
-                sender.sendMessage(config.getHistoryHeaderMessage()
+                String header = config.getHistoryHeaderMessage()
                         .replace("{player}", targetName)
                         .replace("{page}", String.valueOf(page + 1))
-                        .replace("{max_pages}", String.valueOf(Math.max(maxPages, 1)))
-                );
+                        .replace("{max_pages}", String.valueOf(Math.max(maxPages, 1)));
+                sendMessage(sender, header);
 
                 for (int i = records.size() - 1; i >= 0; i--) {
                     ViolationRecord record = records.get(i);
-
-                    sender.sendMessage(config.getHistoryEntryMessage()
+                    String message = config.getHistoryEntryMessage()
                             .replace("{check_name}", record.checkName())
                             .replace("{vl}", String.valueOf(record.vls()))
                             .replace("{verbose}", record.verbose())
                             .replace("{server}", record.server())
-                            .replace("{time_ago}", formatTimeAgo(record.timestamp()))
-                    );
+                            .replace("{time_ago}", formatTimeAgo(record.timestamp()));
+                    sendMessage(sender, message);
                 }
             });
         });
+    }
+
+    private void sendMessage(CommandSender sender, String message) {
+        if (sender instanceof Player player) {
+            SchedulerUtils.runEntity(Raveon.INSTANCE, player, () -> player.sendMessage(message));
+        } else {
+            SchedulerUtils.run(Raveon.INSTANCE, () -> sender.sendMessage(message));
+        }
     }
 
     private boolean isMenuRequested(@NotNull String @NotNull [] args) {
@@ -88,8 +96,9 @@ public class HistorySubCommand implements BuildableCommand {
                 ? probabilityStorage.getPlayerDataByUUID(target.getUniqueId())
                 : probabilityStorage.getPlayerDataByName(targetName);
 
-        dataFuture.whenComplete((playerData, throwable) -> Bukkit.getScheduler().runTask(
+        dataFuture.whenComplete((playerData, throwable) -> SchedulerUtils.runEntity(
                 Raveon.INSTANCE,
+                player,
                 () -> {
                     if (!player.isOnline()) {
                         return;

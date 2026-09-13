@@ -9,6 +9,7 @@ import org.bukkit.scheduler.BukkitTask;
 import ru.raveon.Raveon;
 import ru.raveon.config.anticheat.HologramConfigManager;
 import ru.raveon.manager.anticheat.PlayerAnalysisSnapshot;
+import ru.raveon.utils.SchedulerUtils;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -31,11 +32,11 @@ public final class HologramManager {
     private final Map<UUID, Set<UUID>> viewersByTarget = new ConcurrentHashMap<>();
     private final Set<UUID> enabledViewers = ConcurrentHashMap.newKeySet();
 
-    private BukkitTask updateTask;
+    private SchedulerUtils.TaskHandle updateTask;
 
     public void start() {
         stop();
-        updateTask = Bukkit.getScheduler().runTaskTimer(
+        updateTask = SchedulerUtils.runTimer(
                 Raveon.INSTANCE,
                 this::updateVisibleHolograms,
                 10L,
