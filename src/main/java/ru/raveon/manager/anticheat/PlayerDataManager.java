@@ -49,6 +49,9 @@ public class PlayerDataManager {
 
     @Nullable
     public RaveonPlayer getPlayer(@NotNull User user) {
+        if (user == null || user.getUUID() == null) {
+            return null;
+        }
         return playerDataMap.get(user.getUUID());
     }
 
@@ -79,6 +82,9 @@ public class PlayerDataManager {
     }
 
     public void addUser(@NotNull User user) {
+        if (user == null || user.getUUID() == null) {
+            return;
+        }
         if (exemptCheck(user)) {
             return;
         }
@@ -98,6 +104,9 @@ public class PlayerDataManager {
     }
 
     public RaveonPlayer remove(final @NotNull User user) {
+        if (user == null || user.getUUID() == null) {
+            return null;
+        }
         return playerDataMap.remove(user.getUUID());
     }
 

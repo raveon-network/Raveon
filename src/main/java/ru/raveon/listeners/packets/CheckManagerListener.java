@@ -20,7 +20,9 @@ public final class CheckManagerListener extends PacketListenerAbstract {
             return;
         }
 
-        if (event.getConnectionState() == ConnectionState.CONFIGURATION || event.getConnectionState() == ConnectionState.PLAY) {
+        if (event.getConnectionState() == ConnectionState.PLAY
+                && event.getUser() != null
+                && event.getUser().getUUID() != null) {
             player.getCheckManager().onPacketReceive(event);
         }
     }

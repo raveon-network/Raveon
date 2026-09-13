@@ -2,13 +2,13 @@ analyze:
   # Enable ML check?
   enable: false
   # URL for the ML inference API.
-  analyze_server: https://raveonai.wtf/v1/inference
+  analyze_server: https://raveon.wtf/v1/inference
   # The number of ticks to send in a sequence to the ML.
-  sequence: 40
+  sequence: 50
   # The number of ticks to wait before sending the next sequence.
   step: 10
   # The number of ticks to enable collect frames
-  combat: 2
+  combat: 50
 
   buffer:
     # The violation level (VL) at which a flag will be triggered.

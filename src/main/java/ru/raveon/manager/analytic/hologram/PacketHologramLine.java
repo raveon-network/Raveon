@@ -15,6 +15,7 @@ import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import ru.raveon.utils.VersionHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -124,7 +125,9 @@ public final class PacketHologramLine {
         metadata.add(new EntityData<>(2, EntityDataTypes.OPTIONAL_COMPONENT, Optional.of(jsonComponent)));
         metadata.add(new EntityData<>(3, EntityDataTypes.BOOLEAN, true));
         metadata.add(new EntityData<>(5, EntityDataTypes.BOOLEAN, true));
-        metadata.add(new EntityData<>(14, EntityDataTypes.BYTE, (byte) 0x10));
+        // ArmorStand flags moved from index 14 to 15 in the 1.21 protocol.
+        int armorStandFlagsIndex = VersionHelper.CURRENT_VERSION >= 1210 ? 15 : 14;
+        metadata.add(new EntityData<>(armorStandFlagsIndex, EntityDataTypes.BYTE, (byte) 0x10));
 
         return metadata;
     }

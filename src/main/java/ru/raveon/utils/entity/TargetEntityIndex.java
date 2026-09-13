@@ -17,6 +17,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class TargetEntityIndex {
     private final Map<Integer, UUID> entityIdToUuid = new ConcurrentHashMap<>();
+    private final Collection<Integer> playerEntityIds = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Entity> uuidToEntity = new ConcurrentHashMap<>();
     private final Map<String, TargetEntityAdapter> adapters = new ConcurrentHashMap<>();
     private volatile TargetEntityAdapter[] adapterSnapshot = new TargetEntityAdapter[0];
@@ -33,6 +34,7 @@ public final class TargetEntityIndex {
 
     public void clear() {
         entityIdToUuid.clear();
+        playerEntityIds.clear();
         uuidToEntity.clear();
     }
 
@@ -87,6 +89,9 @@ public final class TargetEntityIndex {
 
         uuidToEntity.put(entity.getUniqueId(), entity);
         entityIdToUuid.put(entity.getEntityId(), entity.getUniqueId());
+        if (entity instanceof org.bukkit.entity.Player) {
+            playerEntityIds.add(entity.getEntityId());
+        }
     }
 
     public void untrack(@Nullable Entity entity) {
@@ -97,6 +102,7 @@ public final class TargetEntityIndex {
         UUID uuid = entity.getUniqueId();
         uuidToEntity.remove(uuid);
         entityIdToUuid.remove(entity.getEntityId());
+        playerEntityIds.remove(entity.getEntityId());
 
         UUID mappedUuid = entityIdToUuid.get(entity.getEntityId());
         if (uuid.equals(mappedUuid)) {
@@ -119,6 +125,14 @@ public final class TargetEntityIndex {
         return entity;
     }
 
+    /** Packet-thread-safe lookup that does not touch Bukkit entity state. */
+    public @Nullable UUID getPlayerUniqueIdByEntityId(int entityId) {
+        if (!playerEntityIds.contains(entityId)) {
+            return null;
+        }
+        return entityIdToUuid.get(entityId);
+    }
+
     public @Nullable Entity getByUniqueId(@Nullable UUID uuid) {
         if (uuid == null) {
             return null;
@@ -128,16 +142,8 @@ public final class TargetEntityIndex {
         if (entity != null && isUsable(entity, null, uuid)) {
             return entity;
         }
-
-        Entity resolved = Bukkit.getEntity(uuid);
-        if (!isTrackable(resolved)) {
-            uuidToEntity.remove(uuid);
-            return null;
-        }
-
-        uuidToEntity.put(uuid, resolved);
-        entityIdToUuid.put(resolved.getEntityId(), uuid);
-        return resolved;
+        uuidToEntity.remove(uuid);
+        return null;
     }
 
     public boolean isTracked(int entityId) {

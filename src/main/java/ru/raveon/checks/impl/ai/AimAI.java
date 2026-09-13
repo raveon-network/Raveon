@@ -16,6 +16,7 @@ import ru.raveon.checks.CheckData;
 import ru.raveon.checks.type.PacketCheck;
 import ru.raveon.player.RaveonPlayer;
 import ru.raveon.utils.math.MouseCalculator;
+import ru.raveon.utils.SchedulerUtils;
 
 import java.util.UUID;
 
@@ -69,25 +70,36 @@ public final class AimAI extends Check implements PacketCheck {
             return;
         }
 
-        Player bukkitPlayer = player.getBukkitPlayer();
-        if (bukkitPlayer == null || !bukkitPlayer.isOnline()) {
+        Player bukkitPlayer = event.getPlayer();
+        if (bukkitPlayer == null) {
+            return;
+        }
+
+        float currentYaw = normalizeYaw(flying.getLocation().getYaw());
+        float currentPitch = clampPitch(flying.getLocation().getPitch());
+        SchedulerUtils.runEntity(
+                Raveon.INSTANCE,
+                bukkitPlayer,
+                () -> processRotation(bukkitPlayer, currentYaw, currentPitch)
+        );
+    }
+
+    private void processRotation(Player bukkitPlayer, float currentYaw, float currentPitch) {
+        if (!bukkitPlayer.isOnline()) {
             return;
         }
 
         if (Raveon.INSTANCE.getChecksConfigManager().isAimAiBypassedInRegion(bukkitPlayer)) {
-            updateRotationState(flying);
+            updateRotationState(currentYaw, currentPitch);
             player.getRotationBuffer().clear();
             return;
         }
 
         Entity target = Raveon.INSTANCE.getTargetEntityIndex().getByUniqueId(player.getLastDamagedEntity());
         if (target == null || !target.isValid()) {
-            updateRotationState(flying);
+            updateRotationState(currentYaw, currentPitch);
             return;
         }
-
-        float currentYaw = normalizeYaw(flying.getLocation().getYaw());
-        float currentPitch = clampPitch(flying.getLocation().getPitch());
 
         float deltaYaw = getSignedAngleDelta(currentYaw, lastYaw);
         float deltaPitch = currentPitch - lastPitch;
@@ -248,10 +260,7 @@ public final class AimAI extends Check implements PacketCheck {
         Raveon.INSTANCE.getAlertManager().sendVerbose(verboseMessage);
     }
 
-    private void updateRotationState(WrapperPlayClientPlayerFlying flying) {
-        float currentYaw = normalizeYaw(flying.getLocation().getYaw());
-        float currentPitch = clampPitch(flying.getLocation().getPitch());
-
+    private void updateRotationState(float currentYaw, float currentPitch) {
         float deltaYaw = getSignedAngleDelta(currentYaw, lastYaw);
         float deltaPitch = currentPitch - lastPitch;
 

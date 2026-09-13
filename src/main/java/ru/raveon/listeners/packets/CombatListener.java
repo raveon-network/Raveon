@@ -5,8 +5,6 @@ import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
 import ru.raveon.Raveon;
 import ru.raveon.player.RaveonPlayer;
 
@@ -17,6 +15,10 @@ public final class CombatListener extends PacketListenerAbstract {
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
+        if (event.getUser() == null || event.getUser().getUUID() == null) {
+            return;
+        }
+
         if (event.getPacketType() != PacketType.Play.Client.INTERACT_ENTITY) {
             return;
         }
@@ -31,15 +33,12 @@ public final class CombatListener extends PacketListenerAbstract {
             return;
         }
 
-        Entity target = Raveon.INSTANCE.getTargetEntityIndex().getByEntityId(interactPacket.getEntityId());
-        if (target == null) {
+        java.util.UUID targetUuid = Raveon.INSTANCE.getTargetEntityIndex()
+                .getPlayerUniqueIdByEntityId(interactPacket.getEntityId());
+        if (targetUuid == null) {
             return;
         }
 
-        if (!(target instanceof Player)) {
-            return;
-        }
-
-        raveonPlayer.markAttack(target.getUniqueId());
+        raveonPlayer.markAttack(targetUuid);
     }
 }
