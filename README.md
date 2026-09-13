@@ -45,7 +45,7 @@ AI-проверка работает только при доступном infe
 
 ```yaml
 analyze:
-  analyze_server: https://api.raveonai.wtf/v1/inference
+  analyze_server: https://raveonai.wtf/v1/inference
 ```
 
 Если вы не приобрели доступ к API, проверки будут недоступны.
