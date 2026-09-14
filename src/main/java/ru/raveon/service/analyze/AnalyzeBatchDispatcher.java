@@ -33,6 +33,7 @@ public final class AnalyzeBatchDispatcher {
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
     private static final int MAX_RETRIES = 2;
+    private static final long LICENSE_BACKOFF_MS = 60_000L;
 
     private final Plugin plugin;
     private final ChecksConfigManager configManager;
@@ -41,6 +42,7 @@ public final class AnalyzeBatchDispatcher {
     private final AtomicInteger queueSize = new AtomicInteger();
     private final ScheduledExecutorService flusher;
     private volatile boolean stopped;
+    private volatile long licenseBlockedUntilNanos;
 
     public AnalyzeBatchDispatcher(Plugin plugin, ChecksConfigManager configManager) {
         this.plugin = plugin;
@@ -69,7 +71,7 @@ public final class AnalyzeBatchDispatcher {
     }
 
     public void enqueue(byte[] payload, RaveonPlayer raveonPlayer) {
-        if (stopped) {
+        if (stopped || isLicenseBlocked()) {
             return;
         }
         queue.add(new PendingAnalyze(payload, raveonPlayer));
@@ -158,7 +160,9 @@ public final class AnalyzeBatchDispatcher {
                                     "[RaveonAI] Analyze server returned HTTP " + response.statusCode()
                                             + " (items=" + batch.size() + ", retry=" + retry + ")"
                             );
-                            if (isRetryableStatus(response.statusCode())) {
+                            if (response.statusCode() == 401 || response.statusCode() == 403) {
+                                blockForLicenseError();
+                            } else if (isRetryableStatus(response.statusCode())) {
                                 retryBatch(endpoint, batch, retry);
                             }
                             return;
@@ -188,6 +192,15 @@ public final class AnalyzeBatchDispatcher {
                 || statusCode == 502
                 || statusCode == 503
                 || statusCode == 504;
+    }
+
+    private boolean isLicenseBlocked() {
+        return System.nanoTime() < licenseBlockedUntilNanos;
+    }
+
+    private void blockForLicenseError() {
+        licenseBlockedUntilNanos = System.nanoTime()
+                + TimeUnit.MILLISECONDS.toNanos(LICENSE_BACKOFF_MS);
     }
 
     private byte[] encodeFraming(List<PendingAnalyze> batch) {
