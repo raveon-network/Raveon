@@ -158,7 +158,9 @@ public final class AnalyzeBatchDispatcher {
                                     "[RaveonAI] Analyze server returned HTTP " + response.statusCode()
                                             + " (items=" + batch.size() + ", retry=" + retry + ")"
                             );
-                            retryBatch(endpoint, batch, retry);
+                            if (isRetryableStatus(response.statusCode())) {
+                                retryBatch(endpoint, batch, retry);
+                            }
                             return;
                         }
                         handleResponse(endpoint, batch, response, retry);
@@ -177,6 +179,15 @@ public final class AnalyzeBatchDispatcher {
         }
         long delay = 100L * (retry + 1);
         flusher.schedule(() -> sendBatch(endpoint, batch, retry + 1), delay, TimeUnit.MILLISECONDS);
+    }
+
+    private boolean isRetryableStatus(int statusCode) {
+        return statusCode == 408
+                || statusCode == 429
+                || statusCode == 500
+                || statusCode == 502
+                || statusCode == 503
+                || statusCode == 504;
     }
 
     private byte[] encodeFraming(List<PendingAnalyze> batch) {
