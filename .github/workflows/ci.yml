@@ -1,39 +1,63 @@
 name: Java CI
+
 on:
   push:
-    branches:
-      - '*'
+    branches: ['**']
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions: write-all
+    permissions:
+      contents: write  
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: gradle
-      - name: Grant execute permission for gradlew
-        run: chmod +x gradlew
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Ensure wrapper is usable
+        run: |
+          chmod +x gradlew
+          if ! unzip -p gradle/wrapper/gradle-wrapper.jar META-INF/MANIFEST.MF 2>/dev/null | grep -q 'Main-Class'; then
+            echo "::warning::gradle-wrapper.jar повреждён, пересоздаю"
+            V=$(sed -nE 's/.*gradle-([0-9.]+)-(bin|all)\.zip/\1/p' gradle/wrapper/gradle-wrapper.properties)
+            gradle wrapper --gradle-version "${V:-8.14}"
+            chmod +x gradlew
+          fi
+
       - name: Build with Gradle
-        run: ./gradlew build
+        run: ./gradlew build --no-daemon
+
       - name: Upload JAR artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: xlibrary-jars
-          path: |
-            */build/libs/*-all.jar
+          name: raveon-jars-${{ github.run_number }}
+          path: '**/build/libs/*-all.jar'
           if-no-files-found: error
+          retention-days: 14
+
       - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "build-${{ github.run_number }}"
-          name: "Automatic Release - Build ${{ github.run_number }}"
+          tag_name: build-${{ github.run_number }}
+          name: Automatic Release - Build ${{ github.run_number }}
           prerelease: false
           body: |
-            This release was automatically created by GitHub Actions.
-            Commit: ${{ github.event.head_commit.message }}
-          files: |
-            */build/libs/*-all.jar
+            Автоматический релиз из GitHub Actions.
+            Коммит: ${{ github.sha }}
+          files: '**/build/libs/*-all.jar'
