@@ -96,10 +96,6 @@ public final class AimAI extends Check implements PacketCheck {
         }
 
         Entity target = Raveon.INSTANCE.getTargetEntityIndex().getByUniqueId(player.getLastDamagedEntity());
-        if (target == null || !target.isValid()) {
-            updateRotationState(currentYaw, currentPitch);
-            return;
-        }
 
         float deltaYaw = getSignedAngleDelta(currentYaw, lastYaw);
         float deltaPitch = currentPitch - lastPitch;
@@ -113,8 +109,15 @@ public final class AimAI extends Check implements PacketCheck {
         float gcdErrorYaw = MouseCalculator.calculateGCDError(deltaYaw, lastDeltaYaw);
         float gcdErrorPitch = MouseCalculator.calculateGCDError(deltaPitch, lastDeltaPitch);
 
-        float yawToTargetDiff = calculateSignedYawToTargetDiff(bukkitPlayer, target);
-        float pitchToTargetDiff = calculateSignedPitchToTargetDiff(bukkitPlayer, target);
+        // Rotation frames remain valid even when the target index is briefly
+        // stale. The model payload contains movement features; target angles
+        // are optional context and must not gate collection.
+        float yawToTargetDiff = target == null || !target.isValid()
+                ? 0.0F
+                : calculateSignedYawToTargetDiff(bukkitPlayer, target);
+        float pitchToTargetDiff = target == null || !target.isValid()
+                ? 0.0F
+                : calculateSignedPitchToTargetDiff(bukkitPlayer, target);
 
         rotationSampleIndex++;
 

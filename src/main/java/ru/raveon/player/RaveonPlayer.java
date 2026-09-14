@@ -30,9 +30,9 @@ public class RaveonPlayer {
     private Player bukkitPlayer;
     private List<RotationFrame> lastAnalyzedFrames = null;
 
-    private long lastCombatTime = 0L;
-    private boolean isInCombat = false;
-    private UUID lastDamagedEntity;
+    private volatile long lastCombatTime = 0L;
+    private volatile boolean isInCombat = false;
+    private volatile UUID lastDamagedEntity;
 
     public RaveonPlayer(User user) {
         this.user = user;

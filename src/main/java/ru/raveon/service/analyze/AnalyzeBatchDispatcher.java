@@ -32,6 +32,7 @@ public final class AnalyzeBatchDispatcher {
     private static final byte[] RESPONSE_MAGIC = {'G', 'A', 'I', 'B'};
 
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(10);
+    private static final int MAX_RETRIES = 2;
 
     private final Plugin plugin;
     private final ChecksConfigManager configManager;
@@ -114,7 +115,7 @@ public final class AnalyzeBatchDispatcher {
             if (batch.isEmpty()) {
                 return;
             }
-            sendBatch(endpoint, batch);
+            sendBatch(endpoint, batch, 0);
         }
     }
 
@@ -131,7 +132,7 @@ public final class AnalyzeBatchDispatcher {
         return items;
     }
 
-    private void sendBatch(URI endpoint, List<PendingAnalyze> batch) {
+    private void sendBatch(URI endpoint, List<PendingAnalyze> batch, int retry) {
         byte[] body = encodeFraming(batch);
         HttpRequest request = HttpRequest.newBuilder(endpoint)
                 .header("Content-Type", "application/x-flatbuffers")
@@ -146,17 +147,36 @@ public final class AnalyzeBatchDispatcher {
                     try {
                         if (throwable != null) {
                             Bukkit.getLogger().warning(
-                                    "[RaveonAI] Analyze batch failed: " + throwable.getMessage()
+                                    "[RaveonAI] Analyze batch failed (items=" + batch.size()
+                                            + ", retry=" + retry + "): " + throwable.getMessage()
                             );
+                            retryBatch(endpoint, batch, retry);
                             return;
                         }
-                        handleResponse(batch, response);
+                        if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                            Bukkit.getLogger().warning(
+                                    "[RaveonAI] Analyze server returned HTTP " + response.statusCode()
+                                            + " (items=" + batch.size() + ", retry=" + retry + ")"
+                            );
+                            retryBatch(endpoint, batch, retry);
+                            return;
+                        }
+                        handleResponse(endpoint, batch, response, retry);
                     } catch (Throwable unexpected) {
                         Bukkit.getLogger().warning(
                                 "[RaveonAI] Analyze batch callback failed: " + unexpected.getMessage()
-                        );
+                    );
+                        retryBatch(endpoint, batch, retry);
                     }
                 });
+    }
+
+    private void retryBatch(URI endpoint, List<PendingAnalyze> batch, int retry) {
+        if (stopped || retry >= MAX_RETRIES) {
+            return;
+        }
+        long delay = 100L * (retry + 1);
+        flusher.schedule(() -> sendBatch(endpoint, batch, retry + 1), delay, TimeUnit.MILLISECONDS);
     }
 
     private byte[] encodeFraming(List<PendingAnalyze> batch) {
@@ -174,21 +194,17 @@ public final class AnalyzeBatchDispatcher {
         return buffer.array();
     }
 
-    private void handleResponse(List<PendingAnalyze> batch, HttpResponse<byte[]> response) {
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            Bukkit.getLogger().warning(
-                    "[RaveonAI] Analyze server returned HTTP " + response.statusCode()
-            );
-            return;
-        }
-
+    private void handleResponse(URI endpoint, List<PendingAnalyze> batch,
+                                HttpResponse<byte[]> response, int retry) {
         final double[] probabilities;
         try {
             probabilities = decodeResponse(response.body(), batch.size());
         } catch (RuntimeException exception) {
             Bukkit.getLogger().warning(
-                    "[RaveonAI] Batch response parse failed: " + exception.getMessage()
+                    "[RaveonAI] Batch response parse failed (items=" + batch.size()
+                            + "): " + exception.getMessage()
             );
+            retryBatch(endpoint, batch, retry);
             return;
         }
 

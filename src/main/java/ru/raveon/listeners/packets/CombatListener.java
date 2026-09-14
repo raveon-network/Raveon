@@ -35,10 +35,9 @@ public final class CombatListener extends PacketListenerAbstract {
 
         java.util.UUID targetUuid = Raveon.INSTANCE.getTargetEntityIndex()
                 .getPlayerUniqueIdByEntityId(interactPacket.getEntityId());
-        if (targetUuid == null) {
-            return;
-        }
-
+        // Target indexing is optional context. The attack itself must still
+        // activate collection, otherwise one player can disappear from AI
+        // requests when the entity index is temporarily stale.
         raveonPlayer.markAttack(targetUuid);
     }
 }
