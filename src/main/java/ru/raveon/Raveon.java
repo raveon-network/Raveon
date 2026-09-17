@@ -100,6 +100,7 @@ public class Raveon extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new TargetEntityIndexListener(targetEntityIndex), this);
         getServer().getPluginManager().registerEvents(new MenuListener(), this);
+        getServer().getPluginManager().registerEvents(packetManager.getHologramListener(), this);
         targetEntityIndex.initialize();
 
         this.commandManager = new CommandManager(this);

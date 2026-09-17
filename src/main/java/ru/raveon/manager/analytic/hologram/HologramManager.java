@@ -5,7 +5,6 @@ import lombok.NonNull;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
-import org.bukkit.scheduler.BukkitTask;
 import ru.raveon.Raveon;
 import ru.raveon.config.anticheat.HologramConfigManager;
 import ru.raveon.manager.anticheat.PlayerAnalysisSnapshot;
@@ -30,6 +29,7 @@ public final class HologramManager {
     private final Map<UUID, List<String>> hologramLinesByTarget = new ConcurrentHashMap<>();
     private final Map<UUID, TrackedPlayerHologram> hologramsByTarget = new ConcurrentHashMap<>();
     private final Map<UUID, Set<UUID>> viewersByTarget = new ConcurrentHashMap<>();
+    private final Map<Integer, UUID> targetIdByEntityId = new ConcurrentHashMap<>();
     private final Set<UUID> enabledViewers = ConcurrentHashMap.newKeySet();
 
     private SchedulerUtils.TaskHandle updateTask;
@@ -107,8 +107,11 @@ public final class HologramManager {
         hideTarget(player.getUniqueId());
     }
 
+    /**
+     * Only needed for legacy armor stand holograms; display holograms ride the target and follow it client-side.
+     */
     public void handleMovement(@NonNull Player target) {
-        if (!target.isOnline()) {
+        if (PacketHologramLine.usesDisplayEntities() || !target.isOnline()) {
             return;
         }
 
@@ -126,8 +129,7 @@ public final class HologramManager {
             return;
         }
 
-        Location baseLocation = createBaseLocation(target);
-        double spacing = config.getLineSpacing();
+        Location targetLocation = target.getLocation();
 
         for (UUID viewerId : new HashSet<>(currentViewers)) {
             Player viewer = Bukkit.getPlayer(viewerId);
@@ -141,7 +143,7 @@ public final class HologramManager {
                 continue;
             }
 
-            hologram.teleportForViewer(viewer, baseLocation, spacing);
+            hologram.teleportForViewer(viewer, targetLocation, config.getOffset(), config.getLineSpacing());
         }
 
         cleanupEmptyTarget(targetId, currentViewers);
@@ -165,6 +167,58 @@ public final class HologramManager {
 
             cleanupEmptyTarget(targetId, viewers);
         }
+    }
+
+    /**
+     * Called from the netty thread for outgoing SET_PASSENGERS: keeps hologram lines mounted
+     * when the server rewrites the target's passenger list.
+     */
+    public int[] mergeOutgoingPassengers(@NonNull UUID viewerId, int vehicleEntityId, @NonNull int[] passengers) {
+        TrackedPlayerHologram hologram = findByEntityId(vehicleEntityId);
+
+        if (hologram == null || !hologram.isShownTo(viewerId)) {
+            return passengers;
+        }
+
+        return hologram.mergePassengers(viewerId, passengers);
+    }
+
+    /**
+     * The target entity was (re)spawned for the viewer, e.g. after respawn or re-entering tracking range.
+     */
+    public void handleTargetSpawned(@NonNull Player viewer, int targetEntityId) {
+        TrackedPlayerHologram hologram = findByEntityId(targetEntityId);
+
+        if (hologram != null) {
+            hologram.mountForViewer(viewer);
+        }
+    }
+
+    /**
+     * The target entity was removed on the viewer's client: its passengers would stay floating in place,
+     * so drop the hologram for this viewer. It is shown again on the next update if still visible.
+     */
+    public void handleEntitiesDestroyed(@NonNull Player viewer, @NonNull int[] entityIds) {
+        for (int entityId : entityIds) {
+            UUID targetId = targetIdByEntityId.get(entityId);
+            if (targetId == null) {
+                continue;
+            }
+
+            TrackedPlayerHologram hologram = hologramsByTarget.get(targetId);
+            Set<UUID> viewers = viewersByTarget.get(targetId);
+
+            if (hologram == null || viewers == null || !viewers.remove(viewer.getUniqueId())) {
+                continue;
+            }
+
+            hologram.destroyForViewer(viewer);
+        }
+    }
+
+    private TrackedPlayerHologram findByEntityId(int entityId) {
+        UUID targetId = targetIdByEntityId.get(entityId);
+        return targetId == null ? null : hologramsByTarget.get(targetId);
     }
 
     public void refreshCachedLines(@NonNull UUID targetId) {
@@ -212,17 +266,28 @@ public final class HologramManager {
             return;
         }
 
-        TrackedPlayerHologram hologram = hologramsByTarget.computeIfAbsent(
-                targetId,
-                ignored -> new TrackedPlayerHologram()
-        );
+        TrackedPlayerHologram hologram = hologramsByTarget.get(targetId);
+
+        if (hologram != null && hologram.getTargetEntityId() != target.getEntityId()) {
+            hideTarget(targetId);
+            hologram = null;
+        }
+
+        if (hologram == null) {
+            hologram = new TrackedPlayerHologram(target.getEntityId());
+            hologramsByTarget.put(targetId, hologram);
+            targetIdByEntityId.put(target.getEntityId(), targetId);
+        }
+
+        hologram.refreshTargetPassengers(target);
 
         Set<UUID> currentViewers = viewersByTarget.computeIfAbsent(
                 targetId,
                 ignored -> ConcurrentHashMap.newKeySet()
         );
 
-        Location baseLocation = createBaseLocation(target);
+        Location targetLocation = target.getLocation();
+        double offset = config.getOffset();
         double spacing = config.getLineSpacing();
 
         for (UUID viewerId : new HashSet<>(currentViewers)) {
@@ -237,7 +302,7 @@ public final class HologramManager {
                 continue;
             }
 
-            hologram.updateForViewer(viewer, baseLocation, lines, spacing);
+            hologram.updateForViewer(viewer, targetLocation, lines, offset, spacing);
         }
 
         for (UUID viewerId : enabledViewers) {
@@ -251,7 +316,7 @@ public final class HologramManager {
             }
 
             currentViewers.add(viewerId);
-            hologram.updateForViewer(viewer, baseLocation, lines, spacing);
+            hologram.updateForViewer(viewer, targetLocation, lines, offset, spacing);
         }
 
         cleanupEmptyTarget(targetId, currentViewers);
@@ -260,6 +325,10 @@ public final class HologramManager {
     private void hideTarget(@NonNull UUID targetId) {
         Set<UUID> viewerIds = viewersByTarget.remove(targetId);
         TrackedPlayerHologram hologram = hologramsByTarget.remove(targetId);
+
+        if (hologram != null) {
+            targetIdByEntityId.remove(hologram.getTargetEntityId());
+        }
 
         if (viewerIds == null || hologram == null) {
             return;
@@ -292,6 +361,7 @@ public final class HologramManager {
 
         viewersByTarget.clear();
         hologramsByTarget.clear();
+        targetIdByEntityId.clear();
     }
 
     private void cleanupOfflineTargets() {
@@ -317,7 +387,11 @@ public final class HologramManager {
         }
 
         viewersByTarget.remove(targetId);
-        hologramsByTarget.remove(targetId);
+
+        TrackedPlayerHologram hologram = hologramsByTarget.remove(targetId);
+        if (hologram != null) {
+            targetIdByEntityId.remove(hologram.getTargetEntityId());
+        }
     }
 
     private boolean canViewerSeeTarget(Player viewer, Player target) {
@@ -342,12 +416,6 @@ public final class HologramManager {
         }
 
         return viewer.getLocation().distanceSquared(target.getLocation()) <= 900.0D;
-    }
-
-    private Location createBaseLocation(@NonNull Player target) {
-        return target.getLocation()
-                .clone()
-                .add(0.0D, Raveon.INSTANCE.getHologramConfigManager().getOffset(), 0.0D);
     }
 
     private List<String> buildLinesForTarget(

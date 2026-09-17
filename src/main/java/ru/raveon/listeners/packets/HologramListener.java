@@ -2,8 +2,14 @@ package ru.raveon.listeners.packets;
 
 import com.github.retrooper.packetevents.event.PacketListenerAbstract;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
+import com.github.retrooper.packetevents.event.PacketSendEvent;
+import com.github.retrooper.packetevents.protocol.entity.type.EntityTypes;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientPlayerFlying;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDestroyEntities;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSetPassengers;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
+import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -13,18 +19,21 @@ import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import ru.raveon.Raveon;
+import ru.raveon.manager.analytic.hologram.HologramManager;
+import ru.raveon.manager.analytic.hologram.PacketHologramLine;
 import ru.raveon.utils.SchedulerUtils;
 
 public final class HologramListener extends PacketListenerAbstract implements Listener {
 
     @Override
     public void onPacketReceive(PacketReceiveEvent event) {
-        Player player = event.getPlayer();
-        if (player == null || !player.isOnline()) {
+        // Display holograms ride the player, only legacy armor stands need to follow movement.
+        if (PacketHologramLine.usesDisplayEntities() || !isPositionPacket(event)) {
             return;
         }
 
-        if (!isPositionPacket(event)) {
+        Player player = event.getPlayer();
+        if (player == null || !player.isOnline()) {
             return;
         }
 
@@ -40,6 +49,42 @@ public final class HologramListener extends PacketListenerAbstract implements Li
         });
     }
 
+    @Override
+    public void onPacketSend(PacketSendEvent event) {
+        HologramManager hologramManager = Raveon.INSTANCE.getHologramManager();
+        if (hologramManager == null || !PacketHologramLine.usesDisplayEntities()) {
+            return;
+        }
+
+        Player viewer = event.getPlayer();
+        if (viewer == null) {
+            return;
+        }
+
+        if (event.getPacketType() == PacketType.Play.Server.SET_PASSENGERS) {
+            WrapperPlayServerSetPassengers packet = new WrapperPlayServerSetPassengers(event);
+            int[] passengers = packet.getPassengers();
+            int[] merged = hologramManager.mergeOutgoingPassengers(viewer.getUniqueId(), packet.getEntityId(), passengers);
+
+            if (merged != passengers) {
+                packet.setPassengers(merged);
+                event.markForReEncode(true);
+            }
+            return;
+        }
+
+        if (event.getPacketType() == PacketType.Play.Server.DESTROY_ENTITIES) {
+            int[] entityIds = new WrapperPlayServerDestroyEntities(event).getEntityIds();
+            hologramManager.handleEntitiesDestroyed(viewer, entityIds);
+            return;
+        }
+
+        int spawnedEntityId = getSpawnedPlayerEntityId(event);
+        if (spawnedEntityId != -1) {
+            event.getTasksAfterSend().add(() -> hologramManager.handleTargetSpawned(viewer, spawnedEntityId));
+        }
+    }
+
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         handleLeave(event.getPlayer());
@@ -52,6 +97,10 @@ public final class HologramListener extends PacketListenerAbstract implements Li
 
     @EventHandler
     public void onPlayerTeleport(PlayerTeleportEvent event) {
+        if (PacketHologramLine.usesDisplayEntities()) {
+            return;
+        }
+
         Player player = event.getPlayer();
 
         Raveon.INSTANCE.getHologramManager().removeViewer(player);
@@ -65,6 +114,21 @@ public final class HologramListener extends PacketListenerAbstract implements Li
 
     private void handleLeave(Player player) {
         Raveon.INSTANCE.getHologramManager().handleLeave(player);
+    }
+
+    private int getSpawnedPlayerEntityId(PacketSendEvent event) {
+        if (event.getPacketType() == PacketType.Play.Server.SPAWN_PLAYER) {
+            return new WrapperPlayServerSpawnPlayer(event).getEntityId();
+        }
+
+        if (event.getPacketType() == PacketType.Play.Server.SPAWN_ENTITY) {
+            WrapperPlayServerSpawnEntity packet = new WrapperPlayServerSpawnEntity(event);
+            if (packet.getEntityType() == EntityTypes.PLAYER) {
+                return packet.getEntityId();
+            }
+        }
+
+        return -1;
     }
 
     private boolean isPositionPacket(PacketReceiveEvent event) {
