@@ -21,12 +21,11 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-
-      - name: Grant execute permission
-        run: chmod +x gradlew
+        with:
+          gradle-version: '8.8'
 
       - name: Build with Gradle
-        run: ./gradlew build
+        run: gradle build
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -34,5 +33,5 @@ jobs:
           name: plugin-artifacts
           path: |
             build/libs/*.jar
-            !build/libs/*-all.jar
+            !build/libs/*-plain.jar
           if-no-files-found: error
