@@ -42,7 +42,9 @@ public class Check implements AbstractCheck {
             this.displayName = this.checkName;
         }
 
-        reload();
+        // reload() is NOT called here on purpose: it would run the subclass onReload()
+        // before the subclass field initializers, so loaded values would be overwritten
+        // by the defaults. CheckManager reloads every check once it is fully constructed.
     }
 
     @Override

@@ -27,10 +27,17 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public final class PacketHologramLine {
     private static final byte BILLBOARD_CENTER = 3;
     private static final byte TEXT_FLAG_SEE_THROUGH = 0x02;
+
+    /**
+     * Fake entity ids are handed out downwards from the top of the int range, while the server
+     * counts upwards from zero, so hologram lines never collide with each other or with real entities.
+     */
+    private static final AtomicInteger ENTITY_ID_ALLOCATOR = new AtomicInteger(Integer.MAX_VALUE);
 
     private final int entityId;
     private final UUID entityUuid;
@@ -38,8 +45,8 @@ public final class PacketHologramLine {
     private final Set<UUID> spawnedViewers = ConcurrentHashMap.newKeySet();
     private final Map<UUID, String> lastTextByViewer = new ConcurrentHashMap<>();
 
-    public PacketHologramLine(int entityId) {
-        this.entityId = entityId;
+    public PacketHologramLine() {
+        this.entityId = ENTITY_ID_ALLOCATOR.getAndDecrement();
         this.entityUuid = UUID.randomUUID();
     }
 
@@ -193,8 +200,8 @@ public final class PacketHologramLine {
         metadata.add(new EntityData<>(2, EntityDataTypes.OPTIONAL_COMPONENT, Optional.of(jsonComponent)));
         metadata.add(new EntityData<>(3, EntityDataTypes.BOOLEAN, true));
         metadata.add(new EntityData<>(5, EntityDataTypes.BOOLEAN, true));
-        // ArmorStand flags moved from index 14 to 15 in the 1.21 protocol.
-        int armorStandFlagsIndex = VersionHelper.CURRENT_VERSION >= 1210 ? 15 : 14;
+        // 1.17 added "ticks frozen" to the shared entity metadata, pushing ArmorStand flags from 14 to 15.
+        int armorStandFlagsIndex = VersionHelper.CURRENT_VERSION >= 1170 ? 15 : 14;
         metadata.add(new EntityData<>(armorStandFlagsIndex, EntityDataTypes.BYTE, (byte) 0x10));
 
         return metadata;

@@ -41,8 +41,8 @@ public class PacketPlayerJoinQuit extends PacketListenerAbstract {
             }
         }
 
-        if (player.hasPermission("raveon.command.hologram")
-                && player.hasPermission("raveon.command.hologram.enable-on-join")) {
+        if (player.hasPermission("raveon.command.holograms")
+                && player.hasPermission("raveon.command.holograms.enable-on-join")) {
 
             if (!Raveon.INSTANCE.getHologramManager().hasHologramsEnabled(uuid)) {
                 Raveon.INSTANCE.getHologramManager().setHologramsEnabled(uuid, true, true);

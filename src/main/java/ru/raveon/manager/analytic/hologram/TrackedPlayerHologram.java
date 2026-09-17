@@ -11,12 +11,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
 public final class TrackedPlayerHologram {
     private final int targetEntityId;
-    private final int baseEntityId;
     private final List<PacketHologramLine> lines = new CopyOnWriteArrayList<>();
     private final Map<UUID, Integer> renderedLineCountByViewer = new ConcurrentHashMap<>();
 
@@ -24,7 +22,6 @@ public final class TrackedPlayerHologram {
 
     public TrackedPlayerHologram(int targetEntityId) {
         this.targetEntityId = targetEntityId;
-        this.baseEntityId = ThreadLocalRandom.current().nextInt(1_000_000, 1_900_000);
     }
 
     public int getTargetEntityId() {
@@ -142,7 +139,7 @@ public final class TrackedPlayerHologram {
 
     private void ensureLineCapacity(int requiredSize) {
         while (lines.size() < requiredSize) {
-            lines.add(new PacketHologramLine(baseEntityId + lines.size()));
+            lines.add(new PacketHologramLine());
         }
     }
 }

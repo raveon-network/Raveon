@@ -21,6 +21,8 @@ public class ReloadSubCommand implements BuildableCommand {
         Raveon.INSTANCE.getDataCollectConfigManager().reloadAll();
         Raveon.INSTANCE.getPunishmentConfigManager().reloadAll();
         Raveon.INSTANCE.getPlayerDataManager().getEntries().forEach(RaveonPlayer::reload);
+        // Holograms are respawned so reloaded offset/spacing apply to lines that are already shown.
+        Raveon.INSTANCE.getHologramManager().handleConfigReload();
 
         commandSender.sendMessage(Raveon.INSTANCE.getMainConfigManager().getReloadedMessage());
     }

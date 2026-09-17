@@ -61,7 +61,8 @@ public class TrainData {
         if (shouldWrite) {
             writeDatasetFrames();
         } else {
-            Player owner = Bukkit.getPlayer(this.datasetsOwner);
+            // Collection started from the console has no owner to report progress to.
+            Player owner = this.datasetsOwner == null ? null : Bukkit.getPlayer(this.datasetsOwner);
             if (owner != null) {
                 sendTrainStatistic(owner);
             }

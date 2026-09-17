@@ -95,11 +95,21 @@ public final class HologramManager {
         removeViewer(player);
 
         hologramLinesByTarget.remove(playerId);
+        // Like alerts and verbose, the toggle is per session and must not keep UUIDs of everyone who ever joined.
+        enabledViewers.remove(playerId);
     }
 
     public void handleQuit(@NonNull UUID targetId) {
         hideTarget(targetId);
         hologramLinesByTarget.remove(targetId);
+    }
+
+    /**
+     * Respawns every hologram so reloaded offset/spacing values are applied to already visible lines.
+     */
+    public void handleConfigReload() {
+        clearAllHolograms();
+        hologramLinesByTarget.clear();
     }
 
     public void handleWorldChange(@NonNull Player player) {
@@ -412,6 +422,11 @@ public final class HologramManager {
         }
 
         if (!viewer.getWorld().equals(target.getWorld())) {
+            return false;
+        }
+
+        // Respect vanish plugins: a hologram must never reveal a player the viewer can't see.
+        if (!viewer.canSee(target)) {
             return false;
         }
 

@@ -52,12 +52,23 @@ public final class HologramListener extends PacketListenerAbstract implements Li
     @Override
     public void onPacketSend(PacketSendEvent event) {
         HologramManager hologramManager = Raveon.INSTANCE.getHologramManager();
-        if (hologramManager == null || !PacketHologramLine.usesDisplayEntities()) {
+        if (hologramManager == null) {
             return;
         }
 
         Player viewer = event.getPlayer();
         if (viewer == null) {
+            return;
+        }
+
+        // Applies to both implementations: armor stands would linger, mounted lines would float in place.
+        if (event.getPacketType() == PacketType.Play.Server.DESTROY_ENTITIES) {
+            int[] entityIds = new WrapperPlayServerDestroyEntities(event).getEntityIds();
+            hologramManager.handleEntitiesDestroyed(viewer, entityIds);
+            return;
+        }
+
+        if (!PacketHologramLine.usesDisplayEntities()) {
             return;
         }
 
@@ -70,12 +81,6 @@ public final class HologramListener extends PacketListenerAbstract implements Li
                 packet.setPassengers(merged);
                 event.markForReEncode(true);
             }
-            return;
-        }
-
-        if (event.getPacketType() == PacketType.Play.Server.DESTROY_ENTITIES) {
-            int[] entityIds = new WrapperPlayServerDestroyEntities(event).getEntityIds();
-            hologramManager.handleEntitiesDestroyed(viewer, entityIds);
             return;
         }
 

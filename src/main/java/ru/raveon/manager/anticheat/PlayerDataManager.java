@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import ru.raveon.Raveon;
 import ru.raveon.api.models.data.TrainData;
 import ru.raveon.player.RaveonPlayer;
+import ru.raveon.utils.SchedulerUtils;
 import ru.raveon.utils.reflections.GeyserUtil;
 
 import java.util.Collection;
@@ -125,6 +126,24 @@ public class PlayerDataManager {
             Raveon.INSTANCE.getAlertManager().setAlertsEnabled(player.getUuid(), false, true);
             Raveon.INSTANCE.getAlertManager().setVerboseEnabled(player.getUuid(), false, true);
         }
+
+        Raveon.INSTANCE.getViolationManager().removePlayerData(user.getUUID());
+        removeTrainData(user.getUUID());
+    }
+
+    /**
+     * Drops the train session of a leaving player, saving whatever was collected so far.
+     */
+    private void removeTrainData(@NotNull UUID uuid) {
+        TrainData trainData = trainDataMap.remove(uuid);
+
+        if (trainData == null || !trainData.isDatasetsCollecting()) {
+            return;
+        }
+
+        trainData.writeDatasetFrames();
+        // stopCollecting touches the boss bar and sends messages, so it must not run on the netty thread.
+        SchedulerUtils.run(Raveon.INSTANCE, trainData::stopCollecting);
     }
 
     public Collection<RaveonPlayer> getEntries() {

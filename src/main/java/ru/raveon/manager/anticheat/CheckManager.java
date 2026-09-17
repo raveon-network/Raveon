@@ -38,6 +38,10 @@ public class CheckManager {
                 .build();
 
         this.packetChecksValues = new ArrayList<>(packetChecks.values());
+
+        // Checks are loaded here, after their constructors finished: loading them from the
+        // Check constructor would let subclass field initializers overwrite the config values.
+        reload();
     }
 
     public void onPacketSend(PacketSendEvent packet) {
