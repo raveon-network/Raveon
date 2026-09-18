@@ -2,8 +2,6 @@ plugins {
     `maven-publish`
     id("java")
     id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("com.diffplug.spotless") version "6.25.0"
-    id("com.github.spotbugs") version "6.0.26"
 }
 
 group = "ru.raveon"
@@ -69,25 +67,6 @@ dependencies {
     compileOnly(fileTree("libs") {
         include("*.jar")
     })
-
-    testImplementation(platform("org.junit:junit-bom:5.10.2"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-}
-
-spotless {
-    java {
-        googleJavaFormat("1.22.0").aosp()
-        removeUnusedImports()
-        trimTrailingWhitespace()
-        endWithNewline()
-    }
-}
-
-spotbugs {
-    ignoreFailures.set(false)
-    effort.set(com.github.spotbugs.snom.Effort.MAX)
-    reportLevel.set(com.github.spotbugs.snom.Confidence.HIGH)
 }
 
 tasks {
@@ -95,15 +74,13 @@ tasks {
         enabled = false
     }
 
-    test {
-        useJUnitPlatform()
-    }
-
     shadowJar {
         archiveClassifier.set("")
 
         relocate("com.fasterxml.jackson", "ru.raveon.shade.jackson")
         //relocate("com.github.retrooper.packetevents", "ru.raveon.libs.packetevents")
+        relocate("okhttp3", "ru.raveon.shade.okhttp3")
+        relocate("okio", "ru.raveon.shade.okio")
         relocate("kotlin", "ru.raveon.shade.kotlin")
         relocate("org.reflections", "ru.raveon.shade.reflections")
         relocate("javassist", "ru.raveon.shade.javassist")
@@ -146,7 +123,6 @@ tasks {
             expand(props)
         }
     }
-
     clean {
         delete(fileTree("build/libs") {
             include("*.jar")
@@ -164,6 +140,7 @@ java {
         toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
     }
 }
+
 
 publishing {
     publications {
