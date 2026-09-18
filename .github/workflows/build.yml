@@ -43,7 +43,7 @@ jobs:
         with:
           tag_name: "v${{ steps.get_version.outputs.version }}"
           name: "v${{ steps.get_version.outputs.version }}"
-          body: "Автоматическая сборка для коммита ${{ github.sha }}"
+          body: "Automated build for commit ${{ github.sha }}"
           prerelease: false
           files: |
             build/libs/*.jar
