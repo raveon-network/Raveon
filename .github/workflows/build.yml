@@ -5,6 +5,9 @@ on:
     branches: [ "**" ]
   pull_request: { }
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,11 +30,16 @@ jobs:
       - name: Build with Gradle
         run: gradle build
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Create / Update Release
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
         with:
-          name: plugin-artifacts
-          path: |
+          tag_name: "latest"
+          name: "Latest"
+          body: "Автоматическая сборка для коммита ${{ github.sha }}"
+          prerelease: false
+          files: |
             build/libs/*.jar
-            !build/libs/*-plain.jar
-          if-no-files-found: error
+            !build/libs/*-all.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
