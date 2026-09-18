@@ -30,12 +30,19 @@ jobs:
       - name: Build with Gradle
         run: gradle build
 
+      - name: Extract version
+        id: get_version
+        run: |
+          JAR_FILE=$(basename $(ls build/libs/*.jar | grep -v '\-all\.jar' | head -n 1) .jar)
+          VERSION=$(echo "$JAR_FILE" | grep -oP '\d+\.\d+.*')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
       - name: Create / Update Release
         if: github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: "latest"
-          name: "Latest"
+          tag_name: "v${{ steps.get_version.outputs.version }}"
+          name: "v${{ steps.get_version.outputs.version }}"
           body: "Автоматическая сборка для коммита ${{ github.sha }}"
           prerelease: false
           files: |
