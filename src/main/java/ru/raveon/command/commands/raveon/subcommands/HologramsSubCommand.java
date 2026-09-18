@@ -9,7 +9,7 @@ import ru.raveon.api.command.register.SubCommandRegister;
 
 import java.util.List;
 
-@SubCommandRegister(permission = "raveon.command.holograms", aliases = {"hologram", "holo"})
+@SubCommandRegister(permission = "raveon.command.holograms", aliases = {"hologram"})
 public class HologramsSubCommand implements BuildableCommand {
 
     @Override
