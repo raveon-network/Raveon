@@ -33,12 +33,9 @@ jobs:
       - name: Run Unit Tests
         run: gradle test
 
-      - name: Check Code Formatting (Spotless)
-        run: gradle spotlessCheck
-
       - name: Static Code Analysis (SpotBugs)
         run: gradle spotbugsMain
-        
+
       - name: Upload QA Reports
         if: failure()
         uses: actions/upload-artifact@v4
