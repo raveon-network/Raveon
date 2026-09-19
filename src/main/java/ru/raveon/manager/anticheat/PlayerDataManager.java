@@ -123,8 +123,7 @@ public class PlayerDataManager {
         RaveonPlayer player = remove(user);
 
         if (player != null) {
-            Raveon.INSTANCE.getAlertManager().setAlertsEnabled(player.getUuid(), false, true);
-            Raveon.INSTANCE.getAlertManager().setVerboseEnabled(player.getUuid(), false, true);
+            Raveon.INSTANCE.getAlertManager().clearSession(player.getUuid());
         }
 
         Raveon.INSTANCE.getViolationManager().removePlayerData(user.getUUID());

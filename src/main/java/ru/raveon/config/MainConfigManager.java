@@ -33,8 +33,6 @@ public class MainConfigManager extends ConfigManager {
 
     private String aiAlertMessage;
     private String aiVerboseMessage;
-    private String alertMessage;
-    private String verboseMessage;
 
     private String historyHeaderMessage;
     private String historyEntryMessage;
@@ -114,8 +112,6 @@ public class MainConfigManager extends ConfigManager {
         aiAlertMessage = messagesConfig.getString("ai-alert", "{prefix} &fИгрок &c{player}&f провалил проверку &cAimAI &7[&cx{vl}&7] &7{probability}").replace("{prefix}", prefix);
         aiVerboseMessage = messagesConfig.getString("ai-verbose", "{prefix} &fИгрок &c{player} &fрезультат: &7{probability}").replace("{prefix}", prefix);
 
-        alertMessage = messagesConfig.getString("alert", "{prefix} &fИгрок &x&F&B&0&8&0&8{player} &fпровалил &7&x&F&B&0&8&0&8{check_name} &7[&fx&x&F&B&0&8&0&8{vl}&7] &7{verbose}").replace("{prefix}", prefix);
-        verboseMessage = messagesConfig.getString("verbose", "{prefix} &fИгрок &x&F&B&0&8&0&8{player} &fпровалил &7&x&F&B&0&8&0&8{check_name} &7[&fx&x&F&B&0&8&0&8{vl}&7] &7{verbose}").replace("{prefix}", prefix);
 
         historyHeaderMessage = messagesConfig.getString("history-header", "{prefix} &fИстория проверок игрока &c{player} &7({page}&8/&7{max_pages})").replace("{prefix}", prefix);
         historyEntryMessage = messagesConfig.getString("history-entry", "{prefix} &8[&b{server}&8] &fПровалил &b{check_name} &f(x&c{vl}&f) &7{verbose} (&b{time_ago} назад&7)").replace("{prefix}", prefix);
@@ -155,6 +151,6 @@ public class MainConfigManager extends ConfigManager {
 
     public String getPercentString(double percent) {
         String color = getChanceColor(percent);
-        return "%s%.2f".formatted(color, percent * 100);
+        return "%s%.0f".formatted(color, percent * 100);
     }
 }

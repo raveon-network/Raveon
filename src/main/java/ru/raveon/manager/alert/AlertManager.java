@@ -1,7 +1,6 @@
 package ru.raveon.manager.alert;
 
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import ru.raveon.config.MainConfigManager;
@@ -9,14 +8,24 @@ import ru.raveon.config.MainConfigManager;
 import java.util.Collections;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
 public class AlertManager {
     private final MainConfigManager configManager;
-    private final Set<UUID> alertPlayers = new CopyOnWriteArraySet<>();
-    private final Set<UUID> verbosePlayers = new CopyOnWriteArraySet<>();
+    private final Set<UUID> alertPlayers = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> verbosePlayers = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Boolean> alertCache = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> verboseCache = new ConcurrentHashMap<>();
+
+    public AlertManager(MainConfigManager configManager) {
+        this.configManager = configManager;
+    }
+
+    public boolean hasAlertsDisabled(@NonNull UUID uniqueId) { return Boolean.FALSE.equals(alertCache.get(uniqueId)); }
+
+    public boolean hasVerboseDisabled(@NonNull UUID uniqueId) { return Boolean.FALSE.equals(verboseCache.get(uniqueId)); }
 
     public boolean hasAlertsEnabled(@NonNull UUID uniqueId) {
         return alertPlayers.contains(uniqueId);
@@ -24,6 +33,11 @@ public class AlertManager {
 
     public boolean hasVerboseEnabled(@NonNull UUID uniqueId) {
         return verbosePlayers.contains(uniqueId);
+    }
+
+    public void clearSession(@NonNull UUID uniqueId) {
+        alertPlayers.remove(uniqueId);
+        verbosePlayers.remove(uniqueId);
     }
 
     public boolean toggleAlerts(@NonNull UUID uniqueId, boolean silent) {
@@ -38,6 +52,7 @@ public class AlertManager {
         } else {
             alertPlayers.remove(uniqueId);
         }
+        alertCache.put(uniqueId, enabled);
 
         if (!silent) {
             Player player = Bukkit.getPlayer(uniqueId);
@@ -60,6 +75,7 @@ public class AlertManager {
         } else {
             verbosePlayers.remove(uniqueId);
         }
+        verboseCache.put(uniqueId, enabled);
 
         if (!silent) {
             Player player = Bukkit.getPlayer(uniqueId);

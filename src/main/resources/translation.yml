@@ -9,13 +9,8 @@ verbose-disabled: '{prefix} &#F3F3F3Подробная информация &#F6
 holograms-enabled: '{prefix} &#F3F3F3Показ голограмм над игроком &#95F643включен&#F3F3F3!'
 holograms-disabled: '{prefix} &#F3F3F3Показ голограмм над игроком &#F65943отключен&#F3F3F3!'
 
-ai-alert: '{prefix} &#F3F3F3Игрок &#CDCDCD{player}&#F3F3F3 провалил проверку &#F65943AimAI &#DBDBDB[&#F65943x{vl}&#DBDBDB]'
-ai-verbose: '{prefix} &#F3F3F3Игрок &#CDCDCD{player} &#F3F3F3результат: &#CDCDCD{probability}&#F3F3F3, буфер: &#CDCDCD{buffer}'
-
-alert: '{prefix} &fИгрок &x&F&B&0&8&0&8{player} &fпровалил &7&x&F&B&0&8&0&8{check_name}
-  &7[&fx&x&F&B&0&8&0&8{vl}&7] &7{verbose}'
-verbose: '{prefix} &fИгрок &x&F&B&0&8&0&8{player} &fпровалил &7&x&F&B&0&8&0&8{check_name}
-  &7[&fx&x&F&B&0&8&0&8{vl}&7] &7{verbose}'
+ai-alert: '{prefix} &#F3F3F3Игрок &#CDCDCD{player}&#F3F3F3 провалил проверку &#F65943AimAI &#DBDBDB[&#F65943x{vl}&#DBDBDB] &#CDCDCD{probability_proc}%'
+ai-verbose: '{prefix} &#F3F3F3Игрок &#CDCDCD{player} &#F3F3F3результат: &#CDCDCD{probability} &#F3F3F3(&#CDCDCD{probability_proc}%&#F3F3F3), буфер: &#CDCDCD{buffer}'
 
 history-header: '{prefix} &#F3F3F3История проверок игрока &#F65943{player} &7({page}&8/&7{max_pages})'
 history-entry: '{prefix} &8[&#93FFD7{server}&8] &#F3F3F3Провалил &#93FFD7{check_name} &#F3F3F3(x&#F65943{vl}&f) &7{verbose} (&#93FFD7{time_ago} назад&7)'

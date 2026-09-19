@@ -93,11 +93,13 @@ public final class PunishmentManager {
     }
 
     public void executeAlert(Check check, String verbose) {
-        String alertMessage = Raveon.INSTANCE.getMainConfigManager().getAlertMessage()
+        String alertMessage = Raveon.INSTANCE.getMainConfigManager().getAiAlertMessage()
                 .replace("{check_name}", check.getCheckName())
                 .replace("{player}", check.getPlayer().getName())
                 .replace("{verbose}", verbose)
-                .replace("{vl}", String.valueOf((int) check.getViolations()));
+                .replace("{vl}", String.valueOf((int) check.getViolations()))
+                .replace("{probability}", "0.0000")
+                .replace("{probability_proc}", "0");
 
         Raveon.INSTANCE.getAlertManager().sendAlert(alertMessage);
     }
@@ -112,11 +114,13 @@ public final class PunishmentManager {
         }
 
         String probabilityString = Raveon.INSTANCE.getMainConfigManager().getChanceString(aiProbability);
+        String probabilityPercent = Raveon.INSTANCE.getMainConfigManager().getPercentString(aiProbability);
 
         String message = Raveon.INSTANCE.getMainConfigManager().getAiAlertMessage()
                 .replace("{player}", check.getPlayer().getName())
                 .replace("{vl}", String.valueOf((int) check.getViolations()))
-                .replace("{probability}", probabilityString);
+                .replace("{probability}", probabilityString)
+                .replace("{probability_proc}", probabilityPercent);
 
         Raveon.INSTANCE.getAlertManager().sendAlert(message);
     }
@@ -133,6 +137,9 @@ public final class PunishmentManager {
         String probabilityString = aiProbability < 0.0D
                 ? "0.0000"
                 : Raveon.INSTANCE.getMainConfigManager().getChanceString(aiProbability);
+        String probabilityPercent = aiProbability < 0.0D
+                ? "0.00"
+                : Raveon.INSTANCE.getMainConfigManager().getPercentString(aiProbability);
 
         return template
                 .replace("{player}", check.getPlayer().getName())
@@ -142,7 +149,8 @@ public final class PunishmentManager {
                 .replace("{vl}", String.valueOf((int) check.getViolations()))
                 .replace("{violations}", String.valueOf(checkViolations))
                 .replace("{total_violations}", String.valueOf(totalViolations))
-                .replace("{probability}", probabilityString);
+                .replace("{probability}", probabilityString)
+                .replace("{probability_proc}", probabilityPercent);
     }
 
     private String normalize(String value) {

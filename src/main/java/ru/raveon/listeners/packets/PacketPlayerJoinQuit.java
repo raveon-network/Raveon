@@ -28,7 +28,8 @@ public class PacketPlayerJoinQuit extends PacketListenerAbstract {
         if (player.hasPermission("raveon.command.alert")
                 && player.hasPermission("raveon.command.alert.enable-on-join")) {
 
-            if (!Raveon.INSTANCE.getAlertManager().hasAlertsEnabled(uuid)) {
+            if (!Raveon.INSTANCE.getAlertManager().hasAlertsEnabled(uuid)
+                    && !Raveon.INSTANCE.getAlertManager().hasAlertsDisabled(uuid)) {
                 Raveon.INSTANCE.getAlertManager().setAlertsEnabled(uuid, true, true);
             }
         }
@@ -36,7 +37,8 @@ public class PacketPlayerJoinQuit extends PacketListenerAbstract {
         if (player.hasPermission("raveon.command.verbose")
                 && player.hasPermission("raveon.command.verbose.enable-on-join")) {
 
-            if (!Raveon.INSTANCE.getAlertManager().hasVerboseEnabled(uuid)) {
+            if (!Raveon.INSTANCE.getAlertManager().hasVerboseEnabled(uuid)
+                    && !Raveon.INSTANCE.getAlertManager().hasVerboseDisabled(uuid)) {
                 Raveon.INSTANCE.getAlertManager().setVerboseEnabled(uuid, true, true);
             }
         }

@@ -64,18 +64,6 @@ public class ViolationManager {
         });
     }
 
-    public void handleFlag(Check check, String verbose) {
-        logAlert(check, verbose);
-
-        String alertMessage = Raveon.INSTANCE.getMainConfigManager().getVerboseMessage()
-                .replace("{check_name}", check.getCheckName())
-                .replace("{player}", check.getPlayer().getName())
-                .replace("{verbose}", verbose)
-                .replace("{vl}", String.valueOf((int) check.getViolations()));
-
-        Raveon.INSTANCE.getAlertManager().sendAlert(alertMessage);
-    }
-
     public void logAlert(Check check, String verbose) {
         violationStorage.logAlert(
                 check.getPlayer().getUuid(),
