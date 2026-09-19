@@ -56,11 +56,11 @@ public class DataCollectConfigManager extends ConfigManager {
 
         messageStartHelp = config.getString(
                 "messages.start.help",
-                "&#5699DE[DataCollect] &fUsage: &7/raveon datacollect start <collector> <cheat|legit> [cheat_name]"
+                "&#5699DE[DataCollect] &fUsage: &7/raveon datacollect start <collector> <cheat|legit> <dataset_name>"
         );
         messageStartNoneSelected = config.getString(
                 "messages.start.none_selected",
-                "&#5699DE[DataCollect] &fFor cheat data collection you must specify cheat name"
+                "&#5699DE[DataCollect] &fFor data collection you must specify a dataset name"
         );
 
         messageStopHelp = config.getString(

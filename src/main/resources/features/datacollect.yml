@@ -13,8 +13,8 @@ info_statistic:
 
 messages:
   start:
-    help: "&fИспользование: &7/raveon datacollect start <коллектор> <cheat|legit> [название_чита]"
-    none_selected: "&fДля сбора данных читера необходимо указать название чита"
+    help: "&fИспользование: &7/raveon datacollect start <коллектор> <cheat|legit> <название_датасета>"
+    none_selected: "&fДля сбора данных необходимо указать название датасета"
     start: "&fЗапущен сбор набора данных для &7{target}"
   stop:
     help: "&fИспользование: &7/raveon datacollect stop <коллектор>"

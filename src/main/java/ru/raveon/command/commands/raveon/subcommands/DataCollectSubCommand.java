@@ -67,21 +67,18 @@ public final class DataCollectSubCommand implements BuildableCommand {
             return;
         }
 
-        if (type.equals("cheat")) {
-            if (args.length < 5) {
-                commandSender.sendMessage(Raveon.INSTANCE.getDataCollectConfigManager().getMessageStartNoneSelected());
-                return;
-            }
-
-            setDatasetOwner(commandSender, raveonPlayer);
-            raveonPlayer.startDatasetsCollection(args[4], true);
-        } else if (type.equals("legit")) {
-            setDatasetOwner(commandSender, raveonPlayer);
-            raveonPlayer.startDatasetsCollection("legit", false);
-        } else {
+        if (!type.equals("cheat") && !type.equals("legit")) {
             commandSender.sendMessage(Raveon.INSTANCE.getDataCollectConfigManager().getMessageAllNoneType());
             return;
         }
+
+        if (args.length < 5) {
+            commandSender.sendMessage(Raveon.INSTANCE.getDataCollectConfigManager().getMessageStartNoneSelected());
+            return;
+        }
+
+        setDatasetOwner(commandSender, raveonPlayer);
+        raveonPlayer.startDatasetsCollection(args[4], type.equals("cheat"));
 
         commandSender.sendMessage(Raveon.INSTANCE.getDataCollectConfigManager().getMessageAllStart().replace("{target}", raveonPlayer.getName()));
     }
@@ -147,7 +144,8 @@ public final class DataCollectSubCommand implements BuildableCommand {
                     .toList();
         }
 
-        if (args.length == 5 && args[1].equalsIgnoreCase("start") && args[3].equalsIgnoreCase("cheat")) {
+        if (args.length == 5 && args[1].equalsIgnoreCase("start")
+                && (args[3].equalsIgnoreCase("cheat") || args[3].equalsIgnoreCase("legit"))) {
             return Stream.of("name")
                     .filter(line -> line.toLowerCase(Locale.ROOT).startsWith(args[4].toLowerCase(Locale.ROOT)))
                     .toList();
