@@ -12,12 +12,14 @@ import java.util.List;
 public class HologramConfigManager extends ConfigManager {
     private boolean enabled;
     private double lineSpacing;
-
-    private int historyLines;
     private double offset;
-    private int historyProbsPerLine;
+
+    private boolean belowNameEnabled;
+    private boolean alsoShowHologramWithBelowName;
 
     private List<String> lines;
+
+    private String belowNameLine;
 
     public HologramConfigManager(Plugin plugin) {
         super(plugin);
@@ -34,13 +36,16 @@ public class HologramConfigManager extends ConfigManager {
 
         enabled = hologramConfig.getBoolean("enable", false);
         lineSpacing = hologramConfig.getConfig().getDouble("line_spacing", 0.28);
-        offset = hologramConfig.getConfig().getDouble("offset", 3.4);
+        offset = hologramConfig.getConfig().getDouble("offset", 2.5);
 
-        historyLines = Math.max(1, hologramConfig.getInt("history_lines", 2));
-        historyProbsPerLine = Math.max(1, hologramConfig.getInt("history_probs_per_line", 5));
+        belowNameEnabled = hologramConfig.getConfig().getBoolean("below_name.enable", true);
+        alsoShowHologramWithBelowName = hologramConfig.getConfig()
+                .getBoolean("below_name.also_show_hologram", false);
 
         lines = hologramConfig.getConfig().getStringList("lines").stream()
                 .map(StringColorize::parse)
                 .toList();
+
+        belowNameLine = lines.isEmpty() ? "" : lines.get(0);
     }
 }

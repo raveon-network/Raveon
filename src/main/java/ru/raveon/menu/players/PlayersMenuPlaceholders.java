@@ -2,8 +2,10 @@ package ru.raveon.menu.players;
 
 import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 import ru.raveon.Raveon;
 import ru.raveon.api.menu.MenuItem;
 import ru.raveon.database.model.PlayerAIProbabilityData;
@@ -37,7 +39,23 @@ public class PlayersMenuPlaceholders {
                 playersCount
         );
 
-        return ItemPlaceholderUtils.buildMenuItem(menuItem, placeholders);
+        ItemStack item = ItemPlaceholderUtils.buildMenuItem(menuItem, placeholders);
+        return applyPlayerSkin(item, getPlayerUuid(playerData));
+    }
+    private static ItemStack applyPlayerSkin(ItemStack item, UUID playerUuid) {
+        if (item == null || playerUuid == null || item.getType() != Material.PLAYER_HEAD) {
+            return item;
+        }
+
+        if (!(item.getItemMeta() instanceof SkullMeta skullMeta)) {
+            return item;
+        }
+
+        OfflinePlayer owner = Bukkit.getOfflinePlayer(playerUuid);
+        skullMeta.setOwningPlayer(owner);
+        item.setItemMeta(skullMeta);
+
+        return item;
     }
 
     public static Map<String, String> menuPlaceholders(int page, int maxPages, int playersCount) {

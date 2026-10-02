@@ -12,7 +12,6 @@ import ru.raveon.utils.SchedulerUtils;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.List;
@@ -27,10 +26,16 @@ public final class HologramManager {
     private static final DecimalFormat BUFFER_FORMAT = new DecimalFormat("0.00");
 
     private final Map<UUID, List<String>> hologramLinesByTarget = new ConcurrentHashMap<>();
+    private final Map<UUID, String> belowNameLineByTarget = new ConcurrentHashMap<>();
+
     private final Map<UUID, TrackedPlayerHologram> hologramsByTarget = new ConcurrentHashMap<>();
     private final Map<UUID, Set<UUID>> viewersByTarget = new ConcurrentHashMap<>();
     private final Map<Integer, UUID> targetIdByEntityId = new ConcurrentHashMap<>();
     private final Set<UUID> enabledViewers = ConcurrentHashMap.newKeySet();
+
+    private final BelowNameBridge belowNameBridge = new BelowNameBridge();
+    private final Map<UUID, BelowNameViewerState> belowNameStateByViewer = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<UUID>> belowNameViewersByTarget = new ConcurrentHashMap<>();
 
     private SchedulerUtils.TaskHandle updateTask;
 
@@ -51,7 +56,9 @@ public final class HologramManager {
         }
 
         clearAllHolograms();
+        clearAllBelowName();
         hologramLinesByTarget.clear();
+        belowNameLineByTarget.clear();
     }
 
     public boolean hasHologramsEnabled(@NonNull UUID viewerId) {
@@ -95,6 +102,7 @@ public final class HologramManager {
         removeViewer(player);
 
         hologramLinesByTarget.remove(playerId);
+        belowNameLineByTarget.remove(playerId);
         // Like alerts and verbose, the toggle is per session and must not keep UUIDs of everyone who ever joined.
         enabledViewers.remove(playerId);
     }
@@ -102,14 +110,18 @@ public final class HologramManager {
     public void handleQuit(@NonNull UUID targetId) {
         hideTarget(targetId);
         hologramLinesByTarget.remove(targetId);
+        belowNameLineByTarget.remove(targetId);
     }
 
     /**
-     * Respawns every hologram so reloaded offset/spacing values are applied to already visible lines.
+     * Respawns every hologram and below-name entry so a reloaded config (offset, spacing,
+     * templates, below_name toggle) is applied to already visible lines.
      */
     public void handleConfigReload() {
         clearAllHolograms();
+        clearAllBelowName();
         hologramLinesByTarget.clear();
+        belowNameLineByTarget.clear();
     }
 
     public void handleWorldChange(@NonNull Player player) {
@@ -119,6 +131,7 @@ public final class HologramManager {
 
     /**
      * Only needed for legacy armor stand holograms; display holograms ride the target and follow it client-side.
+     * Below-name never needs this: it is not tied to a spatial position.
      */
     public void handleMovement(@NonNull Player target) {
         if (PacketHologramLine.usesDisplayEntities() || !target.isOnline()) {
@@ -177,6 +190,8 @@ public final class HologramManager {
 
             cleanupEmptyTarget(targetId, viewers);
         }
+
+        removeBelowNameViewer(viewer);
     }
 
     /**
@@ -236,18 +251,43 @@ public final class HologramManager {
 
         if (config == null || !config.isEnabled()) {
             hologramLinesByTarget.remove(targetId);
+            belowNameLineByTarget.remove(targetId);
             hideTarget(targetId);
             return;
         }
 
-        List<String> updatedLines = buildLinesForTarget(targetId, config);
-        List<String> previousLines = hologramLinesByTarget.get(targetId);
+        Deque<Double> probabilities = Raveon.INSTANCE.getViolationManager().getLocalProbabilities(targetId);
+        PlayerAnalysisSnapshot snapshot = Raveon.INSTANCE.getViolationManager().getAnalysisSnapshot(targetId);
 
-        if (updatedLines.equals(previousLines)) {
-            return;
+        double lastProbability = snapshot.probability();
+        double averageProbability = averageOf(probabilities, lastProbability);
+        double buffer = snapshot.buffer();
+
+        List<String> updatedLines = new ArrayList<>(config.getLines().size());
+        for (String template : config.getLines()) {
+            updatedLines.add(applyPlaceholders(template, lastProbability, averageProbability, buffer));
         }
 
-        hologramLinesByTarget.put(targetId, updatedLines);
+        List<String> previousLines = hologramLinesByTarget.get(targetId);
+        if (!updatedLines.equals(previousLines)) {
+            hologramLinesByTarget.put(targetId, updatedLines);
+        }
+
+        String updatedBelowNameLine = applyPlaceholders(config.getBelowNameLine(), lastProbability, averageProbability, buffer);
+        belowNameLineByTarget.put(targetId, updatedBelowNameLine);
+    }
+
+    private double averageOf(Deque<Double> probabilities, double fallback) {
+        if (probabilities == null || probabilities.isEmpty()) {
+            return fallback;
+        }
+
+        double sum = 0.0D;
+        for (double probability : probabilities) {
+            sum += probability;
+        }
+
+        return sum / probabilities.size();
     }
 
     private void updateVisibleHolograms() {
@@ -255,7 +295,9 @@ public final class HologramManager {
 
         if (config == null || !config.isEnabled()) {
             clearAllHolograms();
+            clearAllBelowName();
             hologramLinesByTarget.clear();
+            belowNameLineByTarget.clear();
             return;
         }
 
@@ -269,10 +311,53 @@ public final class HologramManager {
 
     private void refreshTargetViewers(@NonNull Player target, @NonNull HologramConfigManager config) {
         UUID targetId = target.getUniqueId();
+
+        Set<UUID> candidateViewers = new HashSet<>(enabledViewers);
+        Set<UUID> existingHologramViewers = viewersByTarget.get(targetId);
+        if (existingHologramViewers != null) {
+            candidateViewers.addAll(existingHologramViewers);
+        }
+        Set<UUID> existingBelowNameViewers = belowNameViewersByTarget.get(targetId);
+        if (existingBelowNameViewers != null) {
+            candidateViewers.addAll(existingBelowNameViewers);
+        }
+
+        for (UUID viewerId : candidateViewers) {
+            Player viewer = Bukkit.getPlayer(viewerId);
+
+            if (!canViewerSeeTarget(viewer, target)) {
+                stopHologramForViewer(targetId, viewer);
+                stopBelowNameForViewer(targetId, viewer);
+                continue;
+            }
+
+            boolean useBelowName = config.isBelowNameEnabled() && belowNameBridge.supportsBelowName(viewer);
+            boolean useHologram = !useBelowName || config.isAlsoShowHologramWithBelowName();
+
+            if (useBelowName) {
+                pushBelowName(target, viewer);
+            } else {
+                stopBelowNameForViewer(targetId, viewer);
+            }
+
+            if (useHologram) {
+                pushHologram(target, viewer, config);
+            } else {
+                stopHologramForViewer(targetId, viewer);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Floating hologram (entity-based)
+    // ---------------------------------------------------------------------
+
+    private void pushHologram(Player target, Player viewer, HologramConfigManager config) {
+        UUID targetId = target.getUniqueId();
         List<String> lines = hologramLinesByTarget.get(targetId);
 
         if (lines == null || lines.isEmpty()) {
-            hideTarget(targetId);
+            stopHologramForViewer(targetId, viewer);
             return;
         }
 
@@ -291,46 +376,133 @@ public final class HologramManager {
 
         hologram.refreshTargetPassengers(target);
 
-        Set<UUID> currentViewers = viewersByTarget.computeIfAbsent(
-                targetId,
-                ignored -> ConcurrentHashMap.newKeySet()
-        );
+        Set<UUID> currentViewers = viewersByTarget.computeIfAbsent(targetId, ignored -> ConcurrentHashMap.newKeySet());
+        currentViewers.add(viewer.getUniqueId());
 
-        Location targetLocation = target.getLocation();
-        double offset = config.getOffset();
-        double spacing = config.getLineSpacing();
-
-        for (UUID viewerId : new HashSet<>(currentViewers)) {
-            Player viewer = Bukkit.getPlayer(viewerId);
-
-            if (!canViewerSeeTarget(viewer, target)) {
-                if (viewer != null && viewer.isOnline()) {
-                    hologram.destroyForViewer(viewer);
-                }
-
-                currentViewers.remove(viewerId);
-                continue;
-            }
-
-            hologram.updateForViewer(viewer, targetLocation, lines, offset, spacing);
-        }
-
-        for (UUID viewerId : enabledViewers) {
-            if (currentViewers.contains(viewerId)) {
-                continue;
-            }
-
-            Player viewer = Bukkit.getPlayer(viewerId);
-            if (!canViewerSeeTarget(viewer, target)) {
-                continue;
-            }
-
-            currentViewers.add(viewerId);
-            hologram.updateForViewer(viewer, targetLocation, lines, offset, spacing);
-        }
+        hologram.updateForViewer(viewer, target.getLocation(), lines, config.getOffset(), config.getLineSpacing());
 
         cleanupEmptyTarget(targetId, currentViewers);
     }
+
+    private void stopHologramForViewer(UUID targetId, Player viewer) {
+        Set<UUID> viewers = viewersByTarget.get(targetId);
+        if (viewers == null || viewer == null || !viewers.remove(viewer.getUniqueId())) {
+            return;
+        }
+
+        TrackedPlayerHologram hologram = hologramsByTarget.get(targetId);
+        if (hologram != null && viewer.isOnline()) {
+            hologram.destroyForViewer(viewer);
+        }
+
+        cleanupEmptyTarget(targetId, viewers);
+    }
+
+    // ---------------------------------------------------------------------
+    // Below-name (packet scoreboard, 1.20.3+ only)
+    // ---------------------------------------------------------------------
+
+    private void pushBelowName(Player target, Player viewer) {
+        UUID targetId = target.getUniqueId();
+        String text = belowNameLineByTarget.get(targetId);
+
+        if (text == null || text.isEmpty()) {
+            stopBelowNameForViewer(targetId, viewer);
+            return;
+        }
+
+        BelowNameViewerState state = belowNameStateByViewer.computeIfAbsent(
+                viewer.getUniqueId(),
+                id -> new BelowNameViewerState(objectiveNameFor(id))
+        );
+
+        if (!state.created) {
+            belowNameBridge.createObjective(viewer, state.objectiveName);
+            state.created = true;
+        }
+
+        String previous = state.lastTextByTarget.put(targetId, text);
+        if (!text.equals(previous)) {
+            belowNameBridge.updateEntry(viewer, state.objectiveName, target.getName(), text);
+        }
+
+        belowNameViewersByTarget.computeIfAbsent(targetId, ignored -> ConcurrentHashMap.newKeySet())
+                .add(viewer.getUniqueId());
+    }
+
+    private void stopBelowNameForViewer(UUID targetId, Player viewer) {
+        if (viewer == null) {
+            return;
+        }
+
+        Set<UUID> viewers = belowNameViewersByTarget.get(targetId);
+        if (viewers != null) {
+            viewers.remove(viewer.getUniqueId());
+        }
+
+        BelowNameViewerState state = belowNameStateByViewer.get(viewer.getUniqueId());
+        if (state == null) {
+            return;
+        }
+
+        if (state.lastTextByTarget.remove(targetId) != null && state.created && viewer.isOnline()) {
+            Player target = Bukkit.getPlayer(targetId);
+            String entryName = target != null ? target.getName() : null;
+
+            if (entryName != null) {
+                belowNameBridge.removeEntry(viewer, state.objectiveName, entryName);
+            }
+        }
+    }
+
+    private void removeBelowNameViewer(@NonNull Player viewer) {
+        UUID viewerId = viewer.getUniqueId();
+        BelowNameViewerState state = belowNameStateByViewer.remove(viewerId);
+
+        for (Set<UUID> viewers : belowNameViewersByTarget.values()) {
+            viewers.remove(viewerId);
+        }
+
+        if (state != null && state.created && viewer.isOnline()) {
+            belowNameBridge.removeObjective(viewer, state.objectiveName);
+        }
+    }
+
+    private void clearAllBelowName() {
+        for (Map.Entry<UUID, BelowNameViewerState> entry : belowNameStateByViewer.entrySet()) {
+            Player viewer = Bukkit.getPlayer(entry.getKey());
+            BelowNameViewerState state = entry.getValue();
+
+            if (viewer != null && viewer.isOnline() && state.created) {
+                belowNameBridge.removeObjective(viewer, state.objectiveName);
+            }
+        }
+
+        belowNameStateByViewer.clear();
+        belowNameViewersByTarget.clear();
+    }
+
+    private String objectiveNameFor(UUID viewerId) {
+        return "rvai" + Integer.toHexString(viewerId.hashCode());
+    }
+
+    /**
+     * Per-viewer below-name state: the fake objective assigned to them, whether it has
+     * been created on their client yet, and the last text sent per target (to skip resends).
+     */
+    private static final class BelowNameViewerState {
+        private final String objectiveName;
+        private boolean created;
+        private final Map<UUID, String> lastTextByTarget = new ConcurrentHashMap<>();
+
+        private BelowNameViewerState(String objectiveName) {
+            this.objectiveName = objectiveName;
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Shared cleanup / visibility helpers
+    // ---------------------------------------------------------------------
 
     private void hideTarget(@NonNull UUID targetId) {
         Set<UUID> viewerIds = viewersByTarget.remove(targetId);
@@ -340,15 +512,34 @@ public final class HologramManager {
             targetIdByEntityId.remove(hologram.getTargetEntityId());
         }
 
-        if (viewerIds == null || hologram == null) {
-            return;
+        if (viewerIds != null && hologram != null) {
+            for (UUID viewerId : viewerIds) {
+                Player viewer = Bukkit.getPlayer(viewerId);
+
+                if (viewer != null && viewer.isOnline()) {
+                    hologram.destroyForViewer(viewer);
+                }
+            }
         }
 
-        for (UUID viewerId : viewerIds) {
-            Player viewer = Bukkit.getPlayer(viewerId);
+        Set<UUID> belowNameViewerIds = belowNameViewersByTarget.remove(targetId);
+        if (belowNameViewerIds != null) {
+            for (UUID viewerId : belowNameViewerIds) {
+                Player viewer = Bukkit.getPlayer(viewerId);
+                BelowNameViewerState state = belowNameStateByViewer.get(viewerId);
 
-            if (viewer != null && viewer.isOnline()) {
-                hologram.destroyForViewer(viewer);
+                if (state == null || viewer == null || !viewer.isOnline()) {
+                    continue;
+                }
+
+                if (state.lastTextByTarget.remove(targetId) != null && state.created) {
+                    Player target = Bukkit.getPlayer(targetId);
+                    String entryName = target != null ? target.getName() : null;
+
+                    if (entryName != null) {
+                        belowNameBridge.removeEntry(viewer, state.objectiveName, entryName);
+                    }
+                }
             }
         }
     }
@@ -378,6 +569,8 @@ public final class HologramManager {
         Set<UUID> targetIds = new HashSet<>();
         targetIds.addAll(hologramsByTarget.keySet());
         targetIds.addAll(hologramLinesByTarget.keySet());
+        targetIds.addAll(belowNameViewersByTarget.keySet());
+        targetIds.addAll(belowNameLineByTarget.keySet());
 
         for (UUID targetId : targetIds) {
             Player target = Bukkit.getPlayer(targetId);
@@ -388,6 +581,7 @@ public final class HologramManager {
 
             hideTarget(targetId);
             hologramLinesByTarget.remove(targetId);
+            belowNameLineByTarget.remove(targetId);
         }
     }
 
@@ -433,112 +627,23 @@ public final class HologramManager {
         return viewer.getLocation().distanceSquared(target.getLocation()) <= 900.0D;
     }
 
-    private List<String> buildLinesForTarget(
-            @NonNull UUID targetId,
-            @NonNull HologramConfigManager config
-    ) {
-        Deque<Double> probabilities = Raveon.INSTANCE
-                .getViolationManager()
-                .getLocalProbabilities(targetId);
-
-        PlayerAnalysisSnapshot snapshot = Raveon.INSTANCE
-                .getViolationManager()
-                .getAnalysisSnapshot(targetId);
-
-        if (probabilities == null || probabilities.isEmpty()) {
-            return buildFormattedLines(
-                    config,
-                    List.of(),
-                    0.0D,
-                    snapshot.buffer()
-            );
-        }
-
-        List<Double> history = new ArrayList<>(probabilities);
-        Collections.reverse(history);
-
-        double sum = 0.0D;
-        for (double probability : history) {
-            sum += probability;
-        }
-
-        double averageProbability = sum / history.size();
-
-        return buildFormattedLines(
-                config,
-                history,
-                averageProbability,
-                snapshot.buffer()
-        );
-    }
-
-    private List<String> buildFormattedLines(
-            @NonNull HologramConfigManager config,
-            @NonNull List<Double> history,
-            double averageProbability,
-            double buffer) {
-        String formattedHistory = buildHistoryText(config, history);
-        List<String> result = new ArrayList<>();
-
-        for (String template : config.getLines()) {
-            if (!template.contains("{history}")) {
-                result.add(applyPlaceholders(template, formattedHistory, averageProbability, buffer));
-                continue;
-            }
-
-            String[] historyLines = formattedHistory.split("\n", -1);
-            for (String historyLine : historyLines) {
-                result.add(applyPlaceholders(template, historyLine, averageProbability, buffer));
-            }
-        }
-
-        return result;
-    }
-
-    private String buildHistoryText(@NonNull HologramConfigManager config, @NonNull List<Double> history) {
-        int linesCount = Math.max(1, config.getHistoryLines());
-        int valuesPerLine = Math.max(1, config.getHistoryProbsPerLine());
-        int maxValues = linesCount * valuesPerLine;
-
-        if (history.isEmpty()) {
-            return "\n".repeat(Math.max(0, linesCount - 1));
-        }
-
-        int limit = Math.min(history.size(), maxValues);
-        StringBuilder result = new StringBuilder(limit * 12);
-
-        for (int index = 0; index < limit; index++) {
-            if (index > 0) {
-                result.append(index % valuesPerLine == 0 ? '\n' : ' ');
-            }
-
-            result.append(formatProbabilityWithColor(history.get(index)));
-        }
-
-        return result.toString();
-    }
-
     private String applyPlaceholders(
             @NonNull String lineTemplate,
-            @NonNull String historyText,
+            double lastProbability,
             double averageProbability,
             double buffer
     ) {
         return lineTemplate
-                .replace("{history}", historyText)
                 .replace("{avg_color}", Raveon.INSTANCE.getMainConfigManager().getChanceColor(averageProbability))
+                .replace("{prob}", formatProbability(lastProbability))
                 .replace("{avg}", formatProbability(averageProbability))
                 .replace("{buffer}", formatBuffer(buffer));
-    }
-
-    private String formatProbabilityWithColor(double probability) {
-        return Raveon.INSTANCE.getMainConfigManager().getChanceColor(probability)
-                + formatProbability(probability);
     }
 
     private String formatProbability(double probability) {
         return PROB_FORMAT.format(probability);
     }
+
     private String formatBuffer(double buffer) {
         return BUFFER_FORMAT.format(buffer);
     }

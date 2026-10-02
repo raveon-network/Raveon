@@ -119,12 +119,20 @@ public class PlayersMenu extends ActionMenu {
 
     private List<PlayerAIProbabilityData> loadPlayersData() {
         try {
-            List<PlayerAIProbabilityData> playersData = Raveon.INSTANCE.getPlayerOnlineService().getOnlinePlayers()
+            Set<String> onlinePlayerUuids = Raveon.INSTANCE
+                    .getPlayerOnlineService()
+                    .getOnlinePlayerUuids();
+
+            List<PlayerAIProbabilityData> playersData = Raveon.INSTANCE
+                    .getViolationManager()
+                    .getProbabilityStorage()
+                    .getAllPlayersData()
+                    .join()
                     .stream()
-                    .map(playerName -> Raveon.INSTANCE
-                            .getViolationManager()
-                            .getProbabilityStorage().getPlayerDataByName(playerName).join())
                     .filter(Objects::nonNull)
+                    .filter(data -> data.getPlayerData() != null
+                            && data.getPlayerData().getUniqueId() != null
+                            && onlinePlayerUuids.contains(data.getPlayerData().getUniqueId().toString()))
                     .toList();
 
             if (playersData.isEmpty()) {
@@ -139,7 +147,7 @@ public class PlayersMenu extends ActionMenu {
                     .reversed());
             return playersData;
         } catch (CompletionException exception) {
-            Bukkit.getLogger().log(Level.SEVERE, "Не удалось загрузить игроков для меню античита", exception);
+            Bukkit.getLogger().log(Level.SEVERE, "Error load", exception);
             return new ArrayList<>();
         }
     }

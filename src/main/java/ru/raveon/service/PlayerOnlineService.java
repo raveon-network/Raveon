@@ -297,6 +297,22 @@ public class PlayerOnlineService {
                     .collect(Collectors.toCollection(LinkedHashSet::new));
         }
     }
+    public Set<String> getOnlinePlayerUuids() {
+        cleanup();
+
+        if (!isRedisAvailable()) {
+            cleanupLocal();
+            return new LinkedHashSet<>(localOnline.keySet());
+        }
+
+        try {
+            List<String> uuids = commands().zrange(ONLINE_PLAYERS_KEY, 0, -1);
+            return new LinkedHashSet<>(uuids);
+        } catch (RedisException exception) {
+            cleanupLocal();
+            return new LinkedHashSet<>(localOnline.keySet());
+        }
+    }
 
     public Set<String> getOnlinePlayersOnAnarchy(String anarchyId) {
         cleanupServer(anarchyId);
