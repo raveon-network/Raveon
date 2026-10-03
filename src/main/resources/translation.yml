@@ -3,14 +3,10 @@ prefix: '&#4A92E2R&#509CE8a&#57A6EEv&#5DAFF3e&#64B9F9o&#6AC3FFn &7»'
 alerts-enabled: '{prefix} &#F3F3F3Оповещения &#95F643включены&#F3F3F3!'
 alerts-disabled: '{prefix} &#F3F3F3Оповещения &#F65943отключены&#F3F3F3!'
 
-verbose-enabled: '{prefix} &#F3F3F3Подробная информация &#95F643включена&#F3F3F3!'
-verbose-disabled: '{prefix} &#F3F3F3Подробная информация &#F65943отключена&#F3F3F3!'
-
 holograms-enabled: '{prefix} &#F3F3F3Показ голограмм над игроком &#95F643включен&#F3F3F3!'
 holograms-disabled: '{prefix} &#F3F3F3Показ голограмм над игроком &#F65943отключен&#F3F3F3!'
 
 ai-alert: '{prefix} &#F3F3F3Игрок &#CDCDCD{player}&#F3F3F3 провалил проверку &#F65943AimAI &#DBDBDB[&#F65943x{vl}&#DBDBDB] &#CDCDCD{probability_proc}%'
-ai-verbose: '{prefix} &#F3F3F3Игрок &#CDCDCD{player} &#F3F3F3результат: &#CDCDCD{probability} &#F3F3F3(&#CDCDCD{probability_proc}%&#F3F3F3), буфер: &#CDCDCD{buffer}'
 
 history-header: '{prefix} &#F3F3F3История проверок игрока &#F65943{player} &7({page}&8/&7{max_pages})'
 history-entry: '{prefix} &8[&#93FFD7{server}&8] &#F3F3F3Провалил &#93FFD7{check_name} &#F3F3F3(x&#F65943{vl}&f) &7{verbose} (&#93FFD7{time_ago} назад&7)'

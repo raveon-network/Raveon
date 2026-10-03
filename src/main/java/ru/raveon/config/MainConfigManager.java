@@ -26,13 +26,10 @@ public class MainConfigManager extends ConfigManager {
 
     private String alertsEnabledMessage;
     private String alertsDisableMessage;
-    private String verboseEnabledMessage;
-    private String verboseDisableMessage;
     private String hologramsEnabledMessage;
     private String hologramsDisableMessage;
 
     private String aiAlertMessage;
-    private String aiVerboseMessage;
 
     private String historyHeaderMessage;
     private String historyEntryMessage;
@@ -110,13 +107,10 @@ public class MainConfigManager extends ConfigManager {
 
         alertsEnabledMessage = messagesConfig.getString("alerts-enabled", null).replace("{prefix}", prefix);
         alertsDisableMessage = messagesConfig.getString("alerts-disabled", null).replace("{prefix}", prefix);
-        verboseEnabledMessage = messagesConfig.getString("verbose-enabled", null).replace("{prefix}", prefix);
-        verboseDisableMessage = messagesConfig.getString("verbose-disabled", null).replace("{prefix}", prefix);
         hologramsEnabledMessage = messagesConfig.getString("holograms-enabled", null).replace("{prefix}", prefix);
         hologramsDisableMessage = messagesConfig.getString("holograms-disabled", null).replace("{prefix}", prefix);
 
         aiAlertMessage = messagesConfig.getString("ai-alert", null).replace("{prefix}", prefix);
-        aiVerboseMessage = messagesConfig.getString("ai-verbose", null).replace("{prefix}", prefix);
 
 
         historyHeaderMessage = messagesConfig.getString("history-header", null).replace("{prefix}", prefix);

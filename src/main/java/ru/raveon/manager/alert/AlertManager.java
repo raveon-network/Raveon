@@ -15,9 +15,7 @@ import java.util.stream.Collectors;
 public class AlertManager {
     private final MainConfigManager configManager;
     private final Set<UUID> alertPlayers = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> verbosePlayers = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Boolean> alertCache = new ConcurrentHashMap<>();
-    private final Map<UUID, Boolean> verboseCache = new ConcurrentHashMap<>();
 
     public AlertManager(MainConfigManager configManager) {
         this.configManager = configManager;
@@ -25,19 +23,14 @@ public class AlertManager {
 
     public boolean hasAlertsDisabled(@NonNull UUID uniqueId) { return Boolean.FALSE.equals(alertCache.get(uniqueId)); }
 
-    public boolean hasVerboseDisabled(@NonNull UUID uniqueId) { return Boolean.FALSE.equals(verboseCache.get(uniqueId)); }
 
     public boolean hasAlertsEnabled(@NonNull UUID uniqueId) {
         return alertPlayers.contains(uniqueId);
     }
 
-    public boolean hasVerboseEnabled(@NonNull UUID uniqueId) {
-        return verbosePlayers.contains(uniqueId);
-    }
 
     public void clearSession(@NonNull UUID uniqueId) {
         alertPlayers.remove(uniqueId);
-        verbosePlayers.remove(uniqueId);
     }
 
     public boolean toggleAlerts(@NonNull UUID uniqueId, boolean silent) {
@@ -62,29 +55,6 @@ public class AlertManager {
         }
     }
 
-
-    public boolean toggleVerbose(@NonNull UUID uniqueId, boolean silent) {
-        boolean newState = !hasVerboseEnabled(uniqueId);
-        setVerboseEnabled(uniqueId, newState, silent);
-        return newState;
-    }
-
-    public void setVerboseEnabled(@NonNull UUID uniqueId, boolean enabled, boolean silent) {
-        if (enabled) {
-            verbosePlayers.add(uniqueId);
-        } else {
-            verbosePlayers.remove(uniqueId);
-        }
-        verboseCache.put(uniqueId, enabled);
-
-        if (!silent) {
-            Player player = Bukkit.getPlayer(uniqueId);
-            if (player != null && player.isOnline()) {
-                player.sendMessage(enabled ? configManager.getVerboseEnabledMessage() : configManager.getVerboseDisableMessage());
-            }
-        }
-    }
-
     public void sendAlert(@NonNull String message) {
         sendAlert(message, Collections.emptySet());
     }
@@ -99,22 +69,5 @@ public class AlertManager {
         if (configManager.isPrintToConsole()) {
             Bukkit.getConsoleSender().sendMessage(message);
         }
-    }
-
-    public Set<UUID> sendVerbose(@NonNull String message) {
-        return sendVerbose(message, Collections.emptySet());
-    }
-
-    public Set<UUID> sendVerbose(@NonNull String message, Set<UUID> excludedPlayers) {
-        Set<UUID> receivers = verbosePlayers.stream()
-                .filter(uuid -> excludedPlayers == null || !excludedPlayers.contains(uuid))
-                .collect(Collectors.toSet());
-
-        receivers.stream()
-                .map(Bukkit::getPlayer)
-                .filter(player -> player != null && player.isOnline())
-                .forEach(player -> player.sendMessage(message));
-
-        return receivers;
     }
 }

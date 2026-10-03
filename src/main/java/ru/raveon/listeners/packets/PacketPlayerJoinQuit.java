@@ -34,14 +34,6 @@ public class PacketPlayerJoinQuit extends PacketListenerAbstract {
             }
         }
 
-        if (player.hasPermission("raveon.command.verbose")
-                && player.hasPermission("raveon.command.verbose.enable-on-join")) {
-
-            if (!Raveon.INSTANCE.getAlertManager().hasVerboseEnabled(uuid)
-                    && !Raveon.INSTANCE.getAlertManager().hasVerboseDisabled(uuid)) {
-                Raveon.INSTANCE.getAlertManager().setVerboseEnabled(uuid, true, true);
-            }
-        }
 
         if (player.hasPermission("raveon.command.holograms")
                 && player.hasPermission("raveon.command.holograms.enable-on-join")) {
