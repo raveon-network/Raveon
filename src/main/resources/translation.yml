@@ -1,4 +1,4 @@
-prefix: '&#85FFAFR&#89FFB9a&#8CFFC3v&#90FFCDe&#93FFD7on &7»'
+prefix: '&#4A92E2R&#509CE8a&#57A6EEv&#5DAFF3e&#64B9F9o&#6AC3FFn &7»'
 
 alerts-enabled: '{prefix} &#F3F3F3Оповещения &#95F643включены&#F3F3F3!'
 alerts-disabled: '{prefix} &#F3F3F3Оповещения &#F65943отключены&#F3F3F3!'
@@ -14,23 +14,25 @@ ai-verbose: '{prefix} &#F3F3F3Игрок &#CDCDCD{player} &#F3F3F3результ
 
 history-header: '{prefix} &#F3F3F3История проверок игрока &#F65943{player} &7({page}&8/&7{max_pages})'
 history-entry: '{prefix} &8[&#93FFD7{server}&8] &#F3F3F3Провалил &#93FFD7{check_name} &#F3F3F3(x&#F65943{vl}&f) &7{verbose} (&#93FFD7{time_ago} назад&7)'
-history-only-player: '{prefix} &#F3F3F3Меню истории может открыть только игрок.'
-history-no-data: '{prefix} &#F3F3F3Нет данных истории для игрока &#F65943{player}&#F3F3F3.'
+history-only-player: '{prefix} &#F3F3F3Меню может открыть только игрок.'
+history-no-data: '{prefix} &#F3F3F3Нет данных для игрока &#F65943{player}&#F3F3F3.'
 
 reloading: '{prefix} &#F3F3F3Перезагрузка конфигурации...'
 reloaded: '{prefix} &#F3F3F3Конфигурация успешно перезагружена...'
 
-
 monitor:
   action_bar:
-    format: "{probability_color}&l{probability}% &8• {trend} &8• &#F6D443{buffer}"
+    format: "{prob_color}{prob}% &7| {avg_color}{avg}% &7| &f{buffer}"
     waiting: "&#93FFD7&lAI &#F3F3F3{player} &8• &#CDCDCDожидание результата анализа..."
 
-    trend:
-      up: "&#F65943{value}"
-      down: "&#95F643{value}"
-      equal: "&#95F6430.00"
+  chat:
+    format: "{prefix} &7{player} &8» {prob_color}{prob}% &7| {avg_color}{avg}% &7| &f{buffer}"
+    all_name: "всех игроков"
+    enabled: "{prefix} &#F3F3F3Вывод вероятностей в чат включён для &#CDCDCD{player}&f."
+    switched: "{prefix} &#F3F3F3Вывод вероятностей в чат переключён на &#CDCDCD{player}&f."
+    disabled: "{prefix} &#F3F3F3Вывод вероятностей в чат &#F65943выключен&#F3F3F3."
 
+  usage: "{prefix} &#F3F3F3Использование: &#CDCDCD/raveon monitor chat [ник] &8| &#CDCDCD/raveon monitor prob [ник] &8| &#CDCDCD/raveon monitor stop"
   only_player: "{prefix} &#F3F3F3Эту команду может выполнить только игрок."
   enabled: "{prefix} &#F3F3F3Монитор запущен для &#CDCDCD{player}&f."
   disabled: "{prefix} &#F3F3F3Монитор &#F65943отключен&#F3F3F3."

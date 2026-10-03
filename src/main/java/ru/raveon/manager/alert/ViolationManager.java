@@ -47,6 +47,12 @@ public class ViolationManager {
         probabilityStorage.addProbability(uniqueId, chance);
     }
 
+    public double getAverageProbability(UUID uniqueId, double fallback) {
+        Deque<Double> probabilities = getLocalProbabilities(uniqueId);
+        return probabilities.isEmpty()
+                ? fallback
+                : probabilities.stream().mapToDouble(Double::doubleValue).average().orElse(fallback);
+    }
     public Deque<Double> getLocalProbabilities(UUID uniqueId) {
         return localProbabilities.getOrDefault(uniqueId, new ArrayDeque<>());
     }
