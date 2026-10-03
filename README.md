@@ -78,8 +78,9 @@ analyze:
 | `/raveon hologram` | `raveon.command.holograms` | Алиас команды голограмм |
 | `/raveon menu` | `raveon.command.menu` | Открывает меню игроков |
 | `/raveon history <player> [page]` | `raveon.command.history` | Показывает историю нарушений игрока |
-| `/raveon monitor [player]` | `raveon.command.monitor` | Запускает монитор данных игрока |
-| `/raveon monitor stop` | `raveon.command.monitor` | Останавливает текущий монитор |
+| `/raveon monitor prob [player]` | `raveon.command.monitor` | Монитор вероятностей в action bar (по умолчанию — вы сами): `last% \| avg% \| buffer` |
+| `/raveon monitor chat [player]` | `raveon.command.monitor` | Выводит вероятности игрока в чат; без ника — всех игроков |
+| `/raveon monitor stop` | `raveon.command.monitor` | Останавливает монитор и вывод в чат |
 | `/raveon reload` | `raveon.command.reload` | Перезагружает конфигурацию |
 
 Базовое право для основной команды:

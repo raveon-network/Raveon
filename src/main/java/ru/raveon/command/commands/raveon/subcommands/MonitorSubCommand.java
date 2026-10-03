@@ -31,15 +31,28 @@ public class MonitorSubCommand implements BuildableCommand {
 
         MonitorManager monitorManager = Raveon.INSTANCE.getMonitorManager();
 
-        if (args.length > 1 && args[1].equalsIgnoreCase("stop")) {
-            String response = monitorManager.stop(viewer)
-                    ? config.getMonitorDisabledMessage()
-                    : config.getMonitorNotRunningMessage();
-            viewer.sendMessage(response);
+        if (args.length < 2) {
+            viewer.sendMessage(config.getMonitorUsageMessage());
             return;
         }
 
-        Player target = extractPlayer(args, viewer);
+        String mode = args[1].toLowerCase();
+
+        switch (mode) {
+            case "stop" -> {
+                String response = monitorManager.stop(viewer)
+                        ? config.getMonitorDisabledMessage()
+                        : config.getMonitorNotRunningMessage();
+                viewer.sendMessage(response);
+            }
+            case "prob" -> handleProb(viewer, args, config, monitorManager);
+            case "chat" -> handleChat(viewer, args, config, monitorManager);
+            default -> viewer.sendMessage(config.getMonitorUsageMessage());
+        }
+    }
+
+    private void handleProb(Player viewer, String[] args, MainConfigManager config, MonitorManager monitorManager) {
+        Player target = extractPlayer(args, 2, viewer);
 
         if (target == null || !target.isOnline()) {
             viewer.sendMessage(config.getMonitorPlayerNotFoundMessage());
@@ -57,14 +70,38 @@ public class MonitorSubCommand implements BuildableCommand {
         viewer.sendMessage(response.replace("{player}", target.getName()));
     }
 
-    private static @Nullable Player extractPlayer(@NotNull String @NonNull [] args, Player viewer) {
-        if (args.length == 1 || args[1].isBlank()) {
+    private void handleChat(Player viewer, String[] args, MainConfigManager config, MonitorManager monitorManager) {
+        Player target = null;
+
+        if (args.length > 2 && !args[2].isBlank()) {
+            target = extractPlayer(args, 2, viewer);
+
+            if (target == null || !target.isOnline()) {
+                viewer.sendMessage(config.getMonitorPlayerNotFoundMessage());
+                return;
+            }
+        }
+
+        ToggleResult result = monitorManager.toggleChat(viewer, target);
+        String name = target == null ? config.getMonitorChatAllName() : target.getName();
+
+        String response = switch (result) {
+            case ENABLED -> config.getMonitorChatEnabledMessage();
+            case SWITCHED -> config.getMonitorChatSwitchedMessage();
+            case DISABLED -> config.getMonitorChatDisabledMessage();
+        };
+
+        viewer.sendMessage(response.replace("{player}", name));
+    }
+
+    private static @Nullable Player extractPlayer(@NotNull String @NonNull [] args, int index, Player viewer) {
+        if (args.length <= index || args[index].isBlank()) {
             return viewer;
         }
 
-        Player target = Bukkit.getPlayerExact(args[1]);
+        Player target = Bukkit.getPlayerExact(args[index]);
         if (target == null) {
-            target = Bukkit.getPlayer(args[1]);
+            target = Bukkit.getPlayer(args[index]);
         }
 
         return target;
@@ -73,13 +110,16 @@ public class MonitorSubCommand implements BuildableCommand {
     @Override
     public List<String> tabComplete(@NotNull CommandSender commandSender, @NotNull String[] args) {
         if (args.length == 2) {
-            return Stream.concat(
-                            Stream.of("stop"),
-                            Bukkit.getOnlinePlayers()
-                                    .stream()
-                                    .map(HumanEntity::getName)
-                    )
-                    .filter(value -> value.toLowerCase().startsWith(args[1].toLowerCase()))
+            return Stream.of("chat", "prob", "stop")
+                    .filter(value -> value.startsWith(args[1].toLowerCase()))
+                    .toList();
+        }
+
+        if (args.length == 3 && (args[1].equalsIgnoreCase("chat") || args[1].equalsIgnoreCase("prob"))) {
+            return Bukkit.getOnlinePlayers()
+                    .stream()
+                    .map(HumanEntity::getName)
+                    .filter(value -> value.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         }
 

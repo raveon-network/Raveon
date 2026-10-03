@@ -44,6 +44,12 @@ public class MainConfigManager extends ConfigManager {
 
     private String monitorActionBarFormat;
     private String monitorWaitingFormat;
+    private String monitorChatFormat;
+    private String monitorChatAllName;
+    private String monitorChatEnabledMessage;
+    private String monitorChatSwitchedMessage;
+    private String monitorChatDisabledMessage;
+    private String monitorUsageMessage;
     private String monitorTrendUpFormat;
     private String monitorTrendDownFormat;
     private String monitorTrendEqualFormat;
@@ -94,46 +100,52 @@ public class MainConfigManager extends ConfigManager {
         if (colorSection != null) {
             for (String key : colorSection.getKeys(false)) {
                 double chance = Double.parseDouble(key.replace(",", "."));
-                String color = StringColorize.parse(colorSection.getString(key, "§f"));
+                String color = StringColorize.parse(colorSection.getString(key, null));
                 aiChanceColors.put(chance, color);
             }
         }
 
         CustomConfig messagesConfig = getCustomConfig("translation.yml");
-        prefix = messagesConfig.getString("prefix", "&7[&cRaveon&7]&r");
+        prefix = messagesConfig.getString("prefix", null);
 
-        alertsEnabledMessage = messagesConfig.getString("alerts-enabled", "{prefix} &fОповещения включены!").replace("{prefix}", prefix);
-        alertsDisableMessage = messagesConfig.getString("alerts-disabled", "{prefix} &fОповещения отключены!").replace("{prefix}", prefix);
-        verboseEnabledMessage = messagesConfig.getString("verbose-enabled", "{prefix} &fПодробная информация включена!").replace("{prefix}", prefix);
-        verboseDisableMessage = messagesConfig.getString("verbose-disabled", "{prefix} &fПодробная информация отключена!").replace("{prefix}", prefix);
-        hologramsEnabledMessage = messagesConfig.getString("holograms-enabled", "{prefix} &fПоказ голограмм над игроком включен!").replace("{prefix}", prefix);
-        hologramsDisableMessage = messagesConfig.getString("holograms-disabled", "{prefix} &fПоказ голограмм над игроком отключен!").replace("{prefix}", prefix);
+        alertsEnabledMessage = messagesConfig.getString("alerts-enabled", null).replace("{prefix}", prefix);
+        alertsDisableMessage = messagesConfig.getString("alerts-disabled", null).replace("{prefix}", prefix);
+        verboseEnabledMessage = messagesConfig.getString("verbose-enabled", null).replace("{prefix}", prefix);
+        verboseDisableMessage = messagesConfig.getString("verbose-disabled", null).replace("{prefix}", prefix);
+        hologramsEnabledMessage = messagesConfig.getString("holograms-enabled", null).replace("{prefix}", prefix);
+        hologramsDisableMessage = messagesConfig.getString("holograms-disabled", null).replace("{prefix}", prefix);
 
-        aiAlertMessage = messagesConfig.getString("ai-alert", "{prefix} &fИгрок &c{player}&f провалил проверку &cAimAI &7[&cx{vl}&7] &7{probability}").replace("{prefix}", prefix);
-        aiVerboseMessage = messagesConfig.getString("ai-verbose", "{prefix} &fИгрок &c{player} &fрезультат: &7{probability}").replace("{prefix}", prefix);
+        aiAlertMessage = messagesConfig.getString("ai-alert", null).replace("{prefix}", prefix);
+        aiVerboseMessage = messagesConfig.getString("ai-verbose", null).replace("{prefix}", prefix);
 
 
-        historyHeaderMessage = messagesConfig.getString("history-header", "{prefix} &fИстория проверок игрока &c{player} &7({page}&8/&7{max_pages})").replace("{prefix}", prefix);
-        historyEntryMessage = messagesConfig.getString("history-entry", "{prefix} &8[&b{server}&8] &fПровалил &b{check_name} &f(x&c{vl}&f) &7{verbose} (&b{time_ago} назад&7)").replace("{prefix}", prefix);
-        historyOnlyPlayerMessage = messagesConfig.getString("history-only-player", "{prefix} &#F3F3F3Меню истории может открыть только игрок.").replace("{prefix}", prefix);
-        historyNoDataMessage = messagesConfig.getString("history-no-data", "{prefix} &#F3F3F3Нет данных истории для игрока &#F65943{player}&#F3F3F3.").replace("{prefix}", prefix);
+        historyHeaderMessage = messagesConfig.getString("history-header", null).replace("{prefix}", prefix);
+        historyEntryMessage = messagesConfig.getString("history-entry", null).replace("{prefix}", prefix);
+        historyOnlyPlayerMessage = messagesConfig.getString("history-only-player", null).replace("{prefix}", prefix);
+        historyNoDataMessage = messagesConfig.getString("history-no-data", null).replace("{prefix}", prefix);
 
-        reloadingMessage = messagesConfig.getString("reloading", "{prefix} &fПерезагрузка конфигурации...").replace("{prefix}", prefix);
-        reloadedMessage = messagesConfig.getString("reloaded", "{prefix} &fКонфигурация успешно перезагружена...").replace("{prefix}", prefix);
+        reloadingMessage = messagesConfig.getString("reloading", null).replace("{prefix}", prefix);
+        reloadedMessage = messagesConfig.getString("reloaded", null).replace("{prefix}", prefix);
 
-        monitorActionBarFormat = messagesConfig.getString("monitor.action_bar.format", "&b&lAI &f{player} &8• &7Prob {probability_color}{probability}% &8{trend} &8• &7Buffer &e{buffer} &8• &7Ping {ping_color}{ping}ms").replace("{prefix}", prefix);
-        monitorWaitingFormat = messagesConfig.getString("monitor.action_bar.waiting", "&b&lAI &f{player} &8• &7ожидание результата анализа...").replace("{prefix}", prefix);
-        monitorTrendUpFormat = messagesConfig.getString("monitor.action_bar.trend.up", "&c▲ +{value}").replace("{prefix}", prefix);
-        monitorTrendDownFormat = messagesConfig.getString("monitor.action_bar.trend.down", "&a▼ {value}").replace("{prefix}", prefix);
-        monitorTrendEqualFormat = messagesConfig.getString("monitor.action_bar.trend.equal", "&8=").replace("{prefix}", prefix);
+        monitorActionBarFormat = messagesConfig.getString("monitor.action_bar.format", null).replace("{prefix}", prefix);
+        monitorWaitingFormat = messagesConfig.getString("monitor.action_bar.waiting", null).replace("{prefix}", prefix);
+        monitorTrendUpFormat = messagesConfig.getString("monitor.action_bar.trend.up", null).replace("{prefix}", prefix);
+        monitorTrendDownFormat = messagesConfig.getString("monitor.action_bar.trend.down", null).replace("{prefix}", prefix);
+        monitorTrendEqualFormat = messagesConfig.getString("monitor.action_bar.trend.equal", null).replace("{prefix}", prefix);
 
-        monitorOnlyPlayerMessage = messagesConfig.getString("monitor.only_player", "{prefix} &fЭту команду может выполнить только игрок.").replace("{prefix}", prefix);
-        monitorEnabledMessage = messagesConfig.getString("monitor.enabled", "{prefix} &fМонитор включён для &7{player}&f.").replace("{prefix}", prefix);
-        monitorDisabledMessage = messagesConfig.getString("monitor.disabled", "{prefix} &fМонитор выключен.").replace("{prefix}", prefix);
-        monitorNotRunningMessage = messagesConfig.getString("monitor.not_running", "{prefix} &fМонитор сейчас не запущен.").replace("{prefix}", prefix);
-        monitorSwitchedMessage = messagesConfig.getString("monitor.switched", "{prefix} &fЦель монитора изменена на &7{player}&f.").replace("{prefix}", prefix);
-        monitorPlayerNotFoundMessage = messagesConfig.getString("monitor.player_not_found", "{prefix} &fИгрок не найден.").replace("{prefix}", prefix);
-        monitorTargetLeftMessage = messagesConfig.getString("monitor.target_left", "{prefix} &fМонитор остановлен: игрок &7{player} &fвышел с сервера.").replace("{prefix}", prefix);
+        monitorChatFormat = messagesConfig.getString("monitor.chat.format", null).replace("{prefix}", prefix);
+        monitorChatAllName = messagesConfig.getString("monitor.chat.all_name", null);
+        monitorChatEnabledMessage = messagesConfig.getString("monitor.chat.enabled", null).replace("{prefix}", prefix);
+        monitorChatSwitchedMessage = messagesConfig.getString("monitor.chat.switched", null).replace("{prefix}", prefix);
+        monitorChatDisabledMessage = messagesConfig.getString("monitor.chat.disabled", null).replace("{prefix}", prefix);
+        monitorUsageMessage = messagesConfig.getString("monitor.usage", null).replace("{prefix}", prefix);
+        monitorOnlyPlayerMessage = messagesConfig.getString("monitor.only_player", null).replace("{prefix}", prefix);
+        monitorEnabledMessage = messagesConfig.getString("monitor.enabled", null).replace("{prefix}", prefix);
+        monitorDisabledMessage = messagesConfig.getString("monitor.disabled", null).replace("{prefix}", prefix);
+        monitorNotRunningMessage = messagesConfig.getString("monitor.not_running", null).replace("{prefix}", prefix);
+        monitorSwitchedMessage = messagesConfig.getString("monitor.switched", null).replace("{prefix}", prefix);
+        monitorPlayerNotFoundMessage = messagesConfig.getString("monitor.player_not_found", null).replace("{prefix}", prefix);
+        monitorTargetLeftMessage = messagesConfig.getString("monitor.target_left", null).replace("{prefix}", prefix);
 
         menuSettings = PlayersMenuSettings.fromSection(getCustomConfig("menu/players.yml").getConfig());
         historySettings = HistoryMenuSettings.fromSection(getCustomConfig("menu/history.yml").getConfig());

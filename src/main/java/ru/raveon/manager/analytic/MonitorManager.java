@@ -8,6 +8,7 @@ import org.bukkit.scheduler.BukkitTask;
 import ru.raveon.api.models.monitor.AiSnapshot;
 import ru.raveon.api.models.monitor.MonitorSession;
 import ru.raveon.api.models.monitor.ToggleResult;
+import ru.raveon.Raveon;
 import ru.raveon.config.MainConfigManager;
 import ru.raveon.utils.SchedulerUtils;
 
@@ -22,13 +23,16 @@ import java.util.UUID;
 public final class MonitorManager {
     private static final long UPDATE_PERIOD_TICKS = 2L;
     private static final long ACTION_BAR_KEEP_ALIVE_TICKS = 20L;
-    private static final double PROBABILITY_EPSILON = 0.0001D;
 
     private final Plugin plugin;
     private final MainConfigManager config;
 
     private final Map<UUID, MonitorSession> sessions = new HashMap<>();
     private final Map<UUID, AiSnapshot> snapshots = new HashMap<>();
+    private final Map<UUID, ChatSubscription> chatSubscriptions = new HashMap<>();
+
+    private record ChatSubscription(UUID targetId, String targetName) {
+    }
 
     private SchedulerUtils.TaskHandle updateTask;
     private long currentTick;
@@ -57,12 +61,32 @@ public final class MonitorManager {
         return result;
     }
 
+    public ToggleResult toggleChat(Player viewer, Player target) {
+        UUID viewerId = viewer.getUniqueId();
+        UUID targetId = target == null ? null : target.getUniqueId();
+        ChatSubscription current = chatSubscriptions.get(viewerId);
+
+        if (current != null && Objects.equals(current.targetId(), targetId)) {
+            chatSubscriptions.remove(viewerId);
+            return ToggleResult.DISABLED;
+        }
+
+        chatSubscriptions.put(viewerId, new ChatSubscription(
+                targetId,
+                target == null ? config.getMonitorChatAllName() : target.getName()
+        ));
+
+        return current == null ? ToggleResult.ENABLED : ToggleResult.SWITCHED;
+    }
+
     public boolean stop(Player viewer) {
         Objects.requireNonNull(viewer, "viewer");
 
+        boolean chatStopped = chatSubscriptions.remove(viewer.getUniqueId()) != null;
+
         MonitorSession removedSession = sessions.remove(viewer.getUniqueId());
         if (removedSession == null) {
-            return false;
+            return chatStopped;
         }
 
         removeSnapshotIfUnused(removedSession.getTargetId());
@@ -87,24 +111,57 @@ public final class MonitorManager {
         }
 
         UUID targetId = target.getUniqueId();
-        if (!isTargetMonitored(targetId)) {
+        boolean actionBarMonitored = isTargetMonitored(targetId);
+        boolean chatMonitored = hasChatSubscribers(targetId);
+
+        if (!actionBarMonitored && !chatMonitored) {
             return;
         }
 
         double normalizedProbability = clamp(probability, 0.0D, 1.0D);
         double normalizedBuffer = Math.max(0.0D, buffer);
+        double average = Raveon.INSTANCE.getViolationManager().getAverageProbability(targetId, normalizedProbability);
 
-        snapshots.compute(targetId, (ignored, previous) -> {
-            double trend = previous == null
-                    ? 0.0D
-                    : normalizedProbability - previous.probability();
+        AiSnapshot previous = snapshots.get(targetId);
+        double trend = previous == null ? 0.0D : normalizedProbability - previous.probability();
+        AiSnapshot snapshot = new AiSnapshot(normalizedProbability, average, normalizedBuffer, trend);
+        snapshots.put(targetId, snapshot);
 
-            return new AiSnapshot(
-                    normalizedProbability,
-                    normalizedBuffer,
-                    trend
-            );
-        });
+        if (!actionBarMonitored) {
+            snapshots.remove(targetId);
+        }
+
+        if (chatMonitored) {
+            sendChat(target, snapshot);
+        }
+    }
+
+    private void sendChat(Player target, AiSnapshot snapshot) {
+        String message = format(config.getMonitorChatFormat(), target, snapshot);
+
+        Iterator<Map.Entry<UUID, ChatSubscription>> iterator = chatSubscriptions.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<UUID, ChatSubscription> entry = iterator.next();
+            ChatSubscription subscription = entry.getValue();
+
+            if (subscription.targetId() != null && !subscription.targetId().equals(target.getUniqueId())) {
+                continue;
+            }
+
+            Player viewer = Bukkit.getPlayer(entry.getKey());
+            if (viewer == null || !viewer.isOnline()) {
+                iterator.remove();
+                continue;
+            }
+
+            viewer.sendMessage(message);
+        }
+    }
+
+    private boolean hasChatSubscribers(UUID targetId) {
+        return chatSubscriptions.values().stream()
+                .anyMatch(subscription -> subscription.targetId() == null
+                        || subscription.targetId().equals(targetId));
     }
 
     public boolean isMonitoring(Player viewer) {
@@ -116,6 +173,7 @@ public final class MonitorManager {
         cancelUpdater();
 
         sessions.clear();
+        chatSubscriptions.clear();
         snapshots.clear();
         currentTick = 0L;
     }
@@ -189,29 +247,20 @@ public final class MonitorManager {
             );
         }
 
-        return config.getMonitorActionBarFormat()
-                .replace("{player}", target.getName())
-                .replace("{probability}", decimal(snapshot.probability() * 100.0D))
-                .replace(
-                        "{probability_color}",
-                        config.getChanceColor(snapshot.probability())
-                )
-                .replace("{buffer}", decimal(snapshot.buffer()))
-                .replace("{trend}", createTrend(snapshot.trend()));
+        return format(config.getMonitorActionBarFormat(), target, snapshot);
     }
 
-    private String createTrend(double trend) {
-        String format;
-
-        if (Math.abs(trend) <= PROBABILITY_EPSILON) {
-            format = config.getMonitorTrendEqualFormat();
-        } else if (trend > 0.0D) {
-            format = config.getMonitorTrendUpFormat();
-        } else {
-            format = config.getMonitorTrendDownFormat();
-        }
-
-        return format.replace("{value}", decimal(trend * 100.0D));
+    private String format(String template, Player target, AiSnapshot snapshot) {
+        return template
+                .replace("{player}", target.getName())
+                .replace("{prob_color}", config.getChanceColor(snapshot.probability()))
+                .replace("{avg_color}", config.getChanceColor(snapshot.average()))
+                .replace("{probability_color}", config.getChanceColor(snapshot.probability()))
+                .replace("{prob}", decimal(snapshot.probability() * 100.0D))
+                .replace("{probability}", decimal(snapshot.probability() * 100.0D))
+                .replace("{avg}", decimal(snapshot.average() * 100.0D))
+                .replace("{buffer}", decimal(snapshot.buffer()))
+                .replace("{trend}", decimal(snapshot.trend() * 100.0D));
     }
 
     private boolean isSameTarget(MonitorSession session, UUID targetId) {
