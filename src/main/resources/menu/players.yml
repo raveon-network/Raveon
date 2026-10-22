@@ -15,7 +15,7 @@ settings:
       - '{checks}'
       - ''
       - ' &#c1dce7Средний риск'
-      - ' &#e2c46eAVG: {avg}'
+      - ' &#e2c46eAVG: {avg}%'
       - ''
       - ' &#c1dce7Последний сервер:'
       - ' &f{last_server}'

@@ -3,7 +3,7 @@ aim_ai:
     - "AimAI"
   remove-violations-after: 300
 
-  commands: # {probability} - Выводит проценты вероятности в формеате 0.0000
+  commands: # {probability} / {probability_percent} / {probability_proc} - вероятность в целых процентах
     - "1:1 [ai_alert]"
     - "2:2 [log]"
     - "5:0 ban {player} Система Raveon заметила ваше нестандартное поведение"

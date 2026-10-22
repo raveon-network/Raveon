@@ -16,7 +16,6 @@ public class RaveonCommand extends BaseCommandExecutor {
     @Override
     public void registerWrappers() {
         addSubCommand(new AlertsSubCommand());
-        addSubCommand(new VerboseSubCommand());
         addSubCommand(new HologramsSubCommand());
         addSubCommand(new HistorySubCommand());
         addSubCommand(new MenuSubCommand());

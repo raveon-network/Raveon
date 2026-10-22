@@ -15,6 +15,7 @@ import ru.raveon.checks.Check;
 import ru.raveon.checks.CheckData;
 import ru.raveon.checks.type.PacketCheck;
 import ru.raveon.player.RaveonPlayer;
+import ru.raveon.utils.ProbabilityUtils;
 import ru.raveon.utils.math.MouseCalculator;
 import ru.raveon.utils.SchedulerUtils;
 
@@ -174,7 +175,6 @@ public final class AimAI extends Check implements PacketCheck {
                 lastProbability,
                 buffer
         );
-        sendAiVerbose();
 
         Raveon.INSTANCE.getMonitorManager().publish(
                 bukkitPlayer,
@@ -191,7 +191,7 @@ public final class AimAI extends Check implements PacketCheck {
         registerViolation();
         player.getPunishmentManager().handleViolation(
                 this,
-                "prob: %.4f, buffer: %.2f".formatted(lastProbability, bufferAtFlag),
+                "prob: %s%%, buffer: %.2f".formatted(ProbabilityUtils.formatPercent(lastProbability), bufferAtFlag),
                 lastProbability
         );
 
@@ -222,26 +222,19 @@ public final class AimAI extends Check implements PacketCheck {
             return false;
         }
 
-        String probability = Raveon.INSTANCE.getMainConfigManager().getChanceString(lastProbability);
-        String probabilityPercent = Raveon.INSTANCE.getMainConfigManager().getPercentString(lastProbability);
-        String verboseMessage = Raveon.INSTANCE.getMainConfigManager().getAiVerboseMessage()
-                .replace("{player}", bukkitPlayer.getName())
-                .replace("{probability}", probability)
-                .replace("{probability_proc}", probabilityPercent)
-                .replace("{buffer}", "%.2f".formatted(buffer));
-
+        String probabilityPercent = ProbabilityUtils.formatPercent(lastProbability);
         String alertMessage = Raveon.INSTANCE.getMainConfigManager().getAiAlertMessage()
                 .replace("{player}", bukkitPlayer.getName())
                 .replace("{vl}", String.valueOf((int) getViolations()))
-                .replace("{probability}", probability)
+                .replace("{probability}", probabilityPercent)
+                .replace("{probability_percent}", probabilityPercent)
                 .replace("{probability_proc}", probabilityPercent)
                 .replace("{buffer}", "%.2f".formatted(buffer));
 
-        Raveon.INSTANCE.getAlertManager().sendVerbose(verboseMessage);
         Raveon.INSTANCE.getAlertManager().sendAlert(alertMessage);
         Raveon.INSTANCE.getViolationManager().logAlert(
                 this,
-                "prob: %.4f, buffer: %.2f".formatted(lastProbability, buffer)
+                "prob: %s%%, buffer: %.2f".formatted(probabilityPercent, buffer)
         );
         return true;
     }
@@ -249,23 +242,6 @@ public final class AimAI extends Check implements PacketCheck {
     @Override
     public boolean alert(String verbose) {
         return alert();
-    }
-
-    private void sendAiVerbose() {
-        Player bukkitPlayer = player.getBukkitPlayer();
-        if (bukkitPlayer == null || !bukkitPlayer.isOnline()) {
-            return;
-        }
-
-        String probability = Raveon.INSTANCE.getMainConfigManager().getChanceString(lastProbability);
-        String probabilityPercent = Raveon.INSTANCE.getMainConfigManager().getPercentString(lastProbability);
-        String verboseMessage = Raveon.INSTANCE.getMainConfigManager().getAiVerboseMessage()
-                .replace("{player}", bukkitPlayer.getName())
-                .replace("{probability}", probability)
-                .replace("{probability_proc}", probabilityPercent)
-                .replace("{buffer}", "%.2f".formatted(buffer));
-
-        Raveon.INSTANCE.getAlertManager().sendVerbose(verboseMessage);
     }
 
     private void updateRotationState(float currentYaw, float currentPitch) {

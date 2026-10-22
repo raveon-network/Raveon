@@ -10,6 +10,7 @@ import ru.raveon.Raveon;
 import ru.raveon.api.menu.MenuItem;
 import ru.raveon.database.model.PlayerAIProbabilityData;
 import ru.raveon.utils.ItemPlaceholderUtils;
+import ru.raveon.utils.ProbabilityUtils;
 import ru.raveon.utils.TimeUtils;
 
 import java.util.ArrayList;
@@ -96,12 +97,15 @@ public class PlayersMenuPlaceholders {
         placeholders.put("player_uuid", playerUuid == null ? settings.getEmptyValue() : playerUuid.toString());
         placeholders.put("player-uuid", playerUuid == null ? settings.getEmptyValue() : playerUuid.toString());
 
-        placeholders.put("last_chance", Raveon.INSTANCE.getMainConfigManager().getChanceString(lastChance));
+        placeholders.put("last_chance", coloredPercent(lastChance));
+        placeholders.put("last_chance_percent", ProbabilityUtils.formatPercent(lastChance));
 
-        placeholders.put("avg", Raveon.INSTANCE.getMainConfigManager().getChanceString(avgChance));
-        placeholders.put("avg_percent", Raveon.INSTANCE.getMainConfigManager().getPercentString(avgChance));
-        placeholders.put("max_probability", Raveon.INSTANCE.getMainConfigManager().getChanceString(maxChance));
-        placeholders.put("min_probability", Raveon.INSTANCE.getMainConfigManager().getChanceString(minChance));
+        placeholders.put("avg", coloredPercent(avgChance));
+        placeholders.put("avg_percent", ProbabilityUtils.formatPercent(avgChance));
+        placeholders.put("max_probability", coloredPercent(maxChance));
+        placeholders.put("max_probability_percent", ProbabilityUtils.formatPercent(maxChance));
+        placeholders.put("min_probability", coloredPercent(minChance));
+        placeholders.put("min_probability_percent", ProbabilityUtils.formatPercent(minChance));
 
         placeholders.put("probability_count", String.valueOf(probabilities.size()));
         placeholders.put("checks_count", String.valueOf(shownProbabilities.size()));
@@ -181,6 +185,11 @@ public class PlayersMenuPlaceholders {
         return playerData.getPlayerData().getUniqueId();
     }
 
+    private static String coloredPercent(double probability) {
+        return Raveon.INSTANCE.getMainConfigManager().getChanceColor(probability)
+                + ProbabilityUtils.formatPercent(probability);
+    }
+
     private static String formatCompactBar(double value, PlayersMenuSettings settings) {
         double clampedValue = Math.max(0.0D, Math.min(1.0D, value));
         int count = (int) (clampedValue * 10.0D);
@@ -211,7 +220,7 @@ public class PlayersMenuPlaceholders {
                 double probability = lastProbabilities.get(index);
                 builder.append(" ");
 
-                builder.append(Raveon.INSTANCE.getMainConfigManager().getChanceString(probability));
+                builder.append(coloredPercent(probability)).append("%");
             }
 
             lines.add(builder.toString());

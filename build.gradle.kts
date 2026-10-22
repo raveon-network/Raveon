@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.raveon"
-version = "1.0.3"
+version = "1.0.5"
 
 repositories {
     exclusiveContent {

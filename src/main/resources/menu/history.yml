@@ -9,14 +9,14 @@ settings:
 
   snapshot_form:
     material: GREEN_STAINED_GLASS_PANE
-    display_name: '&fAVG: {snapshot_avg}'
+    display_name: '&fAVG: {snapshot_avg}%'
     lore:
       - ''
-      - '&7Вер.        &8&l| &7Сервер        &0.&8&l| &7Время'
-      - '&8-------------------------------------'
+      - '&7Вер. &8&l| &7Сервер      &8&l| &7Время'
+      - '&8-------------------------------'
       - '{entries}'
 
-  entry_format: '{chance}     &8&l| &f{server}     &8&l| &f{time}  '
+  entry_format: '{chance}% &8&l| &f{server}&8&l| &f{time}'
   empty_entries_message: '&7Нет записей'
   empty_server_value: '—'
 

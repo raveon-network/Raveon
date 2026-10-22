@@ -4,12 +4,12 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitTask;
 import ru.raveon.api.models.monitor.AiSnapshot;
 import ru.raveon.api.models.monitor.MonitorSession;
 import ru.raveon.api.models.monitor.ToggleResult;
 import ru.raveon.Raveon;
 import ru.raveon.config.MainConfigManager;
+import ru.raveon.utils.ProbabilityUtils;
 import ru.raveon.utils.SchedulerUtils;
 
 import java.util.HashMap;
@@ -256,11 +256,26 @@ public final class MonitorManager {
                 .replace("{prob_color}", config.getChanceColor(snapshot.probability()))
                 .replace("{avg_color}", config.getChanceColor(snapshot.average()))
                 .replace("{probability_color}", config.getChanceColor(snapshot.probability()))
-                .replace("{prob}", decimal(snapshot.probability() * 100.0D))
-                .replace("{probability}", decimal(snapshot.probability() * 100.0D))
-                .replace("{avg}", decimal(snapshot.average() * 100.0D))
-                .replace("{buffer}", decimal(snapshot.buffer()))
-                .replace("{trend}", decimal(snapshot.trend() * 100.0D));
+                .replace("{prob}", ProbabilityUtils.formatPercent(snapshot.probability()))
+                .replace("{probability}", ProbabilityUtils.formatPercent(snapshot.probability()))
+                .replace("{avg}", ProbabilityUtils.formatPercent(snapshot.average()))
+                .replace("{trend}", createTrend(snapshot.trend()))
+                .replace("{buffer}", decimal(snapshot.buffer()));
+    }
+
+    private String createTrend(double trend) {
+        int trendPercent = ProbabilityUtils.toPercent(trend);
+        String format;
+
+        if (trendPercent == 0) {
+            format = config.getMonitorTrendEqualFormat();
+        } else if (trendPercent > 0) {
+            format = config.getMonitorTrendUpFormat();
+        } else {
+            format = config.getMonitorTrendDownFormat();
+        }
+
+        return format.replace("{value}", String.valueOf(trendPercent));
     }
 
     private boolean isSameTarget(MonitorSession session, UUID targetId) {

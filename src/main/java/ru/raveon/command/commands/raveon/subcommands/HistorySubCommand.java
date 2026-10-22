@@ -30,7 +30,11 @@ public class HistorySubCommand implements BuildableCommand {
         String targetName = args[1];
 
         if (isMenuRequested(args)) {
-            openHistoryMenu(sender, targetName);
+            if (sender instanceof Player player) {
+                openHistoryMenu(player, targetName);
+            } else {
+                sender.sendMessage(Raveon.INSTANCE.getMainConfigManager().getHistoryOnlyPlayerMessage());
+            }
             return;
         }
 
@@ -81,13 +85,8 @@ public class HistorySubCommand implements BuildableCommand {
         return args.length >= 3 && args[2].equalsIgnoreCase("menu");
     }
 
-    private void openHistoryMenu(@NotNull CommandSender sender, @NotNull String targetName) {
+    public static void openHistoryMenu(@NotNull Player player, @NotNull String targetName) {
         var config = Raveon.INSTANCE.getMainConfigManager();
-
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(config.getHistoryOnlyPlayerMessage());
-            return;
-        }
 
         var probabilityStorage = Raveon.INSTANCE.getViolationManager().getProbabilityStorage();
         Player target = Bukkit.getPlayer(targetName);

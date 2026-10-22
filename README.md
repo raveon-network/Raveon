@@ -32,9 +32,8 @@ RaveonAI - это Minecraft-плагин античита для серверо�
 ## Возможности
 
 - буферизация вероятности перед флагом, чтобы снижать случайные срабатывания
-- алерты и verbose-режим для отладки и наблюдения
+- алерты и мониторинг вероятности игрока в реальном времени
 - меню игроков и история нарушений
-- мониторинг вероятности игрока в реальном времени
 - поддержка MySQL и SQLite для хранения данных
 - Redis для межсерверной синхронизации
 - WorldGuard-регионы для отключения AI-проверки в выбранных местах
@@ -73,10 +72,9 @@ analyze:
 | Команда | Permission | Что делает |
 | --- | --- | --- |
 | `/raveon alerts` | `raveon.command.alert` | Включает или выключает алерты для игрока |
-| `/raveon verbose` | `raveon.command.verbose` | Включает или выключает подробную информацию |
 | `/raveon holo` | `raveon.command.holograms` | Включает или выключает AI-голограммы |
 | `/raveon hologram` | `raveon.command.holograms` | Алиас команды голограмм |
-| `/raveon menu` | `raveon.command.menu` | Открывает меню игроков |
+| `/raveon menu [player]` | `raveon.command.menu` | Открывает меню игроков; с ником — историю игрока |
 | `/raveon history <player> [page]` | `raveon.command.history` | Показывает историю нарушений игрока |
 | `/raveon monitor prob [player]` | `raveon.command.monitor` | Монитор вероятностей в action bar (по умолчанию — вы сами): `last% \| avg% \| buffer` |
 | `/raveon monitor chat [player]` | `raveon.command.monitor` | Выводит вероятности игрока в чат; без ника — всех игроков |

@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import ru.raveon.Raveon;
 import ru.raveon.checks.Check;
 import ru.raveon.config.anticheat.PunishmentConfigManager;
+import ru.raveon.utils.ProbabilityUtils;
 import ru.raveon.utils.SchedulerUtils;
 
 import java.util.ArrayList;
@@ -98,7 +99,8 @@ public final class PunishmentManager {
                 .replace("{player}", check.getPlayer().getName())
                 .replace("{verbose}", verbose)
                 .replace("{vl}", String.valueOf((int) check.getViolations()))
-                .replace("{probability}", "0.0000")
+                .replace("{probability}", "0")
+                .replace("{probability_percent}", "0")
                 .replace("{probability_proc}", "0");
 
         Raveon.INSTANCE.getAlertManager().sendAlert(alertMessage);
@@ -113,13 +115,13 @@ public final class PunishmentManager {
             return;
         }
 
-        String probabilityString = Raveon.INSTANCE.getMainConfigManager().getChanceString(aiProbability);
-        String probabilityPercent = Raveon.INSTANCE.getMainConfigManager().getPercentString(aiProbability);
+        String probabilityPercent = ProbabilityUtils.formatPercent(aiProbability);
 
         String message = Raveon.INSTANCE.getMainConfigManager().getAiAlertMessage()
                 .replace("{player}", check.getPlayer().getName())
                 .replace("{vl}", String.valueOf((int) check.getViolations()))
-                .replace("{probability}", probabilityString)
+                .replace("{probability}", probabilityPercent)
+                .replace("{probability_percent}", probabilityPercent)
                 .replace("{probability_proc}", probabilityPercent);
 
         Raveon.INSTANCE.getAlertManager().sendAlert(message);
@@ -134,13 +136,9 @@ public final class PunishmentManager {
     }
 
     private String applyPlaceholders(String template, Check check, String verbose, double aiProbability, int checkViolations, int totalViolations) {
-        String probabilityString = aiProbability < 0.0D
-                ? "0.0000"
-                : Raveon.INSTANCE.getMainConfigManager().getChanceString(aiProbability);
         String probabilityPercent = aiProbability < 0.0D
-                ? "0.00"
-                : Raveon.INSTANCE.getMainConfigManager().getPercentString(aiProbability);
-
+                ? "0"
+                : ProbabilityUtils.formatPercent(aiProbability);
         return template
                 .replace("{player}", check.getPlayer().getName())
                 .replace("{check}", check.getCheckName())
@@ -149,7 +147,8 @@ public final class PunishmentManager {
                 .replace("{vl}", String.valueOf((int) check.getViolations()))
                 .replace("{violations}", String.valueOf(checkViolations))
                 .replace("{total_violations}", String.valueOf(totalViolations))
-                .replace("{probability}", probabilityString)
+                .replace("{probability}", probabilityPercent)
+                .replace("{probability_percent}", probabilityPercent)
                 .replace("{probability_proc}", probabilityPercent);
     }
 

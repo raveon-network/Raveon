@@ -76,11 +76,6 @@ public class HistoryMenuSettings extends MenuSettings {
         return new HistoryMenuSettings(MenuSettings.fromSection(section));
     }
 
-    private double toPercentage(double probability) {
-        double value = probability <= 1.0D ? probability * 100.0D : probability;
-        return Math.max(0.0D, value);
-    }
-
     private static Material readMaterial(ConfigurationSection settings, String path, Material defaultMaterial) {
         String materialName = settings.getString(path);
         if (materialName == null || materialName.isBlank()) {

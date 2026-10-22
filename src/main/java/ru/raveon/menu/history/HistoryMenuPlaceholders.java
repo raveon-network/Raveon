@@ -7,6 +7,7 @@ import ru.raveon.api.menu.MenuItem;
 import ru.raveon.database.model.PlayerAIProbabilityData.Prob;
 import ru.raveon.database.model.PlayerAIProbabilityData.ProbSnapshot;
 import ru.raveon.utils.ItemPlaceholderUtils;
+import ru.raveon.utils.ProbabilityUtils;
 import ru.raveon.utils.TimeUtils;
 
 import java.time.Instant;
@@ -70,10 +71,10 @@ public class HistoryMenuPlaceholders {
         placeholders.put("snapshot_number", String.valueOf(snapshotNumber));
         placeholders.put("snapshot_index", String.valueOf(snapshotNumber));
         placeholders.put("snapshot_count", String.valueOf(entries.size()));
-        placeholders.put("snapshot_avg", formatChance(average));
-        placeholders.put("snapshot_avg_percent", formatPercent(average));
-        placeholders.put("snapshot_min", formatChance(minimum));
-        placeholders.put("snapshot_max", formatChance(maximum));
+        placeholders.put("snapshot_avg", coloredPercent(average));
+        placeholders.put("snapshot_avg_percent", ProbabilityUtils.formatPercent(average));
+        placeholders.put("snapshot_min", coloredPercent(minimum));
+        placeholders.put("snapshot_max", coloredPercent(maximum));
         placeholders.put("snapshot_created_at", formatDateTime(createdAt));
         placeholders.put("snapshot_updated_at", formatDateTime(updatedAt));
         placeholders.put("snapshot_age", formatElapsed(createdAt));
@@ -114,10 +115,10 @@ public class HistoryMenuPlaceholders {
         List<String> lines = new ArrayList<>(reversedEntries.size());
         for (Prob entry : reversedEntries) {
             Map<String, String> placeholders = new HashMap<>();
-            placeholders.put("chance", formatChance(entry.getChance()));
-            placeholders.put("chance_percent", formatPercent(entry.getChance()));
-            placeholders.put("server", resolveServer(entry.getServerName(), settings));
-            placeholders.put("time", formatElapsed(entry.getReceivedAt()));
+            placeholders.put("chance", coloredPaddedPercent(entry.getChance()));
+            placeholders.put("chance_percent", ProbabilityUtils.formatPercent(entry.getChance()));
+            placeholders.put("server", padColumn(resolveServer(entry.getServerName(), settings), 12));
+            placeholders.put("time", padColumn(formatElapsed(entry.getReceivedAt()), 8));
             placeholders.put("received_at", formatDateTime(entry.getReceivedAt()));
 
             lines.add(ItemPlaceholderUtils.apply(settings.getEntryFormat(), placeholders));
@@ -153,12 +154,24 @@ public class HistoryMenuPlaceholders {
                 .orElse(createdAt);
     }
 
-    private static String formatChance(double probability) {
-        return Raveon.INSTANCE.getMainConfigManager().getChanceString(probability);
+    private static String coloredPercent(double probability) {
+        return Raveon.INSTANCE.getMainConfigManager().getChanceColor(probability)
+                + ProbabilityUtils.formatPercent(probability);
     }
 
-    private static String formatPercent(double probability) {
-        return Raveon.INSTANCE.getMainConfigManager().getPercentString(probability);
+    private static String coloredPaddedPercent(double probability) {
+        String percent = ProbabilityUtils.formatPercent(probability);
+        return Raveon.INSTANCE.getMainConfigManager().getChanceColor(probability)
+                + " ".repeat(Math.max(0, 3 - percent.length()))
+                + percent;
+    }
+
+    private static String padColumn(String value, int width) {
+        String normalized = value == null ? "—" : value;
+        if (normalized.length() > width) {
+            return normalized.substring(0, Math.max(0, width - 1)) + "…";
+        }
+        return normalized + " ".repeat(width - normalized.length());
     }
 
     private static String formatDateTime(long timestamp) {

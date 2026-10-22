@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import ru.raveon.Raveon;
 import ru.raveon.config.anticheat.HologramConfigManager;
 import ru.raveon.manager.anticheat.PlayerAnalysisSnapshot;
+import ru.raveon.utils.ProbabilityUtils;
 import ru.raveon.utils.SchedulerUtils;
 
 import java.text.DecimalFormat;
@@ -22,7 +23,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Getter
 public final class HologramManager {
-    private static final DecimalFormat PROB_FORMAT = new DecimalFormat("0.0000");
     private static final DecimalFormat BUFFER_FORMAT = new DecimalFormat("0.00");
 
     private final Map<UUID, List<String>> hologramLinesByTarget = new ConcurrentHashMap<>();
@@ -103,7 +103,7 @@ public final class HologramManager {
 
         hologramLinesByTarget.remove(playerId);
         belowNameLineByTarget.remove(playerId);
-        // Like alerts and verbose, the toggle is per session and must not keep UUIDs of everyone who ever joined.
+        // The toggle is per session and must not keep UUIDs of everyone who ever joined.
         enabledViewers.remove(playerId);
     }
 
@@ -641,7 +641,7 @@ public final class HologramManager {
     }
 
     private String formatProbability(double probability) {
-        return PROB_FORMAT.format(probability);
+        return ProbabilityUtils.formatPercent(probability);
     }
 
     private String formatBuffer(double buffer) {

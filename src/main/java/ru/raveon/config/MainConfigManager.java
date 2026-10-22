@@ -26,13 +26,10 @@ public class MainConfigManager extends ConfigManager {
 
     private String alertsEnabledMessage;
     private String alertsDisableMessage;
-    private String verboseEnabledMessage;
-    private String verboseDisableMessage;
     private String hologramsEnabledMessage;
     private String hologramsDisableMessage;
 
     private String aiAlertMessage;
-    private String aiVerboseMessage;
 
     private String historyHeaderMessage;
     private String historyEntryMessage;
@@ -110,13 +107,10 @@ public class MainConfigManager extends ConfigManager {
 
         alertsEnabledMessage = messagesConfig.getString("alerts-enabled", null).replace("{prefix}", prefix);
         alertsDisableMessage = messagesConfig.getString("alerts-disabled", null).replace("{prefix}", prefix);
-        verboseEnabledMessage = messagesConfig.getString("verbose-enabled", null).replace("{prefix}", prefix);
-        verboseDisableMessage = messagesConfig.getString("verbose-disabled", null).replace("{prefix}", prefix);
         hologramsEnabledMessage = messagesConfig.getString("holograms-enabled", null).replace("{prefix}", prefix);
         hologramsDisableMessage = messagesConfig.getString("holograms-disabled", null).replace("{prefix}", prefix);
 
         aiAlertMessage = messagesConfig.getString("ai-alert", null).replace("{prefix}", prefix);
-        aiVerboseMessage = messagesConfig.getString("ai-verbose", null).replace("{prefix}", prefix);
 
 
         historyHeaderMessage = messagesConfig.getString("history-header", null).replace("{prefix}", prefix);
@@ -129,9 +123,9 @@ public class MainConfigManager extends ConfigManager {
 
         monitorActionBarFormat = messagesConfig.getString("monitor.action_bar.format", null).replace("{prefix}", prefix);
         monitorWaitingFormat = messagesConfig.getString("monitor.action_bar.waiting", null).replace("{prefix}", prefix);
-        monitorTrendUpFormat = messagesConfig.getString("monitor.action_bar.trend.up", null).replace("{prefix}", prefix);
-        monitorTrendDownFormat = messagesConfig.getString("monitor.action_bar.trend.down", null).replace("{prefix}", prefix);
-        monitorTrendEqualFormat = messagesConfig.getString("monitor.action_bar.trend.equal", null).replace("{prefix}", prefix);
+        monitorTrendUpFormat = messagesConfig.getString("monitor.action_bar.trend.up", "&#F65943+{value}%").replace("{prefix}", prefix);
+        monitorTrendDownFormat = messagesConfig.getString("monitor.action_bar.trend.down", "&#95F643{value}%").replace("{prefix}", prefix);
+        monitorTrendEqualFormat = messagesConfig.getString("monitor.action_bar.trend.equal", "&#95F6430%").replace("{prefix}", prefix);
 
         monitorChatFormat = messagesConfig.getString("monitor.chat.format", null).replace("{prefix}", prefix);
         monitorChatAllName = messagesConfig.getString("monitor.chat.all_name", null);
@@ -156,13 +150,4 @@ public class MainConfigManager extends ConfigManager {
         return entry != null ? entry.getValue() : "§f";
     }
 
-    public String getChanceString(double chance) {
-        String color = getChanceColor(chance);
-        return "%s%.4f".formatted(color, chance);
-    }
-
-    public String getPercentString(double percent) {
-        String color = getChanceColor(percent);
-        return "%s%.0f".formatted(color, percent * 100);
-    }
 }

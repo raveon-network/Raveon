@@ -8,7 +8,10 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientIn
 import ru.raveon.Raveon;
 import ru.raveon.player.RaveonPlayer;
 
+import java.util.UUID;
+
 public final class CombatListener extends PacketListenerAbstract {
+
     public CombatListener() {
         super(PacketListenerPriority.LOW);
     }
@@ -23,21 +26,28 @@ public final class CombatListener extends PacketListenerAbstract {
             return;
         }
 
-        WrapperPlayClientInteractEntity interactPacket = new WrapperPlayClientInteractEntity(event);
-        if (interactPacket.getAction() != WrapperPlayClientInteractEntity.InteractAction.ATTACK) {
+        WrapperPlayClientInteractEntity interactPacket =
+                new WrapperPlayClientInteractEntity(event);
+
+        if (interactPacket.getAction()
+                != WrapperPlayClientInteractEntity.InteractAction.ATTACK) {
             return;
         }
 
-        RaveonPlayer raveonPlayer = Raveon.INSTANCE.getPlayerDataManager().getPlayer(event.getUser());
+        RaveonPlayer raveonPlayer =
+                Raveon.INSTANCE.getPlayerDataManager()
+                        .getPlayer(event.getUser());
+
         if (raveonPlayer == null) {
             return;
         }
 
-        java.util.UUID targetUuid = Raveon.INSTANCE.getTargetEntityIndex()
+        UUID targetUuid = Raveon.INSTANCE.getTargetEntityIndex()
                 .getPlayerUniqueIdByEntityId(interactPacket.getEntityId());
-        // Target indexing is optional context. The attack itself must still
-        // activate collection, otherwise one player can disappear from AI
-        // requests when the entity index is temporarily stale.
+        if (targetUuid == null) {
+            return;
+        }
+
         raveonPlayer.markAttack(targetUuid);
     }
 }
