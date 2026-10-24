@@ -5,6 +5,9 @@ import com.github.retrooper.packetevents.event.PacketListenerPriority;
 import com.github.retrooper.packetevents.event.PacketReceiveEvent;
 import com.github.retrooper.packetevents.protocol.packettype.PacketType;
 import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientInteractEntity;
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import ru.raveon.Raveon;
 import ru.raveon.player.RaveonPlayer;
 
@@ -44,6 +47,18 @@ public final class CombatListener extends PacketListenerAbstract {
 
         UUID targetUuid = Raveon.INSTANCE.getTargetEntityIndex()
                 .getPlayerUniqueIdByEntityId(interactPacket.getEntityId());
+
+        if (targetUuid == null) {
+            Player bukkitPlayer = event.getPlayer();
+            Entity entity = SpigotConversionUtil.getEntityById(
+                    bukkitPlayer != null ? bukkitPlayer.getWorld() : null,
+                    interactPacket.getEntityId()
+            );
+            if (entity != null && "minecraft:mannequin".equals(entity.getType().getKey().toString())) {
+                targetUuid = entity.getUniqueId();
+            }
+        }
+
         if (targetUuid == null) {
             return;
         }

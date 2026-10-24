@@ -139,9 +139,7 @@ public final class MonitorManager {
     private void sendChat(Player target, AiSnapshot snapshot) {
         String message = format(config.getMonitorChatFormat(), target, snapshot);
 
-        Iterator<Map.Entry<UUID, ChatSubscription>> iterator = chatSubscriptions.entrySet().iterator();
-        while (iterator.hasNext()) {
-            Map.Entry<UUID, ChatSubscription> entry = iterator.next();
+        for (Map.Entry<UUID, ChatSubscription> entry : chatSubscriptions.entrySet()) {
             ChatSubscription subscription = entry.getValue();
 
             if (subscription.targetId() != null && !subscription.targetId().equals(target.getUniqueId())) {
@@ -150,7 +148,6 @@ public final class MonitorManager {
 
             Player viewer = Bukkit.getPlayer(entry.getKey());
             if (viewer == null || !viewer.isOnline()) {
-                iterator.remove();
                 continue;
             }
 
@@ -205,8 +202,6 @@ public final class MonitorManager {
 
             Player viewer = Bukkit.getPlayer(viewerId);
             if (viewer == null || !viewer.isOnline()) {
-                iterator.remove();
-                removeSnapshotIfUnused(session.getTargetId());
                 continue;
             }
 

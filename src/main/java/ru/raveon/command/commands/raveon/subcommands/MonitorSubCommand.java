@@ -31,8 +31,8 @@ public class MonitorSubCommand implements BuildableCommand {
 
         MonitorManager monitorManager = Raveon.INSTANCE.getMonitorManager();
 
-        if (args.length < 2) {
-            viewer.sendMessage(config.getMonitorUsageMessage());
+        if (args.length < 2 || args[1].isBlank()) {
+            handleProb(viewer, args, config, monitorManager);
             return;
         }
 
