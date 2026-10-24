@@ -1,4 +1,4 @@
-title: '&8История {player_name}'
+title: '&8{player_name} history'
 size: 54
 
 decoration:
@@ -12,12 +12,12 @@ settings:
     display_name: '&fAVG: {snapshot_avg}%'
     lore:
       - ''
-      - '&7Вер. &8&l| &7Сервер      &8&l| &7Время'
+      - '&7Prob. &8&l| &7Server      &8&l| &7Time'
       - '&8-------------------------------'
       - '{entries}'
 
   entry_format: '{chance}% &8&l| &f{server}&8&l| &f{time}'
-  empty_entries_message: '&7Нет записей'
+  empty_entries_message: '&7No entries'
   empty_server_value: '—'
 
   thresholds:
@@ -30,11 +30,11 @@ items:
   previous-item:
     material: ARROW
     action: 'previous_page'
-    display_name: '&#36cbe9◀ &#F3F3F3Предыдущая страница'
+    display_name: '&#36cbe9◀ &#F3F3F3Previous page'
     slot: 47
 
   next-item:
     material: ARROW
     action: 'next_page'
-    display_name: '&#F3F3F3Следующая страница &#36cbe9▶'
+    display_name: '&#F3F3F3Next page &#36cbe9▶'
     slot: 51

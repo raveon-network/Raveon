@@ -611,15 +611,10 @@ public final class HologramManager {
             return false;
         }
 
-        if (viewer.getUniqueId().equals(target.getUniqueId())) {
-            return false;
-        }
-
         if (!viewer.getWorld().equals(target.getWorld())) {
             return false;
         }
 
-        // Respect vanish plugins: a hologram must never reveal a player the viewer can't see.
         if (!viewer.canSee(target)) {
             return false;
         }
@@ -633,8 +628,13 @@ public final class HologramManager {
             double averageProbability,
             double buffer
     ) {
+        String probColor = Raveon.INSTANCE.getMainConfigManager().getChanceColor(lastProbability);
+        String avgColor = Raveon.INSTANCE.getMainConfigManager().getChanceColor(averageProbability);
+
         return lineTemplate
-                .replace("{avg_color}", Raveon.INSTANCE.getMainConfigManager().getChanceColor(averageProbability))
+                .replace("{prob_color}", probColor)
+                .replace("{probability_color}", probColor)
+                .replace("{avg_color}", avgColor)
                 .replace("{prob}", formatProbability(lastProbability))
                 .replace("{avg}", formatProbability(averageProbability))
                 .replace("{buffer}", formatBuffer(buffer));

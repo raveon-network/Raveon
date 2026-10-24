@@ -14,6 +14,7 @@ import ru.raveon.api.models.RotationFrame;
 import ru.raveon.checks.Check;
 import ru.raveon.checks.CheckData;
 import ru.raveon.checks.type.PacketCheck;
+import ru.raveon.config.anticheat.ChecksConfigManager;
 import ru.raveon.player.RaveonPlayer;
 import ru.raveon.utils.ProbabilityUtils;
 import ru.raveon.utils.math.MouseCalculator;
@@ -25,9 +26,8 @@ import java.util.UUID;
 @Getter
 @CheckData(name = "AimAI", configName = "analyze")
 public final class AimAI extends Check implements PacketCheck {
-    private static final double CHEAT_PROBABILITY = 0.90D;
-    private static final double LEGIT_PROBABILITY = 0.10D;
 
+    private double cheatProbability = 0.85D;
     private double buffer = 0.0D;
     private double bufferFlagThreshold = 50.0D;
     private double bufferResetOnFlag = 25.0D;
@@ -204,9 +204,9 @@ public final class AimAI extends Check implements PacketCheck {
     }
 
     private void updateBuffer(double probability) {
-        if (probability > CHEAT_PROBABILITY) {
-            buffer += (probability - CHEAT_PROBABILITY) * bufferMultiplier;
-        } else if (probability < LEGIT_PROBABILITY) {
+        if (probability > cheatProbability) {
+            buffer += (probability - cheatProbability) * bufferMultiplier;
+        } else if (probability < 0.10) {
             buffer = Math.max(0.0D, buffer - bufferDecrease);
         }
     }
@@ -306,15 +306,13 @@ public final class AimAI extends Check implements PacketCheck {
     }
 
     public void onReload(CustomConfig config) {
-        String path = getConfigName();
+        ChecksConfigManager checksConfigManager = Raveon.INSTANCE.getChecksConfigManager();
 
-        this.bufferFlagThreshold = Math.max(0.0D, config.getDouble(path + ".buffer.flag", 50.0D));
-        this.bufferResetOnFlag = Math.max(
-                0.0D,
-                Math.min(bufferFlagThreshold, config.getDouble(path + ".buffer.reset_on_flag", 25.0D))
-        );
-        this.bufferMultiplier = Math.max(0.0D, config.getDouble(path + ".buffer.multiplier", 100.0D));
-        this.bufferDecrease = Math.max(0.0D, config.getDouble(path + ".buffer.decrease", 0.25D));
+        this.cheatProbability = checksConfigManager.getAimAiCheatProbability();
+        this.bufferFlagThreshold = checksConfigManager.getAimAiBufferFlagThreshold();
+        this.bufferResetOnFlag = checksConfigManager.getAimAiBufferResetOnFlag();
+        this.bufferMultiplier = checksConfigManager.getAimAiBufferMultiplier();
+        this.bufferDecrease = checksConfigManager.getAimAiBufferDecrease();
     }
 
 }

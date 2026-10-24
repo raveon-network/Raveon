@@ -1,26 +1,26 @@
 prefix: '&#4A92E2R&#509CE8a&#57A6EEv&#5DAFF3e&#64B9F9o&#6AC3FFn &7»'
 
-alerts-enabled: '{prefix} &#F3F3F3Оповещения &#95F643включены&#F3F3F3!'
-alerts-disabled: '{prefix} &#F3F3F3Оповещения &#F65943отключены&#F3F3F3!'
+alerts-enabled: '{prefix} &#F3F3F3Alerts &#95F643enabled&#F3F3F3!'
+alerts-disabled: '{prefix} &#F3F3F3Alerts &#F65943disabled&#F3F3F3!'
 
 
-holograms-enabled: '{prefix} &#F3F3F3Показ голограмм над игроком &#95F643включен&#F3F3F3!'
-holograms-disabled: '{prefix} &#F3F3F3Показ голограмм над игроком &#F65943отключен&#F3F3F3!'
+holograms-enabled: '{prefix} &#F3F3F3Hologram display above player &#95F643enabled&#F3F3F3!'
+holograms-disabled: '{prefix} &#F3F3F3Hologram display above player &#F65943disabled&#F3F3F3!'
 
-ai-alert: '{prefix} &#F3F3F3Игрок &#CDCDCD{player}&#F3F3F3 провалил проверку &#F65943AimAI &#DBDBDB[&#F65943x{vl}&#DBDBDB] &#CDCDCD{probability_proc}%'
+ai-alert: '{prefix} &#F3F3F3Player &#CDCDCD{player}&#F3F3F3 failed &#F65943Aim (AI) &#DBDBDB[&#F65943x{vl}&#DBDBDB] check &#CDCDCD{probability}%'
 
-history-header: '{prefix} &#F3F3F3История проверок игрока &#F65943{player} &7({page}&8/&7{max_pages})'
-history-entry: '{prefix} &8[&#93FFD7{server}&8] &#F3F3F3Провалил &#93FFD7{check_name} &#F3F3F3(x&#F65943{vl}&f) &7{verbose} (&#93FFD7{time_ago} назад&7)'
-history-only-player: '{prefix} &#F3F3F3Меню может открыть только игрок.'
-history-no-data: '{prefix} &#F3F3F3Нет данных для игрока &#F65943{player}&#F3F3F3.'
+history-header: '{prefix} &#F3F3F3Check history for &#F65943{player} &7({page}&8/&7{max_pages})'
+history-entry: '{prefix} &8[&#93FFD7{server}&8] &#F3F3F3Failed &#93FFD7{check_name} &#F3F3F3(x&#F65943{vl}&f) &7{verbose} (&#93FFD7{time_ago} ago&7)'
+history-only-player: '{prefix} &#F3F3F3This menu can only be opened by a player.'
+history-no-data: '{prefix} &#F3F3F3No data found for player &#F65943{player}&#F3F3F3.'
 
-reloading: '{prefix} &#F3F3F3Перезагрузка конфигурации...'
-reloaded: '{prefix} &#F3F3F3Конфигурация успешно перезагружена...'
+reloading: '{prefix} &#F3F3F3Reloading configuration...'
+reloaded: '{prefix} &#F3F3F3Configuration reloaded successfully...'
 
 monitor:
   action_bar:
     format: "{prob_color}{prob}% &7| {avg_color}{avg}% &7| {trend} &7| &f{buffer}"
-    waiting: "&#93FFD7&lAI &#F3F3F3{player} &8• &#CDCDCDожидание результата анализа..."
+    waiting: "&#93FFD7&lAI &#F3F3F3{player} &8• &#CDCDCDwaiting for analysis result..."
     trend:
       up: "&#F65943+{value}%"
       down: "&#95F643{value}%"
@@ -28,16 +28,16 @@ monitor:
 
   chat:
     format: "{prefix} &7{player} &8» {prob_color}{prob}% &7| {avg_color}{avg}% &7| {trend} &7| &f{buffer}"
-    all_name: "всех игроков"
-    enabled: "{prefix} &#F3F3F3Вывод вероятностей в чат включён для &#CDCDCD{player}&f."
-    switched: "{prefix} &#F3F3F3Вывод вероятностей в чат переключён на &#CDCDCD{player}&f."
-    disabled: "{prefix} &#F3F3F3Вывод вероятностей в чат &#F65943выключен&#F3F3F3."
+    all_name: "all players"
+    enabled: "{prefix} &#F3F3F3Chat probability output enabled for &#CDCDCD{player}&f."
+    switched: "{prefix} &#F3F3F3Chat probability output switched to &#CDCDCD{player}&f."
+    disabled: "{prefix} &#F3F3F3Chat probability output &#F65943disabled&#F3F3F3."
 
-  usage: "{prefix} &#F3F3F3Использование: &#CDCDCD/raveon monitor chat [ник] &8| &#CDCDCD/raveon monitor prob [ник] &8| &#CDCDCD/raveon monitor stop"
-  only_player: "{prefix} &#F3F3F3Эту команду может выполнить только игрок."
-  enabled: "{prefix} &#F3F3F3Монитор запущен для &#CDCDCD{player}&f."
-  disabled: "{prefix} &#F3F3F3Монитор &#F65943отключен&#F3F3F3."
-  not_running: "{prefix} &#F3F3F3Монитор сейчас не запущен."
-  switched: "{prefix} &#F3F3F3Цель монитора изменена на &#CDCDCD{player}&f."
-  player_not_found: "{prefix} &#F3F3F3Игрок не найден."
-  target_left: "{prefix} &#F3F3F3Монитор остановлен: игрок &#CDCDCD{player} &#F3F3F3вышел с сервера."
+  usage: "{prefix} &#F3F3F3Usage: &#CDCDCD/raveon monitor chat [name] &8| &#CDCDCD/raveon monitor prob [name] &8| &#CDCDCD/raveon monitor stop"
+  only_player: "{prefix} &#F3F3F3This command can only be run by a player."
+  enabled: "{prefix} &#F3F3F3Monitor started for &#CDCDCD{player}&f."
+  disabled: "{prefix} &#F3F3F3Monitor &#F65943disabled&#F3F3F3."
+  not_running: "{prefix} &#F3F3F3The monitor is not currently running."
+  switched: "{prefix} &#F3F3F3Monitor target switched to &#CDCDCD{player}&f."
+  player_not_found: "{prefix} &#F3F3F3Player not found."
+  target_left: "{prefix} &#F3F3F3Monitor stopped: player &#CDCDCD{player} &#F3F3F3left the server."

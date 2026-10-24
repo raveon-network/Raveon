@@ -11,4 +11,4 @@ below_name:
 # {avg_color} - color matching the average value, {buffer} - current buffer.
 # Below-name can only render a single line: only the first entry of this list is used for it.
 lines:
-  - '{avg_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}'
+  - '{prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}'

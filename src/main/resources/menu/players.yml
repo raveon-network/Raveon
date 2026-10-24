@@ -1,4 +1,4 @@
-title: '&8Подозреваемые'
+title: '&8Suspects'
 size: 54
 
 decoration:
@@ -11,29 +11,30 @@ settings:
     display_name: ' &#36cbe9▶ &#F3F3F3{player_name} &#F3F3F3[{cheat_bar}&#F3F3F3] {avg_percent}%'
     lore:
       - ''
-      - ' &#c1dce7Последние проверки:'
+      - ' &#c1dce7Recent checks:'
       - '{checks}'
       - ''
-      - ' &#c1dce7Средний риск'
+      - ' &#c1dce7Average risk'
       - ' &#e2c46eAVG: {avg}%'
       - ''
-      - ' &#c1dce7Последний сервер:'
+      - ' &#c1dce7Last server:'
       - ' &f{last_server}'
       - ''
-      - ' &#c1dce7Последний удар:'
+      - ' &#c1dce7Last hit:'
       - ' &f{last_check}'
       - ''
-      - ' &#36cbe9▶ &#F3F3F3Нажмите &7ЛКМ&#F3F3F3, чтобы следить'
-      - ' &#36cbe9▶ &#F3F3F3Нажмите &7ПКМ&#F3F3F3, чтобы посмотреть историю'
+      - ' &#36cbe9▶ &#F3F3F3Click &7LEFT&#F3F3F3 to spectate'
+      - ' &#36cbe9▶ &#F3F3F3Click &7RIGHT&#F3F3F3 to view history'
 
     click_actions:
       left:
-        - '[player] spec start player {player_name}'
+        - '[player] gm 3'
+        - '[player] tp {player_name}'
       right:
         - '[open-history]'
 
   empty_value: ' &7—'
-  no_checks_message: ' &7Нет данных'
+  no_checks_message: ' &7No data'
 
   bar_symbol: '■'
   empty_bar_symbol: '&8■'
@@ -46,10 +47,10 @@ items:
   previous-item:
     material: ARROW
     action: 'previous_page'
-    display_name: '&#36cbe9◀ &#F3F3F3Предыдущая страница'
+    display_name: '&#36cbe9◀ &#F3F3F3Previous page'
     slot: 47
   next-item:
     material: ARROW
     action: 'next_page'
-    display_name: '&#F3F3F3Следующая страница &#36cbe9▶'
+    display_name: '&#F3F3F3Next page &#36cbe9▶'
     slot: 51
