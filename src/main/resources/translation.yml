@@ -27,7 +27,7 @@ monitor:
       equal: "&#95F6430%"
 
   chat:
-    format: "{prefix} &7{player} &8» {prob_color}{prob}% &7| {avg_color}{avg}% &7| {trend} &7| &f{buffer}"
+    format: "{prefix} &7{player} &8» {prob_color}{prob}% &7| {avg_color}{avg}% &7| &f{buffer}"
     all_name: "all players"
     enabled: "{prefix} &#F3F3F3Chat probability output enabled for &#CDCDCD{player}&f."
     switched: "{prefix} &#F3F3F3Chat probability output switched to &#CDCDCD{player}&f."
