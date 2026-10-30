@@ -1,10 +1,3 @@
-# Raveon v2.0.1
-
-English | [Russian](README_ru.md)
-
-Pro and Ultra models, history, monitoring, and dataset collection.
-
-Select Russian or English with `language: ru` or `language: en` in `settings.yml`. Translations are stored in `lang/ru.yml` and `lang/en.yml`.
 
 <div align="center">
   <h1>Raveon</h1>
