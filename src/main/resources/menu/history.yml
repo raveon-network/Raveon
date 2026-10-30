@@ -1,0 +1,56 @@
+# {lang:key} resolves text from the selected language catalog.
+title: "{lang:menus.history.title}"
+# Inventory slots; a multiple of 9 from 9 to 54.
+size: 54
+
+# Material names mapped to zero-based decorative slots.
+decoration:
+  LIGHT_BLUE_STAINED_GLASS_PANE: [ 45,46,48,52,53 ]
+
+settings:
+  # Zero-based slots used for history snapshots.
+  snapshot_slots: [ 0,1,2,3,4,5,6,7,8, 9,10,11,12,13,14,15,16,17, 18,19,20,21,22,23,24,25,26, 27,28,29,30,31,32,33,34,35, 36,37,38,39,40,41,42,43,44 ]
+
+  # Snapshot item template; thresholds select the material by average probability.
+  snapshot_form:
+    material: GREEN_STAINED_GLASS_PANE
+    display_name: "{lang:menus.history.snapshot.name}"
+    lore: "{lang:menus.history.snapshot.lore}"
+
+  # Format of one probability entry in a snapshot.
+  entry_format: "{lang:menus.history.entry}"
+  # Text shown when a snapshot has no entries.
+  empty_entries_message: "{lang:menus.history.empty_entries}"
+  # Replacement for a missing server name.
+  empty_server_value: "{lang:menus.history.empty_server}"
+
+  # Minimum average probability -> item material; the highest matching threshold is used.
+  thresholds:
+    0,0: GREEN_STAINED_GLASS_PANE
+    0,35: YELLOW_STAINED_GLASS_PANE
+    0,60: ORANGE_STAINED_GLASS_PANE
+    0,8: RED_STAINED_GLASS_PANE
+
+# Navigation items. Slots are zero-based; actions select the previous or next page.
+items:
+  previous-item:
+    material: ARROW
+    action: 'previous_page'
+    display_name: "{lang:menus.previous}"
+    slot: 47
+
+  next-item:
+    material: ARROW
+    action: 'next_page'
+    display_name: "{lang:menus.next}"
+    slot: 51
+  model-item:
+    material: COMPARATOR
+    action: 'switch_model'
+    display_name: "{lang:menus.model}"
+    slot: 49
+  refresh-item:
+    material: CLOCK
+    action: 'refresh'
+    display_name: "{lang:menus.refresh}"
+    slot: 50

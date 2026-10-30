@@ -1,0 +1,63 @@
+# {lang:key} resolves text from the selected language catalog.
+title: "{lang:menus.players.title}"
+# Inventory slots; a multiple of 9 from 9 to 54.
+size: 54
+
+# Material names mapped to zero-based decorative slots.
+decoration:
+  LIGHT_BLUE_STAINED_GLASS_PANE: [ 0,1,2,3,4,5,6,7,8, 45,46,48,52,53 ]
+
+settings:
+  # Zero-based slots used for player entries.
+  player_slots: [ 10,11,12,13,14,15,16, 19,20,21,22,23,24,25, 28,29,30,31,32,33,34, 37,38,39,40,41,42,43 ]
+  # Appearance and click actions of each player entry.
+  player_form:
+    material: PLAYER_HEAD
+    display_name: "{lang:menus.players.player.name}"
+    lore: "{lang:menus.players.player.lore}"
+
+    # [player] executes as the viewer; {player_name} is the selected player.
+    # [open-history] opens the selected player's history.
+    click_actions:
+      left:
+        - '[player] gm 3'
+        - '[player] tp {player_name}'
+      right:
+        - '[open-history]'
+
+  # Replacement for unavailable player values.
+  empty_value: "{lang:menus.players.empty}"
+  # Text shown when no probability results are available.
+  no_checks_message: "{lang:menus.players.no_checks}"
+
+  # Filled and empty segments of the probability bar.
+  bar_symbol: '■'
+  empty_bar_symbol: '&8■'
+
+  # Maximum rows of recent probability results.
+  check_lines: 3
+  # Results per row; check_lines * probs_per_line must not exceed 1000.
+  probs_per_line: 7
+
+# Navigation items. Slots are zero-based; actions select the previous or next page.
+items:
+  previous-item:
+    material: ARROW
+    action: 'previous_page'
+    display_name: "{lang:menus.previous}"
+    slot: 47
+  next-item:
+    material: ARROW
+    action: 'next_page'
+    display_name: "{lang:menus.next}"
+    slot: 51
+  model-item:
+    material: COMPARATOR
+    action: 'switch_model'
+    display_name: "{lang:menus.model}"
+    slot: 49
+  refresh-item:
+    material: CLOCK
+    action: 'refresh'
+    display_name: "{lang:menus.refresh}"
+    slot: 50

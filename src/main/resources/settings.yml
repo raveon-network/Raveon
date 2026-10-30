@@ -1,0 +1,62 @@
+# Message catalog: ru or en. Reload applies language changes.
+language: ru
+
+# Storage configuration. Changes in this section require a restart.
+database:
+  # Storage backend: SQLITE or MYSQL.
+  data_type: 'SQLITE'
+  # MySQL host; unused by SQLite.
+  host: ''
+  # MySQL port.
+  port: 3306
+  # MySQL account.
+  username: ''
+  # MySQL password.
+  password: ''
+  # MySQL database name or SQLite filename without the .db extension.
+  name: 'database'
+  # Probability and violation history retention in days; 0 disables age-based deletion.
+  retention_days: 0
+
+# Cross-server presence and probability synchronization. Changes require a restart.
+redis:
+  # Redis host.
+  host: '127.0.0.1'
+  # Redis port.
+  port: 6379
+  # Redis command timeout in milliseconds; range: 100-10000.
+  timeout: 3000
+  # Enable Redis synchronization.
+  enable: false
+  # Redis password; use an empty string when authentication is disabled.
+  password: 'password'
+
+# Server identity. Changes in this section require a restart.
+placeholder:
+  # Stable unique ID used for server data and punishment counter isolation.
+  server_id: 'grief-1'
+  # Server display name.
+  server_name: 'grief #1'
+
+# Also print player alerts to the server console.
+print_to_console: false
+# Entries per page of the history command; range: 1-100.
+history_entries_per_page: 15
+
+# Recent probabilities kept in memory per player and model; range: 1-1024.
+max_local_entries: 20
+# Probability entries grouped into one stored history snapshot; range: 1-4096.
+max_prob_entries: 10
+
+# Minimum probability -> display color. The highest matching threshold is used.
+ai_colors:
+  0,0: '&#00FF00'
+  0,2: '&#94FF47'
+  0,3: '&#C1FF47'
+  0,4: '&#D7FF47'
+  0,5: '&#F5FF47'
+  0,6: '&#FFE447'
+  0,7: '&#FFBE47'
+  0,8: '&#FF3B3B'
+  0,9: '&#FF3B3B&l'
+  1.0: '&4&l'

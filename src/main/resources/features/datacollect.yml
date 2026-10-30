@@ -1,0 +1,21 @@
+# Pro frames per saved dataset batch; independent of the fixed inference window.
+frames: 50
+ultra:
+  # Ultra frames per saved dataset batch.
+  frames: 64
+  # Collection period after an attack, in units of 50 ms.
+  combat_timer: 64
+# Pro collection period after an attack, in units of 50 ms.
+combat_timer: 50
+# Clear unsaved frame buffers when the combat period expires.
+clear_buffer_on_combat_timeout: true
+
+auto_save:
+  # Stop collection automatically after the configured number of saved batches.
+  enable: true
+  # Saved batches per collection session before automatic stop.
+  value: 50
+
+info_statistic:
+  # Collection progress display: ACTIONBAR or BOSSBAR.
+  type: BOSSBAR

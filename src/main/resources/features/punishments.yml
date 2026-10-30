@@ -1,0 +1,19 @@
+# Each top-level key defines a separate violation counter and action group.
+aim_ai:
+  # Answer sources accepted by this group; inheritance does not change the source.
+  models: [pro, ultra]
+  # Case-insensitive check-name substrings; prefix with ! to exclude a match.
+  checks:
+    - "AimAI"
+  # Lifetime of each recorded violation, in seconds.
+  remove-violations-after: 300
+
+  # Format: threshold:interval action. Interval 0 runs only at the exact threshold.
+  # Positive intervals repeat from the threshold. Other actions run as console commands.
+  # [ai_alert] sends an alert; [log] records history. Source actions.alert controls built-in alerts.
+  # {model} is the flag's source; {probability} is its percentage; {vl} is the group counter.
+  # {player} is the player name; {buffer} is the value before reset; {lang:key} loads a message.
+  commands:
+    - "1:1 [ai_alert]"
+    - "1:1 [log]"
+    - "5:0 ban {player} {lang:punishments.reason}"

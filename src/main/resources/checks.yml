@@ -1,0 +1,101 @@
+analyze:
+  # Master switch for all model detection and new inference requests.
+  enabled: false
+  # Inference endpoint. Changing this address requires a restart.
+  server: https://api.raveon.wtf/v1/inference
+  # Model with extra buffer weight and the reference model for mitigation.
+  primary: pro
+
+  models:
+    # Pro uses a fixed analysis window of 50 frames.
+    pro:
+      # Requires analyze.enabled. Disabled models send no new requests.
+      enabled: true
+      # Buffer owner: "" for this model, or "ultra". Self-references and cycles are invalid.
+      inherit-buffer: ""
+      actions:
+        # Send built-in alerts for this model's flags; buffer updates and punishments remain active.
+        alert: true
+        # Include this model's answers in damage mitigation.
+        mitigate: true
+        # Add this model's flags to punishment groups and execute their actions.
+        punish: true
+      # Frames advanced between analysis requests; range: 1-50.
+      step: 10
+      # Analysis period after an attack, in units of 50 ms.
+      combat: 50
+      # Buffer growth starts above this probability; range: 0-1.
+      probability: 0.85
+      # Relative contribution to mitigation only; 0 removes this model's contribution.
+      mitigation-weight: 1.0
+
+    # Ultra uses a fixed analysis window of 64 frames.
+    ultra:
+      # Requires analyze.enabled. Both models disabled means no detection.
+      enabled: true
+      # Buffer owner: "" for this model, or "pro". Source actions and probability still apply.
+      inherit-buffer: ""
+      actions:
+        # Send built-in alerts for this model's flags; buffer updates and punishments remain active.
+        alert: true
+        # Include this model's answers in damage mitigation.
+        mitigate: true
+        # Add this model's flags to punishment groups and execute their actions.
+        punish: true
+      # Frames advanced between analysis requests; range: 1-64.
+      step: 32
+      # Analysis period after an attack, in units of 50 ms.
+      combat: 64
+      # Buffer growth starts above this probability; range: 0-1.
+      probability: 0.85
+      # Relative contribution to mitigation only; 0 removes this model's contribution.
+      mitigation-weight: 1.0
+
+  # Shared parameters for separate buffers; inherit-buffer selects another buffer.
+  buffer:
+    # A flag occurs when the selected buffer strictly exceeds this value.
+    flag: 50.0
+    # Buffer value after every flag; must not exceed flag.
+    reset_on_flag: 25.0
+    # Growth: (probability - source threshold) * multiplier * effective weight.
+    multiplier: 100.0
+    # Base decrease for probability below 0.1 when growth does not apply; scaled by effective weight.
+    decrease: 0.25
+    # Extra multiplier for primary on both growth and decrease; minimum: 1.
+    primary-multiplier: 2.0
+    # Base weights by answer source. Zero disables that source's buffer changes.
+    weights:
+      pro: 1.0
+      ultra: 1.0
+
+  mitigation:
+    # Reduce outgoing PvP melee damage using a score separate from punishment buffers.
+    enabled: false
+    # Probability that contributes zero to the score; must be strictly between 0 and 1.
+    neutral-probability: 0.5
+    # Seconds for the score to decay by half without new contributions.
+    half-life-seconds: 30
+    # Stop mitigation after this many seconds without participating model answers.
+    max-silence-seconds: 10
+    # Required answers from primary, or the first participating model if primary is excluded.
+    min-answers: 3
+    # Damage reduction starts above this score.
+    activation-score: 3.0
+    # Score that applies the maximum reduction; must exceed activation-score.
+    full-effect-score: 10.0
+    # Score cap; must be at least full-effect-score.
+    max-score: 20.0
+    # Maximum damage fraction removed; 0.5 means 50%, range: 0-1.
+    max-damage-reduction: 0.5
+
+  worldguard:
+    # Apply region bypass rules when WorldGuard is available.
+    enabled: true
+    # World names mapped to region IDs where analysis is bypassed.
+    disabled-regions:
+      spawn:
+        - "spawn"
+    # World names mapped to region IDs that override the bypass.
+    enabled-regions:
+      spawn:
+        - "pvp"
