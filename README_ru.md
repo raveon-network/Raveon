@@ -1,10 +1,3 @@
-# Raveon v2.0.1
-
-[English](README.md) | Русский
-
-Модели Pro и Ultra, история, мониторинг и сбор датасетов.
-
-Русский и английский язык выбираются ключом `language: ru/en` в `settings.yml`. Переводы находятся в `lang/ru.yml` и `lang/en.yml`.
 
 <div align="center">
   <h1>Raveon</h1>
