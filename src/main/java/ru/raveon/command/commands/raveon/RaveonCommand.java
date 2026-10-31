@@ -4,7 +4,7 @@ import ru.raveon.api.command.register.CommandRegister;
 import ru.raveon.command.commands.raveon.subcommands.*;
 import ru.raveon.command.handler.BaseCommandExecutor;
 
-@CommandRegister(name = "raveonv2", aliases = "raveon", permission = "raveon.command.use")
+@CommandRegister(name = "raveonv2", permission = "raveon.command.use")
 public class RaveonCommand extends BaseCommandExecutor {
     @Override
     public String getNoPermissionMessage() {
