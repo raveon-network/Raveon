@@ -89,17 +89,17 @@ Reload применяет проверенный набор конфигурац
 | Команда | Permission | Что делает |
 | --- | --- | --- |
 | `/raveon connect <код>` | `raveon.command.connect` | Подключает плагин по одноразовому коду с сайта |
-| `/raveonv2 alerts` | `raveon.command.alert` | Включает или выключает алерты для игрока |
-| `/raveonv2 holo` | `raveon.command.holograms` | Включает или выключает AI-голограммы |
-| `/raveonv2 hologram` | `raveon.command.holograms` | Алиас команды голограмм |
-| `/raveonv2 menu [player]` | `raveon.command.menu` | Открывает меню игроков; с ником — историю игрока |
-| `/raveonv2 history <player> [page]` | `raveon.command.history` | Показывает историю нарушений игрока |
-| `/raveonv2 monitor prob <player> [model]` | `raveon.command.monitor` | Монитор вероятностей в action bar выбранного игрока: `last% \| avg% \| buffer` |
-| `/raveonv2 monitor chat [player] [model]` | `raveon.command.monitor` | Выводит вероятности игрока в чат; без ника — всех игроков |
-| `/raveonv2 monitor stop` | `raveon.command.monitor` | Останавливает монитор и вывод в чат |
-| `/raveonv2 reload` | `raveon.command.reload` | Перезагружает конфигурацию |
+| `/raveon alerts` | `raveon.command.alert` | Включает или выключает алерты для игрока |
+| `/raveon holo` | `raveon.command.holograms` | Включает или выключает AI-голограммы |
+| `/raveon hologram` | `raveon.command.holograms` | Алиас команды голограмм |
+| `/raveon menu [player]` | `raveon.command.menu` | Открывает меню игроков; с ником — историю игрока |
+| `/raveon history <player> [page]` | `raveon.command.history` | Показывает историю нарушений игрока |
+| `/raveon monitor prob <player> [model]` | `raveon.command.monitor` | Монитор вероятностей в action bar выбранного игрока: `last% \| avg% \| buffer` |
+| `/raveon monitor chat [player] [model]` | `raveon.command.monitor` | Выводит вероятности игрока в чат; без ника — всех игроков |
+| `/raveon monitor stop` | `raveon.command.monitor` | Останавливает монитор и вывод в чат |
+| `/raveon reload` | `raveon.command.reload` | Перезагружает конфигурацию |
 
-`/raveon` — алиас `/raveonv2`. Базовое право для основной команды:
+Базовое право для основной команды:
 
 ```text
 raveon.command.use
@@ -107,7 +107,7 @@ raveon.command.use
 
 Для монитора model принимает `pro`, `ultra` или `all`.
 
-Сбор датасетов: `/raveonv2 datacollect start <player> <cheat/legit> <dataset_name> [pro/ultra]` и `/raveonv2 datacollect stop <player> [pro/ultra]`. Требуются `raveon.command.datacollect` и соответственно `raveon.command.datacollect.start` или `raveon.command.datacollect.stop`.
+Сбор датасетов: `/raveon datacollect start <player> <cheat/legit> <dataset_name> [pro/ultra]` и `/raveon datacollect stop <player> [pro/ultra]`. Требуются `raveon.command.datacollect` и соответственно `raveon.command.datacollect.start` или `raveon.command.datacollect.stop`.
 
 CSV находятся в `plugins/Raveon/datasets/`. При ошибке записи неподтверждённые кадры сохраняются в памяти; повторите stop после устранения причины. Принудительное завершение JVM не гарантирует их сохранения.
 

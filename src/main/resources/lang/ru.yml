@@ -37,7 +37,7 @@ monitor:
     disabled: "{prefix} &#F3F3F3Мониторинг в чате &#F65943выключен&#F3F3F3."
   models:
     all: "Все"
-  usage: "{prefix} &#F3F3F3Использование: &#CDCDCD/raveonv2 monitor chat [игрок] [pro|ultra|all] &8| &#CDCDCD/raveonv2 monitor prob <игрок> [pro|ultra|all] &8| &#CDCDCD/raveonv2 monitor stop"
+  usage: "{prefix} &#F3F3F3Использование: &#CDCDCD/raveon monitor chat [игрок] [pro|ultra|all] &8| &#CDCDCD/raveon monitor prob <игрок> [pro|ultra|all] &8| &#CDCDCD/raveon monitor stop"
   only_player: "{prefix} &#F3F3F3Эту команду может выполнить только игрок."
   enabled: "{prefix} &#F3F3F3Мониторинг включён для &#CDCDCD{player} &8[&f{model}&8]&f."
   disabled: "{prefix} &#F3F3F3Мониторинг &#F65943выключен&#F3F3F3."
@@ -48,12 +48,12 @@ monitor:
 datacollect:
   statistics: "&8[{model}] &7{player}&f собрано: &7{frames_collecting}&f (буфер: &7{frames_size}&f) сохранено: &7{sending}"
   start:
-    help: "&fИспользование: &7/raveonv2 datacollect start <игрок> <cheat|legit> <название_датасета> [pro|ultra]"
+    help: "&fИспользование: &7/raveon datacollect start <игрок> <cheat|legit> <название_датасета> [pro|ultra]"
     none_selected: "&fУкажите название датасета для начала сбора."
     success: "&fСбор датасета для &7{target} &fначат."
     pending: "&cПредыдущий датасет ещё сохраняется или содержит несохранённые кадры. Сначала повторите stop."
   stop:
-    help: "&fИспользование: &7/raveonv2 datacollect stop <игрок> [pro|ultra]"
+    help: "&fИспользование: &7/raveon datacollect stop <игрок> [pro|ultra]"
     no_collecting: "&fИгрок &7{target} &fсейчас не собирает данные."
     success: "&fСбор датасета для &7{target} &fостановлен."
     auto: "&fСбор датасета для &7{target} &fавтоматически остановлен."

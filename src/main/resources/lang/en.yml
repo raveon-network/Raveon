@@ -37,7 +37,7 @@ monitor:
     disabled: "{prefix} &#F3F3F3Chat monitoring &#F65943disabled&#F3F3F3."
   models:
     all: "All"
-  usage: "{prefix} &#F3F3F3Usage: &#CDCDCD/raveonv2 monitor chat [name] [pro|ultra|all] &8| &#CDCDCD/raveonv2 monitor prob <name> [pro|ultra|all] &8| &#CDCDCD/raveonv2 monitor stop"
+  usage: "{prefix} &#F3F3F3Usage: &#CDCDCD/raveon monitor chat [name] [pro|ultra|all] &8| &#CDCDCD/raveon monitor prob <name> [pro|ultra|all] &8| &#CDCDCD/raveon monitor stop"
   only_player: "{prefix} &#F3F3F3Only a player can use this command."
   enabled: "{prefix} &#F3F3F3Monitoring started for &#CDCDCD{player} &8[&f{model}&8]&f."
   disabled: "{prefix} &#F3F3F3Monitoring &#F65943disabled&#F3F3F3."
@@ -48,12 +48,12 @@ monitor:
 datacollect:
   statistics: "&8[{model}] &7{player}&f collected: &7{frames_collecting}&f (buffer: &7{frames_size}&f) saved: &7{sending}"
   start:
-    help: "&fUsage: &7/raveonv2 datacollect start <player> <cheat|legit> <dataset_name> [pro|ultra]"
+    help: "&fUsage: &7/raveon datacollect start <player> <cheat|legit> <dataset_name> [pro|ultra]"
     none_selected: "&fSpecify a dataset name to start collecting."
     success: "&fStarted dataset collection for &7{target}&f."
     pending: "&cThe previous dataset is still being saved or has unsaved frames. Run stop again first."
   stop:
-    help: "&fUsage: &7/raveonv2 datacollect stop <player> [pro|ultra]"
+    help: "&fUsage: &7/raveon datacollect stop <player> [pro|ultra]"
     no_collecting: "&fPlayer &7{target} &fis not collecting data."
     success: "&fStopped dataset collection for &7{target}&f."
     auto: "&fDataset collection automatically stopped for &7{target}&f."

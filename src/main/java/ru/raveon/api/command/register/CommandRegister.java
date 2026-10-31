@@ -7,7 +7,5 @@ import java.lang.annotation.RetentionPolicy;
 public @interface CommandRegister {
     String name();
 
-    String[] aliases() default {};
-
     String permission();
 }

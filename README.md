@@ -89,15 +89,15 @@ Existing language files are preserved when the plugin loads. To use updated defa
 | Command | Permission | Description |
 | --- | --- | --- |
 | `/raveon connect <code>` | `raveon.command.connect` | Connects the plugin with a one-time code from the website |
-| `/raveonv2 alerts` | `raveon.command.alert` | Toggles alerts for the player |
-| `/raveonv2 holo` | `raveon.command.holograms` | Toggles AI holograms |
-| `/raveonv2 hologram` | `raveon.command.holograms` | Alias for the hologram command |
-| `/raveonv2 menu [player]` | `raveon.command.menu` | Opens the player menu, or the named player's history |
-| `/raveonv2 history <player> [page]` | `raveon.command.history` | Shows a player's violation history |
-| `/raveonv2 monitor prob <player> [model]` | `raveon.command.monitor` | Shows the selected player's probabilities in an action bar: `last% \| avg% \| buffer` |
-| `/raveonv2 monitor chat [player] [model]` | `raveon.command.monitor` | Shows probabilities in chat for one player, or all players when no name is given |
-| `/raveonv2 monitor stop` | `raveon.command.monitor` | Stops action bar and chat monitoring |
-| `/raveonv2 reload` | `raveon.command.reload` | Reloads the configuration |
+| `/raveon alerts` | `raveon.command.alert` | Toggles alerts for the player |
+| `/raveon holo` | `raveon.command.holograms` | Toggles AI holograms |
+| `/raveon hologram` | `raveon.command.holograms` | Alias for the hologram command |
+| `/raveon menu [player]` | `raveon.command.menu` | Opens the player menu, or the named player's history |
+| `/raveon history <player> [page]` | `raveon.command.history` | Shows a player's violation history |
+| `/raveon monitor prob <player> [model]` | `raveon.command.monitor` | Shows the selected player's probabilities in an action bar: `last% \| avg% \| buffer` |
+| `/raveon monitor chat [player] [model]` | `raveon.command.monitor` | Shows probabilities in chat for one player, or all players when no name is given |
+| `/raveon monitor stop` | `raveon.command.monitor` | Stops action bar and chat monitoring |
+| `/raveon reload` | `raveon.command.reload` | Reloads the configuration |
 
 The root command requires:
 
@@ -107,7 +107,7 @@ raveon.command.use
 
 For monitoring, `model` accepts `pro`, `ultra`, or `all`.
 
-Dataset collection: `/raveonv2 datacollect start <player> <cheat/legit> <dataset_name> [pro/ultra]` and `/raveonv2 datacollect stop <player> [pro/ultra]`. These commands require `raveon.command.datacollect` and, respectively, `raveon.command.datacollect.start` or `raveon.command.datacollect.stop`.
+Dataset collection: `/raveon datacollect start <player> <cheat/legit> <dataset_name> [pro/ultra]` and `/raveon datacollect stop <player> [pro/ultra]`. These commands require `raveon.command.datacollect` and, respectively, `raveon.command.datacollect.start` or `raveon.command.datacollect.stop`.
 
 CSV files are stored in `plugins/Raveon/datasets/`. If a write fails, unconfirmed frames remain in memory; run stop again after resolving the cause. A forced JVM termination does not guarantee that these frames will be saved.
 
