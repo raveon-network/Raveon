@@ -65,6 +65,14 @@ public class CustomConfig {
         this.config = readConfiguration();
     }
 
+    public void save() {
+        try {
+            config.save(file);
+        } catch (IOException error) {
+            throw new IllegalStateException("Cannot save configuration " + name, error);
+        }
+    }
+
     private FileConfiguration readConfiguration() {
         YamlConfiguration candidate = new YamlConfiguration();
         try {

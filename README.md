@@ -48,7 +48,7 @@ analyze:
   server: https://api.raveon.wtf/v1/inference
 ```
 
-Set `analyze.server` to your own inference API. The model service is not included in the JAR, and checks are disabled by default.
+The model service is not included in the JAR. Checks stay off until the plugin is connected: get a code on your server's page on the website and run `/raveon connect <code>`. The plugin obtains an API key, stores it in `analyze.api-key` and enables analysis without a restart.
 
 ## Requirements
 
@@ -62,12 +62,12 @@ Folia 1.16.5 does not exist. Paper 1.16.5 must run on Java 17+ to load Raveon; s
 
 ## Installation
 
-1. Build `build/libs/Raveon-2.0.1.jar`.
+1. Build `build/libs/Raveon-2.0.2.jar`.
 2. Install `packetevents` in the `plugins/` directory.
-3. Copy `Raveon-2.0.1.jar` to `plugins/`.
+3. Copy `Raveon-2.0.2.jar` to `plugins/`.
 4. Start the server once to generate the configuration files.
 5. Stop the server and edit the configuration.
-6. Enable AI checks in `plugins/Raveon/checks.yml`.
+6. Connect the plugin with `/raveon connect <code>`.
 7. Start the server again.
 
 Reload validates and applies the entire configuration together. If validation fails, the current settings remain active. Changes to `database`, `redis`, `placeholder`, or the inference API address require a restart. There are no automatic migrations from older plugin versions.
@@ -88,6 +88,7 @@ Existing language files are preserved when the plugin loads. To use updated defa
 
 | Command | Permission | Description |
 | --- | --- | --- |
+| `/raveon connect <code>` | `raveon.command.connect` | Connects the plugin with a one-time code from the website |
 | `/raveonv2 alerts` | `raveon.command.alert` | Toggles alerts for the player |
 | `/raveonv2 holo` | `raveon.command.holograms` | Toggles AI holograms |
 | `/raveonv2 hologram` | `raveon.command.holograms` | Alias for the hologram command |
@@ -125,7 +126,7 @@ gradlew.bat check shadowJar
 The resulting JAR is written to:
 
 ```text
-build/libs/Raveon-2.0.1.jar
+build/libs/Raveon-2.0.2.jar
 ```
 
 Main classes are compiled with `--release 17`. Use JDK 21 for the build and the full verification matrix. The `check` task verifies Pro/Ultra windows, CSV, FlatBuffers, queues, the entity index, configuration, SQLite, local HTTP, datasets, GUI, monitoring, and packets. The wire format is also verified against classes from the packaged JAR. Private reference JARs are not required.

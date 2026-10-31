@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.raveon"
-version = "2.0.1"
+version = "2.0.2"
 
 repositories {
     exclusiveContent {
@@ -198,6 +198,7 @@ val regressionChecks = mapOf(
     "verifyUltraFeatures" to "ru.raveon.verification.UltraFeatureVerification",
     "verifyDatabase" to "ru.raveon.verification.DatabaseRegressionVerification",
     "verifyHttpLimits" to "ru.raveon.service.analyze.HttpLimitVerification",
+    "verifyConnection" to "ru.raveon.service.analyze.ConnectionVerification",
     "verifyDatasets" to "ru.raveon.verification.DatasetVerification",
     "verifyConfiguration" to "ru.raveon.verification.ConfigurationVerification",
     "verifyUiLifecycle" to "ru.raveon.verification.UiLifecycleVerification",

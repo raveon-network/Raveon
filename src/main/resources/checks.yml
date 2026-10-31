@@ -1,6 +1,8 @@
 analyze:
   # Master switch for all model detection and new inference requests.
   enabled: false
+  # Written by /raveon connect <code>. Get the code on your server's page at raveon.wtf.
+  api-key: ""
   # Inference endpoint. Changing this address requires a restart.
   server: https://api.raveon.wtf/v1/inference
   # Model with extra buffer weight and the reference model for mitigation.

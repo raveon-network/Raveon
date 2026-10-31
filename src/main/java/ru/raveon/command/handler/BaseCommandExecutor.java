@@ -29,7 +29,7 @@ public abstract class BaseCommandExecutor extends SmartCommandExecutor {
         this.name = register.name();
         this.permission = register.permission();
 
-        Raveon.INSTANCE.registerCommand(name, this);
+        Raveon.INSTANCE.registerCommand(name, register.aliases(), this);
     }
 
     @Override

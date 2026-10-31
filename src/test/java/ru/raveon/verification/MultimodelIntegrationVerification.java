@@ -132,7 +132,7 @@ public final class MultimodelIntegrationVerification {
         plugin = allocate(Raveon.class);
         set(plugin, "isEnabled", true);
         set(plugin, "logger", Logger.getLogger("MultimodelIntegration"));
-        set(plugin, "description", new PluginDescriptionFile("Raveon", "2.0.1", "ru.raveon.Raveon"));
+        set(plugin, "description", new PluginDescriptionFile("Raveon", "2.0.2", "ru.raveon.Raveon"));
         set(plugin, "placeholderIntegration", proxy(PlaceholderIntegration.class,
                 (p, m, a) -> m.getReturnType() == String.class ? "fixture" : null));
         Raveon.INSTANCE = plugin;

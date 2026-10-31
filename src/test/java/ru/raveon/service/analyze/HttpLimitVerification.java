@@ -390,6 +390,7 @@ public final class HttpLimitVerification {
         var yaml = new org.bukkit.configuration.file.YamlConfiguration();
         yaml.set("analyze.enabled", enabled);
         yaml.set("analyze.server", endpoint);
+        yaml.set("analyze.api-key", "rvk_test");
         yaml.set("analyze.models.pro.enabled", pro);
         yaml.set("analyze.models.ultra.enabled", ultra);
         yaml.set("analyze.worldguard.enabled", false);

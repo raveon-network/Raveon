@@ -18,6 +18,7 @@ import java.util.Map;
 public class ChecksConfigManager extends ConfigManager {
     private boolean analysisEnabled;
     private String analyzeServer;
+    private String apiKey;
     private WorldGuardRegionBypassService worldGuardRegionBypassService;
     private Map<ModelId, AnalysisSettings> modelSettings;
     private BufferSettings bufferSettings;
@@ -112,6 +113,7 @@ public class ChecksConfigManager extends ConfigManager {
                 activation, full, max,
                 config.requireDouble(path + ".max-damage-reduction", .5, 0, 1));
 
+        apiKey = config.getRawString("analyze.api-key", "").trim();
         analyzeServer = config.getRawString("analyze.server", "https://api.raveon.wtf/v1/inference");
         java.net.URI endpoint = java.net.URI.create(analyzeServer);
         if (!("http".equals(endpoint.getScheme()) || "https".equals(endpoint.getScheme()))
@@ -120,6 +122,14 @@ public class ChecksConfigManager extends ConfigManager {
             throw new IllegalArgumentException("Invalid analyze.server URL");
         worldGuardRegionBypassService = new WorldGuardRegionBypassService(plugin,
                 WorldGuardRegionBypassConfig.fromConfig(config, "analyze.worldguard"));
+    }
+
+    /** Stores the key issued by /raveon connect and turns analysis on. */
+    public static void saveConnection(Plugin plugin, String apiKey) {
+        CustomConfig checks = new CustomConfig("checks.yml", plugin);
+        checks.getConfig().set("analyze.api-key", apiKey);
+        checks.getConfig().set("analyze.enabled", true);
+        checks.save();
     }
 
     private void requireSection(CustomConfig config, String path) {

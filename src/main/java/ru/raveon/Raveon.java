@@ -31,12 +31,14 @@ import ru.raveon.database.modules.PunishmentDatabase;
 import ru.raveon.listeners.bukkit.MitigationListener;
 import ru.raveon.service.PlayerOnlineService;
 import ru.raveon.service.analyze.AnalyzeBatchDispatcher;
+import ru.raveon.service.analyze.AnalyzeConnection;
 import ru.raveon.service.analyze.FlatBufferAnalyzeService;
 import ru.raveon.utils.SchedulerUtils;
 import ru.raveon.utils.entity.TargetEntityIndex;
 import ru.raveon.utils.entity.TargetEntityIndexListener;
 
 import java.lang.reflect.Constructor;
+import java.util.List;
 
 @Getter
 public class Raveon extends JavaPlugin {
@@ -76,6 +78,7 @@ public class Raveon extends JavaPlugin {
     private MonitorManager monitorManager;
 
     private AnalyzeBatchDispatcher analyzeBatchDispatcher;
+    private AnalyzeConnection analyzeConnection;
     private CommandManager commandManager;
 
     private TargetEntityIndex targetEntityIndex;
@@ -104,6 +107,9 @@ public class Raveon extends JavaPlugin {
         this.aiResultManager = new AIResultManager();
         this.analyzeBatchDispatcher = new AnalyzeBatchDispatcher(this, this::getChecksConfigManager);
         this.analyzeBatchDispatcher.start();
+        this.analyzeConnection =
+                new AnalyzeConnection(this, this::getChecksConfigManager, analyzeBatchDispatcher);
+        this.analyzeConnection.refresh();
         this.analyzeService =
                 new FlatBufferAnalyzeService(this::getChecksConfigManager, analyzeBatchDispatcher);
         this.alertManager = new AlertManager(this::getMainConfigManager);
@@ -194,7 +200,7 @@ public class Raveon extends JavaPlugin {
         }
     }
 
-    public void registerCommand(String commandName, CommandExecutor executor) {
+    public void registerCommand(String commandName, String[] aliases, CommandExecutor executor) {
         try {
             CommandMap commandMap = getServer().getCommandMap();
             Constructor<PluginCommand> constructor =
@@ -204,6 +210,7 @@ public class Raveon extends JavaPlugin {
             PluginCommand command = constructor.newInstance(commandName, this);
 
             command.setExecutor(executor);
+            command.setAliases(List.of(aliases));
             commandMap.register(getDescription().getName(), command);
         } catch (Exception exception) {
             getLogger()

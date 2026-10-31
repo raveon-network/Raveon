@@ -65,6 +65,7 @@ public final class AnalyzeBatchDispatcher {
     private int inFlight;
     private volatile boolean stopped;
     private volatile long blockedUntil = Long.MIN_VALUE;
+    private volatile Set<ModelId> allowedModels = Set.of(ModelId.values());
 
     public AnalyzeBatchDispatcher(Plugin plugin, Supplier<ChecksConfigManager> configManager) {
         this.plugin = plugin;
@@ -102,6 +103,12 @@ public final class AnalyzeBatchDispatcher {
         }
     }
 
+    /** Applies the models allowed by the license and lifts a pause left by an old key. */
+    public void connected(Set<ModelId> models) {
+        allowedModels = Set.copyOf(models);
+        blockedUntil = Long.MIN_VALUE;
+    }
+
     public void enqueue(byte[] payload, RaveonPlayer player) {
         enqueue(payload, player, ModelId.PRO);
     }
@@ -109,7 +116,8 @@ public final class AnalyzeBatchDispatcher {
     public void enqueue(byte[] payload, RaveonPlayer player, ModelId model) {
         long now = System.nanoTime();
         ChecksConfigManager settings = configManager.get();
-        if (stopped || now < blockedUntil || !settings.isModelEnabled(model)) return;
+        if (stopped || now < blockedUntil || settings.getApiKey().isEmpty()
+                || !allowedModels.contains(model) || !settings.isModelEnabled(model)) return;
         if (payload == null || payload.length > MAX_PAYLOAD_BYTES) {
             warn("Analyze window exceeds the payload limit");
             return;
@@ -191,6 +199,7 @@ public final class AnalyzeBatchDispatcher {
                     .header("Accept", "application/x-flatbuffers")
                     .header("X-Batch", "1")
                     .header("X-Raveon-Protocol", "2")
+                    .header("Authorization", "Bearer " + configManager.get().getApiKey())
                     .timeout(REQUEST_TIMEOUT)
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
             CompletableFuture<HttpResponse<byte[]>> future =
