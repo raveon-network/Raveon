@@ -1,8 +1,0 @@
-# Translations for en. Runtime placeholders use {name}.
-holograms-enabled: "{prefix} &#F3F3F3Player holograms &#95F643enabled&#F3F3F3!"
-holograms-disabled: "{prefix} &#F3F3F3Player holograms &#F65943disabled&#F3F3F3!"
-holograms:
-  line: "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  below_name: "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  pro: "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  ultra: "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"

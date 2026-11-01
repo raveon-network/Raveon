@@ -61,3 +61,5 @@ logs:
   command-registered: "Command '{command}' registered"
   command-failed: "Could not register command {class}"
   commands-registered: "Registered commands: {count}"
+holograms-enabled: "{prefix} &#F3F3F3Player holograms &#95F643enabled&#F3F3F3!"
+holograms-disabled: "{prefix} &#F3F3F3Player holograms &#F65943disabled&#F3F3F3!"

@@ -62,9 +62,9 @@ Folia 1.16.5 does not exist. Paper 1.16.5 must run on Java 17+ to load Raveon; s
 
 ## Installation
 
-1. Build `build/libs/Raveon-2.0.6.jar`.
+1. Build `build/libs/Raveon-2.0.7.jar`.
 2. Install `packetevents` in the `plugins/` directory.
-3. Copy `Raveon-2.0.6.jar` to `plugins/`.
+3. Copy `Raveon-2.0.7.jar` to `plugins/`.
 4. Start the server once to generate the configuration files.
 5. Stop the server and edit the configuration.
 6. Connect the plugin with `/raveon connect <code>`.
@@ -78,11 +78,11 @@ Probability history is stored separately for Pro and Ultra. The model selector i
 
 The client supports one below-name slot. If another plugin uses it, Raveon yields the slot. A second line requires another display method.
 
-Floating holograms and below-name displays rotate through enabled, available models. Each selected model keeps showing its latest probability, average, and buffer and updates when a new result arrives. Configure the switch interval in ticks with `model_rotation.interval_ticks` (default 80) and the displayed names with `model_rotation.names` in `features/hologram.yml`. Templates use `{model}`. A model without results shows `--`. Missing rotation settings are added to existing configs; legacy per-model floating templates remain supported.
+Floating holograms and below-name displays rotate through enabled, available models. Each selected model keeps showing its latest probability, average, and buffer and updates when a new result arrives. Configure the switch interval in ticks with `model_rotation.interval_ticks` (default 80) and the displayed names with `model_rotation.names` in `features/hologram.yml`. Templates use `{model}`. A model without results shows `--`. All hologram text is configured directly in the `lines` list in `features/hologram.yml`. Each entry becomes a separate line, including static text and blank lines. A single line can use below-name; multiple lines automatically use a floating hologram. Hologram toggle messages live in each language's `translations.yml`. On upgrade, old language references are expanded into literal config text and old toggle messages are copied without replacing custom messages. The old language hologram files are preserved as backups.
 
 ## Language and time format
 
-English is the default (`language: en` in `settings.yml`); use `language: ru` for Russian. Edit translations in `lang/en/` or `lang/ru/`: `history.yml`, `players.yml`, `datacollect.yml`, `hologram.yml`, and `translations.yml`. Time uses the selected language, for example `8 min 10 sec` or `8 мин 10 сек`.
+English is the default (`language: en` in `settings.yml`); use `language: ru` for Russian. Edit translations in `lang/en/` or `lang/ru/`: `history.yml`, `players.yml`, `datacollect.yml`, and `translations.yml`. Time uses the selected language, for example `8 min 10 sec` or `8 мин 10 сек`.
 
 On the first upgrade, translations from the old `lang/en.yml` and `lang/ru.yml` are copied into the new files. Original files are preserved as backups and are no longer read once the new catalogs exist. Existing custom text is retained; the previous default history layout is upgraded to the new two-line card. Reload applies translation edits.
 
@@ -132,7 +132,7 @@ gradlew.bat shadowJar
 The resulting JAR is written to:
 
 ```text
-build/libs/Raveon-2.0.6.jar
+build/libs/Raveon-2.0.7.jar
 ```
 
 Main classes are compiled with `--release 17`. GitHub Actions builds with JDK 21. The first Gradle run downloads public dependencies; with a populated local cache, add `--offline`.

@@ -234,11 +234,12 @@ public final class HologramManager {
             boolean hasResult = !probabilities.isEmpty();
             double average = probabilities.stream().mapToDouble(Double::doubleValue)
                     .average().orElse(snapshot.probability());
-            String floating = applyPlaceholders(config.getFloatingLine(model), model, config,
-                    snapshot.probability(), average, snapshot.buffer(), hasResult);
-            String below = applyPlaceholders(config.getBelowNameLine(), model, config,
-                    snapshot.probability(), average, snapshot.buffer(), hasResult);
-            texts.put(model, new HologramText(List.of(floating), below));
+            List<String> floating = config.getLines().stream()
+                    .map(template -> applyPlaceholders(template, model, config,
+                            snapshot.probability(), average, snapshot.buffer(), hasResult))
+                    .toList();
+            String below = floating.size() == 1 ? floating.get(0) : "";
+            texts.put(model, new HologramText(floating, below));
         }
         textByTarget.put(targetId, Map.copyOf(texts));
     }
@@ -447,12 +448,10 @@ public final class HologramManager {
     private String applyPlaceholders(String template, ModelId model, HologramConfigManager hologram,
             double probability, double average, double buffer, boolean hasResult) {
         if (template.isEmpty()) return "";
-        String normalized = template.replace("[" + model.displayName() + "]", "[{model}]");
-        if (!normalized.contains("{model}")) normalized = "\u00a77[{model}] " + normalized;
         var config = Raveon.INSTANCE.getMainConfigManager();
         String probabilityColor = hasResult ? config.getChanceColor(probability) : "\u00a77";
         String averageColor = hasResult ? config.getChanceColor(average) : "\u00a77";
-        return normalized.replace("{prob_color}", probabilityColor)
+        return template.replace("{prob_color}", probabilityColor)
                 .replace("{probability_color}", probabilityColor)
                 .replace("{avg_color}", averageColor)
                 .replace("{prob}", hasResult ? ProbabilityUtils.formatPercent(probability) : "--")

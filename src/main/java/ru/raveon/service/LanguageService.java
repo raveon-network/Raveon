@@ -47,7 +47,7 @@ public final class LanguageService {
     }
 
     public static final List<String> CATALOG_FILES = List.of(
-            "history.yml", "players.yml", "datacollect.yml", "hologram.yml", "translations.yml");
+            "history.yml", "players.yml", "datacollect.yml", "translations.yml");
 
     public static LanguageService load(Plugin plugin, String requested) {
         String language = requested.trim().toLowerCase(Locale.ROOT);
@@ -74,6 +74,7 @@ public final class LanguageService {
                         YamlConfiguration migrated = bundled(code, name);
                         for (String key : legacy.getKeys(true)) {
                             if (legacy.isConfigurationSection(key) || key.startsWith("punishments.")
+                                    || key.startsWith("holograms.")
                                     || !catalogFor(key).equals(name)) continue;
                             Object value = legacy.get(key);
                             if (!obsoleteHistoryDefault(key, value)) migrated.set(key, value);
@@ -85,6 +86,7 @@ public final class LanguageService {
             for (String code : List.of("ru", "en")) {
                 migrateMenuLabels(directory.resolve(code), code);
                 migrateDataCollectionUsage(directory.resolve(code));
+                migrateHologramMessages(directory.resolve(code));
             }
             Map<String, Object> entries = new LinkedHashMap<>();
             for (String name : CATALOG_FILES) merge(entries, bundled("en", name));
@@ -96,6 +98,25 @@ public final class LanguageService {
         } catch (IOException | InvalidConfigurationException error) {
             throw new IllegalArgumentException("Cannot load lang/" + language + "/", error);
         }
+    }
+
+    private static void migrateHologramMessages(Path folder)
+            throws IOException, InvalidConfigurationException {
+        Path file = folder.resolve("translations.yml");
+        YamlConfiguration translations = read(file);
+        List<String> keys = List.of("holograms-enabled", "holograms-disabled");
+        if (keys.stream().allMatch(translations::contains)) return;
+        Path legacy = folder.resolve("hologram.yml");
+        if (!Files.exists(legacy)) return;
+        YamlConfiguration old = read(legacy);
+        boolean changed = false;
+        for (String key : keys) {
+            if (!translations.contains(key) && old.contains(key)) {
+                translations.set(key, old.get(key));
+                changed = true;
+            }
+        }
+        if (changed) translations.save(file.toFile());
     }
 
     private static void migrateDataCollectionUsage(Path folder)
@@ -155,7 +176,6 @@ public final class LanguageService {
         if (key.startsWith("menus.history.") || key.startsWith("history-")) return "history.yml";
         if (key.startsWith("menus.players.")) return "players.yml";
         if (key.startsWith("datacollect.")) return "datacollect.yml";
-        if (key.startsWith("holograms.") || key.startsWith("holograms-")) return "hologram.yml";
         return "translations.yml";
     }
 

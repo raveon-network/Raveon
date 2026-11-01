@@ -61,3 +61,5 @@ logs:
   command-registered: "Команда '{command}' зарегистрирована"
   command-failed: "Не удалось зарегистрировать команду {class}"
   commands-registered: "Зарегистрировано команд: {count}"
+holograms-enabled: "{prefix} &#F3F3F3Голограммы игроков &#95F643включены&#F3F3F3!"
+holograms-disabled: "{prefix} &#F3F3F3Голограммы игроков &#F65943выключены&#F3F3F3!"

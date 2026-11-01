@@ -15,17 +15,15 @@ model_rotation:
     ultra: "Ultra"
 
 below_name:
-  # Use the client's single below-name slot; yield when another plugin owns it.
+  # Use the client's below-name slot for a single line; yield when another plugin owns it.
+  # Two or more lines automatically use a floating hologram, which supports multiple lines.
   enable: true
-  # Also display the rotating floating line when below-name is active.
+  # Also show a floating hologram when the single below-name line is active.
   also_show_hologram: false
 
-# Below-name text; only the first list entry is used.
-# {model} is the selected model's configured name.
-lines:
-  - "{lang:holograms.below_name}"
-
-# Floating text for the currently selected model.
+# Every entry is a separate hologram line, displayed in this order. Maximum: 32 lines.
+# Configure all hologram text here. Colors (& and hex) and blank lines are supported.
 # Tokens: {model}, {prob}, {avg}, {buffer}, {prob_color}, {probability_color}, {avg_color}.
-# Optional floating_lines.<model> overrides from existing configs are still supported.
-floating_line: "{lang:holograms.line}"
+# Add [{model}] wherever you want the selected model name to appear.
+lines:
+  - "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
