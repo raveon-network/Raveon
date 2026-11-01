@@ -34,8 +34,20 @@ public class AlertManager {
         alertPlayers.remove(uniqueId);
     }
 
+    public void restoreSession(Player player) {
+        UUID id = player.getUniqueId();
+        if (!player.hasPermission("raveon.command.alert")) {
+            clearSession(id);
+            return;
+        }
+        Boolean enabled = alertCache.get(id);
+        if (enabled != null) setAlertsEnabled(id, enabled, true);
+        else if (player.hasPermission("raveon.command.alert.enable-on-join"))
+            setAlertsEnabled(id, true, true);
+    }
+
     public boolean toggleAlerts(@NonNull UUID uniqueId, boolean silent) {
-        boolean newState = !hasAlertsEnabled(uniqueId);
+        boolean newState = !alertCache.getOrDefault(uniqueId, hasAlertsEnabled(uniqueId));
         setAlertsEnabled(uniqueId, newState, silent);
         return newState;
     }

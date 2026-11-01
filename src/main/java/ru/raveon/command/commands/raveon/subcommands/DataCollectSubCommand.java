@@ -50,7 +50,7 @@ public final class DataCollectSubCommand implements BuildableCommand {
             return;
         }
 
-        if (args.length < 4) {
+        if (args.length < 4 || args.length > 5) {
             commandSender.sendMessage(
                     Raveon.INSTANCE.getLanguageService().text("datacollect.start.help"));
             return;
@@ -58,13 +58,7 @@ public final class DataCollectSubCommand implements BuildableCommand {
 
         String targetName = args[2];
         String type = args[3].toLowerCase(Locale.ROOT);
-        ModelId model;
-        try {
-            model = args.length > 5 ? ModelId.parse(args[5]) : ModelId.PRO;
-        } catch (IllegalArgumentException ex) {
-            commandSender.sendMessage(Raveon.INSTANCE.getLanguageService().text("datacollect.invalid_model"));
-            return;
-        }
+        ModelId model = ModelId.ULTRA;
 
         Player targetPlayer = Bukkit.getPlayerExact(targetName);
         if (targetPlayer == null) {
@@ -115,20 +109,14 @@ public final class DataCollectSubCommand implements BuildableCommand {
             return;
         }
 
-        if (args.length < 3) {
+        if (args.length != 3) {
             commandSender.sendMessage(
                     Raveon.INSTANCE.getLanguageService().text("datacollect.stop.help"));
             return;
         }
 
         String targetName = args[2];
-        ModelId model;
-        try {
-            model = args.length > 3 ? ModelId.parse(args[3]) : ModelId.PRO;
-        } catch (IllegalArgumentException ex) {
-            commandSender.sendMessage(Raveon.INSTANCE.getLanguageService().text("datacollect.invalid_model"));
-            return;
-        }
+        ModelId model = ModelId.ULTRA;
 
         Player targetPlayer = Bukkit.getPlayerExact(targetName);
         if (targetPlayer == null) {
@@ -171,11 +159,6 @@ public final class DataCollectSubCommand implements BuildableCommand {
 
     @Override
     public List<String> tabComplete(@NotNull CommandSender commandSender, @NotNull String[] args) {
-        if ((args.length == 6 && args[1].equalsIgnoreCase("start"))
-                || (args.length == 4 && args[1].equalsIgnoreCase("stop")))
-            return java.util.stream.Stream.of("pro", "ultra")
-                    .filter(x -> x.startsWith(args[args.length - 1].toLowerCase(Locale.ROOT)))
-                    .toList();
         if (args.length == 2) {
             return Stream.of("start", "stop")
                     .filter(command -> hasPermission(commandSender, command))

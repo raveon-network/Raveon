@@ -39,7 +39,7 @@ monitor:
   not_running: "{prefix} &#F3F3F3Мониторинг не запущен."
   switched: "{prefix} &#F3F3F3Цель мониторинга изменена на &#CDCDCD{player} &8[&f{model}&8]&f."
   player_not_found: "{prefix} &#F3F3F3Игрок не найден."
-  target_left: "{prefix} &#F3F3F3Мониторинг остановлен: &#CDCDCD{player} &#F3F3F3вышел с сервера."
+  target_left: "{prefix} &#F3F3F3Мониторинг приостановлен: &#CDCDCD{player} &#F3F3F3вышел с сервера. Он продолжится после возвращения игрока."
 time:
   year: "{value} г"
   month: "{value} мес"

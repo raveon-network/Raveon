@@ -39,7 +39,7 @@ monitor:
   not_running: "{prefix} &#F3F3F3Monitoring is not running."
   switched: "{prefix} &#F3F3F3Monitoring target switched to &#CDCDCD{player} &8[&f{model}&8]&f."
   player_not_found: "{prefix} &#F3F3F3Player not found."
-  target_left: "{prefix} &#F3F3F3Monitoring stopped: &#CDCDCD{player} &#F3F3F3left the server."
+  target_left: "{prefix} &#F3F3F3Monitoring paused: &#CDCDCD{player} &#F3F3F3left the server. It will resume when they rejoin."
 time:
   year: "{value} yr"
   month: "{value} mo"

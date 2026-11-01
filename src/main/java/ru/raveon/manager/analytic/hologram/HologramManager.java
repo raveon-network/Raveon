@@ -31,6 +31,7 @@ public final class HologramManager {
     private final Set<UUID> pendingCaptures = ConcurrentHashMap.newKeySet();
     private final Set<UUID> requestedLineRefreshes = ConcurrentHashMap.newKeySet();
     private final Set<UUID> enabledViewers = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Boolean> viewerPreferences = new ConcurrentHashMap<>();
     private final BelowNameBridge belowNameBridge = new BelowNameBridge();
     private SchedulerUtils.TaskHandle updateTask;
     private volatile boolean running;
@@ -49,6 +50,7 @@ public final class HologramManager {
         viewers.clear();
         viewersByTarget.clear();
         enabledViewers.clear();
+        viewerPreferences.clear();
         synchronized (targets) { targets.clear(); }
         targetIdByEntityId.clear();
         hologramLinesByTarget.clear();
@@ -62,8 +64,21 @@ public final class HologramManager {
         return enabledViewers.contains(viewerId);
     }
 
+    public void restoreSession(Player player) {
+        UUID id = player.getUniqueId();
+        if (!player.hasPermission("raveon.command.holograms")) {
+            enabledViewers.remove(id);
+            removeViewer(player);
+            return;
+        }
+        Boolean enabled = viewerPreferences.get(id);
+        if (enabled != null) setHologramsEnabled(id, enabled, true);
+        else if (player.hasPermission("raveon.command.holograms.enable-on-join"))
+            setHologramsEnabled(id, true, true);
+    }
+
     public boolean toggleHolograms(UUID viewerId, boolean silent) {
-        boolean enabled = !hasHologramsEnabled(viewerId);
+        boolean enabled = !viewerPreferences.getOrDefault(viewerId, hasHologramsEnabled(viewerId));
         setHologramsEnabled(viewerId, enabled, silent);
         return enabled;
     }
@@ -71,6 +86,7 @@ public final class HologramManager {
     public void setHologramsEnabled(UUID viewerId, boolean enabled, boolean silent) {
         Player viewer = Bukkit.getPlayer(viewerId);
         if (viewer == null) return;
+        viewerPreferences.put(viewerId, enabled);
         if (enabled) {
             enabledViewers.add(viewerId);
             viewers.computeIfAbsent(viewerId, ignored -> new ViewerState(viewer));

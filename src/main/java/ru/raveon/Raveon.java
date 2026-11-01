@@ -137,8 +137,11 @@ public class Raveon extends JavaPlugin {
         this.monitorManager = new MonitorManager(this);
 
         getServer().getPluginManager().registerEvents(monitorManager, this);
+        var viewerPreferences = new ru.raveon.listeners.bukkit.ViewerPreferencesListener(this);
+        getServer().getPluginManager().registerEvents(viewerPreferences, this);
         packetManager.register();
         this.playerDataManager.loadOnlinePlayers();
+        for (Player player : Bukkit.getOnlinePlayers()) viewerPreferences.restore(player);
 
     }
 

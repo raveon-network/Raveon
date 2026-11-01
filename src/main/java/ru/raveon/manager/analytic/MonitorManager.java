@@ -39,6 +39,10 @@ public final class MonitorManager implements Listener {
     private final Map<UUID, AiSnapshot> snapshots = new HashMap<>();
     private final Map<UUID, EnumMap<ModelId, AiSnapshot>> modelSnapshots = new HashMap<>();
     private final Map<UUID, ChatSubscription> chatSubscriptions = new HashMap<>();
+    private final Map<UUID, MonitorSelection> savedSessions = new HashMap<>();
+    private final Map<UUID, ChatSubscription> savedChatSubscriptions = new HashMap<>();
+
+    private record MonitorSelection(UUID targetId, MonitorModelFilter modelFilter) {}
 
     private record ChatSubscription(
             UUID targetId, String targetName, MonitorModelFilter modelFilter) {}
@@ -56,15 +60,17 @@ public final class MonitorManager implements Listener {
         UUID targetId = target.getUniqueId();
         MonitorSession currentSession = sessions.get(viewerId);
 
-        if (isSameTarget(currentSession, targetId)
-                && currentSession.getModelFilter() == modelFilter) {
+        MonitorSelection saved = savedSessions.get(viewerId);
+        if (saved != null && saved.targetId().equals(targetId)
+                && saved.modelFilter() == modelFilter) {
             stop(viewer);
             return ToggleResult.DISABLED;
         }
 
-        ToggleResult result = currentSession == null ? ToggleResult.ENABLED : ToggleResult.SWITCHED;
+        ToggleResult result = saved == null ? ToggleResult.ENABLED : ToggleResult.SWITCHED;
 
         sessions.put(viewerId, new MonitorSession(targetId, target.getName(), modelFilter));
+        savedSessions.put(viewerId, new MonitorSelection(targetId, modelFilter));
 
         if (currentSession != null) {
             removeSnapshotIfUnused(currentSession.getTargetId());
@@ -82,12 +88,13 @@ public final class MonitorManager implements Listener {
         Objects.requireNonNull(modelFilter, "modelFilter");
         UUID viewerId = viewer.getUniqueId();
         UUID targetId = target == null ? null : target.getUniqueId();
-        ChatSubscription current = chatSubscriptions.get(viewerId);
+        ChatSubscription current = savedChatSubscriptions.get(viewerId);
 
         if (current != null
                 && Objects.equals(current.targetId(), targetId)
                 && current.modelFilter() == modelFilter) {
             chatSubscriptions.remove(viewerId);
+            savedChatSubscriptions.remove(viewerId);
             pruneUnusedSnapshots();
             return ToggleResult.DISABLED;
         }
@@ -98,6 +105,7 @@ public final class MonitorManager implements Listener {
                         targetId,
                         target == null ? plugin.getMainConfigManager().getLanguageService().text("monitor.chat.all_name") : target.getName(),
                         modelFilter));
+        savedChatSubscriptions.put(viewerId, chatSubscriptions.get(viewerId));
         pruneUnusedSnapshots();
 
         return current == null ? ToggleResult.ENABLED : ToggleResult.SWITCHED;
@@ -106,12 +114,15 @@ public final class MonitorManager implements Listener {
     public synchronized boolean stop(Player viewer) {
         Objects.requireNonNull(viewer, "viewer");
 
-        boolean chatStopped = chatSubscriptions.remove(viewer.getUniqueId()) != null;
+        boolean savedMonitor = savedSessions.remove(viewer.getUniqueId()) != null;
+        boolean savedChat = savedChatSubscriptions.remove(viewer.getUniqueId()) != null;
+        boolean chatStopped = chatSubscriptions.remove(viewer.getUniqueId()) != null || savedChat;
 
         MonitorSession removedSession = sessions.remove(viewer.getUniqueId());
         if (removedSession == null) {
             pruneUnusedSnapshots();
-            return chatStopped;
+            stopUpdaterIfIdle();
+            return chatStopped || savedMonitor;
         }
 
         removeSnapshotIfUnused(removedSession.getTargetId());
@@ -222,7 +233,54 @@ public final class MonitorManager implements Listener {
 
     public synchronized boolean isMonitoring(Player viewer) {
         Objects.requireNonNull(viewer, "viewer");
-        return sessions.containsKey(viewer.getUniqueId());
+        return savedSessions.containsKey(viewer.getUniqueId());
+    }
+
+    public synchronized void restoreOnJoin(Player player) {
+        restoreViewer(player);
+        UUID targetId = player.getUniqueId();
+        var viewersToRestore = new HashSet<UUID>();
+        savedSessions.forEach((viewerId, selection) -> {
+            if (selection.targetId().equals(targetId)) viewersToRestore.add(viewerId);
+        });
+        savedChatSubscriptions.forEach((viewerId, selection) -> {
+            if (targetId.equals(selection.targetId())) viewersToRestore.add(viewerId);
+        });
+        viewersToRestore.remove(targetId);
+        for (UUID viewerId : viewersToRestore) {
+            Player viewer = Bukkit.getPlayer(viewerId);
+            if (viewer != null) SchedulerUtils.runEntity(plugin, viewer, () -> {
+                synchronized (this) {
+                    if (plugin.isEnabled() && viewer.isOnline()) restoreViewer(viewer);
+                }
+            });
+        }
+    }
+
+    private void restoreViewer(Player viewer) {
+        UUID id = viewer.getUniqueId();
+        if (!viewer.isOnline() || !viewer.hasPermission("raveon.command.monitor")) {
+            sessions.remove(id);
+            chatSubscriptions.remove(id);
+            pruneUnusedSnapshots();
+            stopUpdaterIfIdle();
+            return;
+        }
+        MonitorSelection selection = savedSessions.get(id);
+        if (selection != null && !sessions.containsKey(id)) {
+            Player target = Bukkit.getPlayer(selection.targetId());
+            if (target != null && target.isOnline())
+                sessions.put(id, new MonitorSession(target.getUniqueId(), target.getName(), selection.modelFilter()));
+        }
+        ChatSubscription chat = savedChatSubscriptions.get(id);
+        if (chat != null && !chatSubscriptions.containsKey(id)) {
+            Player target = chat.targetId() == null ? null : Bukkit.getPlayer(chat.targetId());
+            if (chat.targetId() == null || (target != null && target.isOnline()))
+                chatSubscriptions.put(id, new ChatSubscription(chat.targetId(),
+                        target == null ? plugin.getLanguageService().text("monitor.chat.all_name") : target.getName(),
+                        chat.modelFilter()));
+        }
+        if (!sessions.isEmpty()) startUpdaterIfNeeded();
     }
 
     public synchronized void shutdown() {
@@ -230,6 +288,8 @@ public final class MonitorManager implements Listener {
 
         sessions.clear();
         chatSubscriptions.clear();
+        savedSessions.clear();
+        savedChatSubscriptions.clear();
         snapshots.clear();
         modelSnapshots.clear();
         currentTick = 0L;
@@ -376,10 +436,6 @@ public final class MonitorManager implements Listener {
         }
 
         return format.replace("{value}", String.valueOf(trendPercent));
-    }
-
-    private boolean isSameTarget(MonitorSession session, UUID targetId) {
-        return session != null && session.getTargetId().equals(targetId);
     }
 
     private boolean isTargetMonitored(UUID targetId) {

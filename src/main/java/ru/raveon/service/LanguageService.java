@@ -82,7 +82,10 @@ public final class LanguageService {
                     }
                 }
             }
-            for (String code : List.of("ru", "en")) migrateMenuLabels(directory.resolve(code), code);
+            for (String code : List.of("ru", "en")) {
+                migrateMenuLabels(directory.resolve(code), code);
+                migrateDataCollectionUsage(directory.resolve(code));
+            }
             Map<String, Object> entries = new LinkedHashMap<>();
             for (String name : CATALOG_FILES) merge(entries, bundled("en", name));
             if (!language.equals("en"))
@@ -93,6 +96,27 @@ public final class LanguageService {
         } catch (IOException | InvalidConfigurationException error) {
             throw new IllegalArgumentException("Cannot load lang/" + language + "/", error);
         }
+    }
+
+    private static void migrateDataCollectionUsage(Path folder)
+            throws IOException, InvalidConfigurationException {
+        Path file = folder.resolve("datacollect.yml");
+        YamlConfiguration catalog = read(file);
+        boolean changed = false;
+        for (String key : List.of("datacollect.start.help", "datacollect.stop.help")) {
+            String before = catalog.getString(key);
+            if (before == null) continue;
+            String after = before.replace(" [pro|ultra]", "").replace(" [pro/ultra]", "");
+            if (!before.equals(after)) {
+                catalog.set(key, after);
+                changed = true;
+            }
+        }
+        if (catalog.contains("datacollect.invalid_model")) {
+            catalog.set("datacollect.invalid_model", null);
+            changed = true;
+        }
+        if (changed) catalog.save(file.toFile());
     }
 
     private static void migrateMenuLabels(Path folder, String code)
