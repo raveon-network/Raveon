@@ -4,9 +4,14 @@ on:
   push:
     branches: [ "**" ]
   pull_request: { }
+  workflow_dispatch: { }
 
 permissions:
   contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -17,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -30,23 +35,42 @@ jobs:
       - name: Build with Gradle
         run: gradle build
 
-      - name: Extract version
+      - name: Extract version and JAR
         id: get_version
+        shell: bash
         run: |
-          JAR_FILE=$(basename $(ls build/libs/*.jar | grep -v '\-all\.jar' | head -n 1) .jar)
-          VERSION=$(echo "$JAR_FILE" | grep -oP '\d+\.\d+.*')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          jars = []
+          for jar in Path("build/libs").glob("*.jar"):
+              if jar.name.endswith(("-all.jar", "-sources.jar", "-javadoc.jar")):
+                  continue
+              match = re.fullmatch(r"Raveon-(\d+\.\d+\.\d+(?:[-+][0-9A-Za-z.-]+)?)\.jar", jar.name)
+              if match:
+                  jars.append((jar, match.group(1)))
+          if len(jars) != 1:
+              raise SystemExit(f"Expected exactly one Raveon release JAR, found {len(jars)}")
+          jar, version = jars[0]
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"version={version}\njar={jar.as_posix()}\n")
+          PY
 
       - name: Create / Update Release
-        if: github.ref == 'refs/heads/main'
+        if: >-
+          github.event_name != 'pull_request' &&
+          (github.ref == 'refs/heads/1.0' || github.ref == 'refs/heads/2.0')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: "v${{ steps.get_version.outputs.version }}"
           name: "v${{ steps.get_version.outputs.version }}"
-          body: "Automated build for commit ${{ github.sha }}"
+          target_commitish: ${{ github.sha }}
+          body: "Automated build from ${{ github.ref_name }} at commit ${{ github.sha }}"
           prerelease: false
-          files: |
-            build/libs/*.jar
-            !build/libs/*-all.jar
+          make_latest: ${{ github.ref == 'refs/heads/2.0' && 'true' || 'false' }}
+          fail_on_unmatched_files: true
+          files: ${{ steps.get_version.outputs.jar }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

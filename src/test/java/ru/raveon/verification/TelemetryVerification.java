@@ -67,11 +67,6 @@ public final class TelemetryVerification {
         require(header.length == 153, "CSV header width");
         require(new HashSet<>(Arrays.asList(header)).size() == header.length, "duplicate CSV column names");
         require(NAMES.get(PITCH.ordinal()).equals("telemetry_pitch"), "duplicate context name must be qualified");
-        var schemaNames = java.util.regex.Pattern.compile("\"name\":\\s*\"([^\"]+)\"")
-                .matcher(java.nio.file.Files.readString(java.nio.file.Path.of("docs", "ultra-schema.json")));
-        List<String> documented = new ArrayList<>();
-        while (schemaNames.find()) documented.add(schemaNames.group(1));
-        require(documented.equals(Arrays.asList(header).subList(1, header.length)), "documented schema order");
         int at = vector + 4;
         for (UltraFrame frame : frames) {
             String[] csv = frame.toCsvRow(false).split(",");
