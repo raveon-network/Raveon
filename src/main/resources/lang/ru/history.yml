@@ -14,3 +14,8 @@ menus:
     entry: "&7Вероятность: {chance}%\n&7Время: &f{time} назад"
     empty_entries: "&7Нет записей"
     empty_server: "—"
+    model: "&fМодель: {model} &7(нажмите для смены)"
+    refresh: "&fОбновить"
+    previous: "&#36cbe9◀ &#F3F3F3Предыдущая страница"
+    next: "&#F3F3F3Следующая страница &#36cbe9▶"
+    back: "&#36cbe9◀ &#F3F3F3Назад"

@@ -36,27 +36,27 @@ items:
   back-item:
     material: ARROW
     action: back
-    display_name: "{lang:menus.back}"
+    display_name: "{lang:menus.history.back}"
     slot: 48
 
   previous-item:
     material: ARROW
     action: 'previous_page'
-    display_name: "{lang:menus.previous}"
+    display_name: "{lang:menus.history.previous}"
     slot: 47
 
   next-item:
     material: ARROW
     action: 'next_page'
-    display_name: "{lang:menus.next}"
+    display_name: "{lang:menus.history.next}"
     slot: 51
   model-item:
     material: COMPARATOR
     action: 'switch_model'
-    display_name: "{lang:menus.model}"
+    display_name: "{lang:menus.history.model}"
     slot: 49
   refresh-item:
     material: CLOCK
     action: 'refresh'
-    display_name: "{lang:menus.refresh}"
+    display_name: "{lang:menus.history.refresh}"
     slot: 50

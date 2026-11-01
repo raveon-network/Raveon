@@ -195,7 +195,7 @@ public class HistoryMenu extends ActionMenu<PlayerHistoryPage> {
         var item = new YamlConfiguration();
         item.set("material", "ARROW");
         item.set("action", "back");
-        item.set("display_name", Raveon.INSTANCE.getLanguageService().text("menus.back"));
+        item.set("display_name", Raveon.INSTANCE.getLanguageService().text("menus.history.back"));
         item.set("slot", slot);
         menuButtons.add(createButton(MenuItem.fromSection(item)));
     }

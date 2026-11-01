@@ -52,7 +52,7 @@ The model service is not included in the JAR. Checks stay off until the plugin i
 
 ## Requirements
 
-- Java 17+ for Raveon; Java 21 for Minecraft 1.21.11 and the full verification matrix.
+- Java 17+ for Raveon; Java 21 for Minecraft 1.21.11.
 - Paper 1.16.5, 1.20.1, or 1.21.11; Folia 1.21.11.
 - PacketEvents 2.12.1.
 - WorldGuard, optionally, for region bypass rules.
@@ -62,9 +62,9 @@ Folia 1.16.5 does not exist. Paper 1.16.5 must run on Java 17+ to load Raveon; s
 
 ## Installation
 
-1. Build `build/libs/Raveon-2.0.3.jar`.
+1. Build `build/libs/Raveon-2.0.4.jar`.
 2. Install `packetevents` in the `plugins/` directory.
-3. Copy `Raveon-2.0.3.jar` to `plugins/`.
+3. Copy `Raveon-2.0.4.jar` to `plugins/`.
 4. Start the server once to generate the configuration files.
 5. Stop the server and edit the configuration.
 6. Connect the plugin with `/raveon connect <code>`.
@@ -84,7 +84,7 @@ English is the default (`language: en` in `settings.yml`); use `language: ru` fo
 
 On the first upgrade, translations from the old `lang/en.yml` and `lang/ru.yml` are copied into the new files. Original files are preserved as backups and are no longer read once the new catalogs exist. Existing custom text is retained; the previous default history layout is upgraded to the new two-line card. Reload applies translation edits.
 
-History cards show a colored probability and elapsed time since the last check. Back returns to the player list, keeping its page when history was opened from that list. The shared punishment `reason` is configured in `features/punishments.yml`; commands use `{reason}` independently of the selected language.
+History cards show a colored probability and elapsed time since the last check. Back returns to the player list, keeping its page when history was opened from that list. Write punishment reasons directly in the commands in `features/punishments.yml`, for example `5:0 ban {player} Raveon detected unusual behavior`. Navigation labels are configured separately in each language's `history.yml` and `players.yml`.
 
 ## Commands
 
@@ -116,24 +116,22 @@ CSV files are stored in `plugins/Raveon/datasets/`. If a write fails, unconfirme
 ## Building from source
 
 ```bash
-./gradlew check shadowJar
+./gradlew shadowJar
 ```
 
 On Windows:
 
 ```bat
-gradlew.bat check shadowJar
+gradlew.bat shadowJar
 ```
 
 The resulting JAR is written to:
 
 ```text
-build/libs/Raveon-2.0.3.jar
+build/libs/Raveon-2.0.4.jar
 ```
 
-Main classes are compiled with `--release 17`. Use JDK 21 for the build and the full verification matrix. The `check` task verifies Pro/Ultra windows, CSV, FlatBuffers, queues, the entity index, configuration, SQLite, local HTTP, datasets, GUI, monitoring, and packets. The wire format is also verified against classes from the packaged JAR. Private reference JARs are not required.
-
-The first Gradle run downloads public dependencies. With a populated local cache, you can add `--offline`. Redis is verified separately with `verifyRedisPresence`: set the `RAVEON_REDIS_BINARY` environment variable to the path of `redis-server`. The check starts a temporary server on loopback only, without persistence, and stops it afterward. The task fails if the binary is missing. Real MySQL, Minecraft gameplay, separate Folia regions, and client connections require a separate test environment.
+Main classes are compiled with `--release 17`. GitHub Actions builds with JDK 21. The first Gradle run downloads public dependencies; with a populated local cache, add `--offline`.
 
 When reporting an issue, include:
 

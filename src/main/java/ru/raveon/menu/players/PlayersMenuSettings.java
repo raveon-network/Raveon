@@ -74,7 +74,7 @@ public class PlayersMenuSettings extends MenuSettings {
     }
 
     public static PlayersMenuSettings fromSection(@NotNull ConfigurationSection section, LanguageService language) {
-        return new PlayersMenuSettings(MenuSettings.fromSection(language.localize(section)), language);
+        return new PlayersMenuSettings(MenuSettings.fromSection(language.localizeMenu(section, "players")), language);
     }
 
     public int getChecksLimit() {

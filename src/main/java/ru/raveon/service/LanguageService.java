@@ -82,6 +82,7 @@ public final class LanguageService {
                     }
                 }
             }
+            for (String code : List.of("ru", "en")) migrateMenuLabels(directory.resolve(code), code);
             Map<String, Object> entries = new LinkedHashMap<>();
             for (String name : CATALOG_FILES) merge(entries, bundled("en", name));
             if (!language.equals("en"))
@@ -92,6 +93,38 @@ public final class LanguageService {
         } catch (IOException | InvalidConfigurationException error) {
             throw new IllegalArgumentException("Cannot load lang/" + language + "/", error);
         }
+    }
+
+    private static void migrateMenuLabels(Path folder, String code)
+            throws IOException, InvalidConfigurationException {
+        Path translationsFile = folder.resolve("translations.yml");
+        YamlConfiguration translations = read(translationsFile);
+        boolean changed = false;
+        for (String menu : List.of("history", "players")) {
+            Path file = folder.resolve(menu + ".yml");
+            YamlConfiguration custom = read(file);
+            YamlConfiguration defaults = bundled(code, menu + ".yml");
+            boolean updated = false;
+            for (String key : List.of("model", "refresh", "previous", "next", "back")) {
+                String shared = "menus." + key;
+                String scoped = "menus." + menu + "." + key;
+                if (translations.contains(shared)
+                        && (!custom.contains(scoped) || java.util.Objects.equals(custom.get(scoped), defaults.get(scoped)))) {
+                    custom.set(scoped, translations.get(shared));
+                    updated = true;
+                }
+            }
+            if (updated) custom.save(file.toFile());
+        }
+        for (String key : List.of("model", "refresh", "previous", "next", "back")) {
+            if (translations.contains("menus." + key)) {
+                translations.set("menus." + key, null);
+                changed = true;
+            }
+        }
+        ConfigurationSection remaining = translations.getConfigurationSection("menus");
+        if (remaining != null && remaining.getKeys(false).isEmpty()) translations.set("menus", null);
+        if (changed) translations.save(translationsFile.toFile());
     }
 
     private static String catalogFor(String key) {
@@ -187,6 +220,25 @@ public final class LanguageService {
             values.put(String.valueOf(placeholders[i]), java.util.Objects.toString(placeholders[i + 1], ""));
         return PLACEHOLDER.matcher(template).replaceAll(match ->
                 java.util.regex.Matcher.quoteReplacement(values.getOrDefault(match.group(1), match.group())));
+    }
+
+    public ConfigurationSection localizeMenu(ConfigurationSection source, String menu) {
+        if (!menu.equals("history") && !menu.equals("players"))
+            throw new IllegalArgumentException("Unknown menu: " + menu);
+        YamlConfiguration scoped = new YamlConfiguration();
+        for (String key : source.getKeys(true)) {
+            Object value = source.get(key);
+            if (!(value instanceof ConfigurationSection)) scoped.set(key, scopeMenu(value, menu));
+        }
+        return localize(scoped);
+    }
+
+    private static Object scopeMenu(Object value, String menu) {
+        if (value instanceof List<?> lines) return lines.stream().map(line -> scopeMenu(line, menu)).toList();
+        if (!(value instanceof String text)) return value;
+        for (String key : List.of("model", "refresh", "previous", "next", "back"))
+            text = text.replace("{lang:menus." + key + "}", "{lang:menus." + menu + "." + key + "}");
+        return text;
     }
 
     public ConfigurationSection localize(ConfigurationSection source) {

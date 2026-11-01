@@ -14,3 +14,8 @@ menus:
     entry: "&7Probability: {chance}%\n&7Time: &f{time} ago"
     empty_entries: "&7No entries"
     empty_server: "—"
+    model: "&fModel: {model} &7(click to switch)"
+    refresh: "&fRefresh"
+    previous: "&#36cbe9◀ &#F3F3F3Previous page"
+    next: "&#F3F3F3Next page &#36cbe9▶"
+    back: "&#36cbe9◀ &#F3F3F3Back"

@@ -82,7 +82,7 @@ public class HistoryMenuSettings extends MenuSettings {
     }
 
     public static HistoryMenuSettings fromSection(@NotNull ConfigurationSection section, LanguageService language) {
-        return new HistoryMenuSettings(MenuSettings.fromSection(language.localize(section)), language);
+        return new HistoryMenuSettings(MenuSettings.fromSection(language.localizeMenu(section, "history")), language);
     }
 
     private static Material readMaterial(

@@ -61,9 +61,3 @@ logs:
   command-registered: "Command '{command}' registered"
   command-failed: "Could not register command {class}"
   commands-registered: "Registered commands: {count}"
-menus:
-  model: "&fModel: {model} &7(click to switch)"
-  refresh: "&fRefresh"
-  previous: "&#36cbe9◀ &#F3F3F3Previous page"
-  next: "&#F3F3F3Next page &#36cbe9▶"
-  back: "&#36cbe9◀ &#F3F3F3Back"
