@@ -46,44 +46,94 @@ public final class LanguageService {
         rendered = Map.copyOf(colored);
     }
 
+    public static final List<String> CATALOG_FILES = List.of(
+            "history.yml", "players.yml", "datacollect.yml", "hologram.yml", "translations.yml");
+
     public static LanguageService load(Plugin plugin, String requested) {
         String language = requested.trim().toLowerCase(Locale.ROOT);
         if (!language.equals("ru") && !language.equals("en"))
             throw new IllegalArgumentException("language must be ru or en");
         Path directory = plugin.getDataFolder().toPath().resolve("lang");
         try {
-            Files.createDirectories(directory);
             for (String code : List.of("ru", "en")) {
-                Path file = directory.resolve(code + ".yml");
-                if (!Files.exists(file)) {
-                    try (var input = resource(code)) {
-                        Files.copy(input, file);
+                Path folder = directory.resolve(code);
+                Files.createDirectories(folder);
+                Path legacyFile = directory.resolve(code + ".yml");
+                YamlConfiguration legacy = null;
+                if (Files.exists(legacyFile)
+                        && CATALOG_FILES.stream().anyMatch(name -> !Files.exists(folder.resolve(name))))
+                    legacy = read(legacyFile);
+                for (String name : CATALOG_FILES) {
+                    Path file = folder.resolve(name);
+                    if (Files.exists(file)) continue;
+                    if (legacy == null) {
+                        try (var input = resource(code, name)) {
+                            Files.copy(input, file);
+                        }
+                    } else {
+                        YamlConfiguration migrated = bundled(code, name);
+                        for (String key : legacy.getKeys(true)) {
+                            if (legacy.isConfigurationSection(key) || key.startsWith("punishments.")
+                                    || !catalogFor(key).equals(name)) continue;
+                            Object value = legacy.get(key);
+                            if (!obsoleteHistoryDefault(key, value)) migrated.set(key, value);
+                        }
+                        migrated.save(file.toFile());
                     }
                 }
             }
             Map<String, Object> entries = new LinkedHashMap<>();
-            merge(entries, bundled("en"));
-            if (!language.equals("en")) merge(entries, bundled(language));
-            YamlConfiguration custom = new YamlConfiguration();
-            try (var reader = Files.newBufferedReader(directory.resolve(language + ".yml"), StandardCharsets.UTF_8)) {
-                custom.load(reader);
-            }
-            merge(entries, custom);
+            for (String name : CATALOG_FILES) merge(entries, bundled("en", name));
+            if (!language.equals("en"))
+                for (String name : CATALOG_FILES) merge(entries, bundled(language, name));
+            for (String name : CATALOG_FILES)
+                merge(entries, read(directory.resolve(language).resolve(name)));
             return new LanguageService(language, entries);
         } catch (IOException | InvalidConfigurationException error) {
-            throw new IllegalArgumentException("Cannot load lang/" + language + ".yml", error);
+            throw new IllegalArgumentException("Cannot load lang/" + language + "/", error);
         }
     }
 
-    private static java.io.InputStream resource(String language) {
-        var input = LanguageService.class.getClassLoader().getResourceAsStream("lang/" + language + ".yml");
-        if (input == null) throw new IllegalStateException("Missing bundled language: " + language);
+    private static String catalogFor(String key) {
+        if (key.startsWith("menus.history.") || key.startsWith("history-")) return "history.yml";
+        if (key.startsWith("menus.players.")) return "players.yml";
+        if (key.startsWith("datacollect.")) return "datacollect.yml";
+        if (key.startsWith("holograms.") || key.startsWith("holograms-")) return "hologram.yml";
+        return "translations.yml";
+    }
+
+    private static boolean obsoleteHistoryDefault(String key, Object value) {
+        return switch (key) {
+            case "menus.history.snapshot.name" -> "&fAverage: {snapshot_avg}%".equals(value)
+                    || "&fСреднее: {snapshot_avg}%".equals(value);
+            case "menus.history.snapshot.lore" -> List.of("", "&7Prob. &8&l| &7Server      &8&l| &7Time",
+                    "&8-------------------------------", "{entries}").equals(value)
+                    || List.of("", "&7Вероят. &8&l| &7Сервер     &8&l| &7Время",
+                    "&8-------------------------------", "{entries}").equals(value);
+            case "menus.history.entry" -> "{chance}% &8&l| &f{server}&8&l| &f{time}".equals(value);
+            default -> false;
+        };
+    }
+
+    private static YamlConfiguration read(Path file) throws IOException, InvalidConfigurationException {
+        YamlConfiguration config = new YamlConfiguration();
+        try (var reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+            config.load(reader);
+        }
+        return config;
+    }
+
+    private static java.io.InputStream resource(String language, String name) {
+        String path = "lang/" + language + "/" + name;
+        var input = LanguageService.class.getClassLoader().getResourceAsStream(path);
+        if (input == null) throw new IllegalStateException("Missing bundled language: " + path);
         return input;
     }
 
-    private static YamlConfiguration bundled(String language) throws IOException, InvalidConfigurationException {
+    private static YamlConfiguration bundled(String language, String name)
+            throws IOException, InvalidConfigurationException {
         YamlConfiguration config = new YamlConfiguration();
-        try (var reader = new InputStreamReader(resource(language), StandardCharsets.UTF_8)) {
+        try (var reader = new InputStreamReader(resource(language, name), StandardCharsets.UTF_8)) {
             config.load(reader);
         }
         return config;

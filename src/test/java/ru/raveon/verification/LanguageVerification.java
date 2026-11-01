@@ -18,8 +18,8 @@ public final class LanguageVerification {
     private static final Pattern PLACEHOLDERS = Pattern.compile("\\{[a-zA-Z0-9_]+}");
 
     public static void main(String[] args) throws Exception {
-        YamlConfiguration english = bundled("lang/en.yml");
-        YamlConfiguration russian = bundled("lang/ru.yml");
+        YamlConfiguration english = catalog("en");
+        YamlConfiguration russian = catalog("ru");
         Set<String> keys = leafKeys(english);
         require(keys.equals(leafKeys(russian)), "language catalogs have different keys");
         for (String key : keys) {
@@ -36,8 +36,11 @@ public final class LanguageVerification {
         LanguageService ru = LanguageService.load(plugin, " RU ");
         LanguageService en = LanguageService.load(plugin, "en");
         require(ru.language().equals("ru") && en.language().equals("en"), "language selection");
-        require(Files.isRegularFile(folder.resolve("lang/ru.yml"))
-                && Files.isRegularFile(folder.resolve("lang/en.yml")), "catalogs not installed");
+        for (String code : List.of("en", "ru"))
+            for (String name : LanguageService.CATALOG_FILES)
+                require(Files.isRegularFile(folder.resolve("lang/" + code + "/" + name)), "catalog not installed: " + name);
+        require(!Files.exists(folder.resolve("lang/en.yml")), "legacy catalog was generated");
+        rejected(() -> en.text("punishments.reason"));
         require(en.plain("alerts-enabled").contains("Alerts"), "English message missing");
         require(ru.plain("alerts-enabled").contains("Оповещения"), "Russian message missing");
         require(en.text("alerts-enabled").contains("§"), "colors were not rendered");
@@ -57,7 +60,7 @@ public final class LanguageVerification {
         YamlConfiguration source = new YamlConfiguration();
         source.set("title", "{lang:menus.history.title}");
         source.set("lore", "{lang:menus.players.player.lore}");
-        source.set("commands", List.of("ban {player} {lang:punishments.reason}"));
+        source.set("commands", List.of("ban {player} Raveon detected unusual behavior"));
         source.set("size", 54);
         ConfigurationSection localized = ru.localize(source);
         require(localized.getString("title").contains("история"), "title was not localized");
@@ -84,7 +87,7 @@ public final class LanguageVerification {
             }
         }
 
-        Path file = folder.resolve("lang/ru.yml");
+        Path file = folder.resolve("lang/ru/translations.yml");
         YamlConfiguration custom = new YamlConfiguration();
         custom.set("prefix", "[Custom]");
         custom.set("reloaded", "{prefix} готово: {player}");
@@ -107,7 +110,48 @@ public final class LanguageVerification {
         rejected(() -> LanguageService.load(plugin, "ru"));
         require(edited.text("reloaded", "player", "Alex").equals("[Custom] готово: Alex"),
                 "failed reload changed the active snapshot");
+        Path legacyFolder = Files.createTempDirectory("raveon-legacy-language");
+        Files.createDirectories(legacyFolder.resolve("lang"));
+        YamlConfiguration legacy = new YamlConfiguration();
+        legacy.set("prefix", "[Legacy]");
+        legacy.set("reloaded", "{prefix} migrated");
+        legacy.set("datacollect.start.success", "Custom dataset {target}");
+        legacy.set("menus.history.title", "Custom history {player_name}");
+        legacy.set("menus.history.snapshot.name", "&fСреднее: {snapshot_avg}%");
+        legacy.set("punishments.reason", "Old translated reason");
+        legacy.save(legacyFolder.resolve("lang/ru.yml").toFile());
+        String legacySaved = Files.readString(legacyFolder.resolve("lang/ru.yml"));
+        LanguageService migrated = LanguageService.load(LanguageTestSupport.plugin(legacyFolder), "ru");
+        require(migrated.plain("reloaded").equals("[Legacy] migrated"), "legacy prefix/message lost");
+        require(migrated.text("datacollect.start.success", "target", "Alex").equals("Custom dataset Alex"),
+                "legacy feature translation lost");
+        require(migrated.plain("menus.history.title", "player_name", "Alex").equals("Custom history Alex"),
+                "legacy history title lost");
+        require(migrated.plain("menus.history.snapshot.name", "snapshot_number", 12).equals("Проверка #12"),
+                "old default history presentation was not upgraded");
+        require(Files.readString(legacyFolder.resolve("lang/ru.yml")).equals(legacySaved),
+                "migration overwrote the original legacy file");
+        require(YamlConfiguration.loadConfiguration(legacyFolder.resolve("lang/ru/datacollect.yml").toFile())
+                .getString("datacollect.start.success").equals("Custom dataset {target}"),
+                "legacy data collection text was not routed to its feature file");
+        Files.writeString(legacyFolder.resolve("lang/ru.yml"), "reloaded: ignored");
+        require(LanguageService.load(LanguageTestSupport.plugin(legacyFolder), "ru").plain("reloaded")
+                .equals("[Legacy] migrated"), "legacy file overrode the new catalogs after migration");
+
         System.out.println("LanguageVerification passed: ru/en parity, placeholders, menus, commands, UTF-8, fallback, validation and immutable reload");
+    }
+
+    private static YamlConfiguration catalog(String code) throws Exception {
+        YamlConfiguration result = new YamlConfiguration();
+        for (String name : LanguageService.CATALOG_FILES) {
+            YamlConfiguration part = bundled("lang/" + code + "/" + name);
+            for (String key : part.getKeys(true))
+                if (!part.isConfigurationSection(key)) {
+                    require(!result.contains(key), "duplicate language key: " + key);
+                    result.set(key, part.get(key));
+                }
+        }
+        return result;
     }
 
     private static YamlConfiguration bundled(String path) throws Exception {

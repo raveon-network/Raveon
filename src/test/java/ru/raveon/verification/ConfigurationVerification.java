@@ -54,7 +54,7 @@ public final class ConfigurationVerification {
 
     private static void verifyBundle(Path root) throws Exception {
         for (String file : new String[] {"checks.yml", "features/datacollect.yml",
-                "features/hologram.yml", "features/punishments.yml", "settings.yml", "lang/ru.yml", "lang/en.yml"}) {
+                "features/hologram.yml", "features/punishments.yml", "settings.yml"}) {
             Path destination = root.resolve(file);
             Files.createDirectories(destination.getParent());
             try (var input = ConfigurationVerification.class.getClassLoader().getResourceAsStream(file)) {
@@ -71,20 +71,23 @@ public final class ConfigurationVerification {
                     case "getName" -> "ConfigurationVerification";
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
+        String defaultSettings = Files.readString(root.resolve("settings.yml"));
+        require(defaultSettings.contains("language: en"), "English is not the default");
+        Files.writeString(root.resolve("settings.yml"), defaultSettings.replace("language: en", "language: ru"));
         RuntimeConfiguration previous = RuntimeConfiguration.load(plugin, null);
         try {
             RuntimeConfiguration unchanged = RuntimeConfiguration.load(plugin, previous);
             require(unchanged.main().getDatabaseManager() == previous.main().getDatabaseManager(),
                     "reload replaced live database resources");
             String checks = Files.readString(root.resolve("checks.yml"));
-            String translation = Files.readString(root.resolve("lang/ru.yml"));
+            String translation = Files.readString(root.resolve("lang/ru/translations.yml"));
             String settings = Files.readString(root.resolve("settings.yml"));
             Files.writeString(root.resolve("checks.yml"), checks.replace("step: 10", "step: 20"));
-            Files.writeString(root.resolve("lang/ru.yml"), "prefix: 7\n");
+            Files.writeString(root.resolve("lang/ru/translations.yml"), "prefix: 7\n");
             rejected(() -> RuntimeConfiguration.load(plugin, previous));
             require(previous.checks().getAnalysisSequence() == 50,
                     "late bundle failure published earlier candidate values");
-            Files.writeString(root.resolve("lang/ru.yml"), translation);
+            Files.writeString(root.resolve("lang/ru/translations.yml"), translation);
             RuntimeConfiguration changed = RuntimeConfiguration.load(plugin, previous);
             require(changed.checks().getAnalysisStep() == 20, "valid bundle reload did not apply");
             require(previous.checks().getAnalysisSequence() == 50, "valid reload mutated previous bundle");

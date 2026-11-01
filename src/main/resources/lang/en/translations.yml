@@ -1,13 +1,8 @@
+# Translations for en. Runtime placeholders use {name}.
 prefix: "&#4A92E2R&#509CE8a&#57A6EEv&#5DAFF3e&#64B9F9o&#6AC3FFn &7»"
 alerts-enabled: "{prefix} &#F3F3F3Alerts &#95F643enabled&#F3F3F3!"
 alerts-disabled: "{prefix} &#F3F3F3Alerts &#F65943disabled&#F3F3F3!"
-holograms-enabled: "{prefix} &#F3F3F3Player holograms &#95F643enabled&#F3F3F3!"
-holograms-disabled: "{prefix} &#F3F3F3Player holograms &#F65943disabled&#F3F3F3!"
 ai-alert: "{prefix} &#F3F3F3Player &#CDCDCD{player}&#F3F3F3 failed &#F65943Aim (AI / {model}) &#DBDBDB[&#F65943x{vl}&#DBDBDB] &#CDCDCD{probability}%"
-history-header: "{prefix} &#F3F3F3Check history for &#F65943{player} &7({page}&8/&7{max_pages})"
-history-entry: "{prefix} &8[&#93FFD7{server}&8] &#F3F3F3Failed &#93FFD7{check_name} &#F3F3F3(x&#F65943{vl}&f) &7{verbose} (&#93FFD7{time_ago} ago&7)"
-history-only-player: "{prefix} &#F3F3F3Only a player can open this menu."
-history-no-data: "{prefix} &#F3F3F3No data found for &#F65943{player}&#F3F3F3."
 reloading: "{prefix} &#F3F3F3Reloading configuration..."
 reloaded: "{prefix} &#F3F3F3Configuration reloaded."
 reload-failed: "{prefix} &cConfiguration was not reloaded: {error}"
@@ -45,68 +40,6 @@ monitor:
   switched: "{prefix} &#F3F3F3Monitoring target switched to &#CDCDCD{player} &8[&f{model}&8]&f."
   player_not_found: "{prefix} &#F3F3F3Player not found."
   target_left: "{prefix} &#F3F3F3Monitoring stopped: &#CDCDCD{player} &#F3F3F3left the server."
-datacollect:
-  statistics: "&8[{model}] &7{player}&f collected: &7{frames_collecting}&f (buffer: &7{frames_size}&f) saved: &7{sending}"
-  start:
-    help: "&fUsage: &7/raveon datacollect start <player> <cheat|legit> <dataset_name> [pro|ultra]"
-    none_selected: "&fSpecify a dataset name to start collecting."
-    success: "&fStarted dataset collection for &7{target}&f."
-    pending: "&cThe previous dataset is still being saved or has unsaved frames. Run stop again first."
-  stop:
-    help: "&fUsage: &7/raveon datacollect stop <player> [pro|ultra]"
-    no_collecting: "&fPlayer &7{target} &fis not collecting data."
-    success: "&fStopped dataset collection for &7{target}&f."
-    auto: "&fDataset collection automatically stopped for &7{target}&f."
-    failed: "&cDataset save failed. Unsaved frames were retained; run stop again to retry."
-  offline: "&fPlayer &7{target} &fis offline."
-  already_collecting: "&fData is already being collected from &7{target}&f."
-  invalid_type: "&fInvalid collection type. Available: &7cheat / legit"
-  invalid_model: "&fAvailable models: &7pro / ultra"
-menus:
-  model: "&fModel: {model} &7(click to switch)"
-  refresh: "&fRefresh"
-  players:
-    title: "&8Suspects: {model}"
-    player:
-      name: " &#36cbe9▶ &#F3F3F3{player_name} &#F3F3F3[{cheat_bar}&#F3F3F3] {avg_percent}%"
-      lore:
-        - ""
-        - " &#c1dce7Recent checks:"
-        - "{checks}"
-        - ""
-        - " &#c1dce7Average probability"
-        - " &#e2c46eAVG: {avg}%"
-        - ""
-        - " &#c1dce7Last server:"
-        - " &f{last_server}"
-        - ""
-        - " &#c1dce7Last hit:"
-        - " &f{last_check}"
-        - ""
-        - " &#36cbe9▶ &#F3F3F3LEFT click &7to spectate"
-        - " &#36cbe9▶ &#F3F3F3RIGHT click &7to view history"
-    no_checks: " &7No data"
-    empty: " &7—"
-  history:
-    title: "&8{player_name}: history ({model})"
-    snapshot:
-      name: "&fAverage: {snapshot_avg}%"
-      lore:
-        - ""
-        - "&7Prob. &8&l| &7Server      &8&l| &7Time"
-        - "&8-------------------------------"
-        - "{entries}"
-    entry: "{chance}% &8&l| &f{server}&8&l| &f{time}"
-    empty_entries: "&7No entries"
-    empty_server: "—"
-  previous: "&#36cbe9◀ &#F3F3F3Previous page"
-  next: "&#F3F3F3Next page &#36cbe9▶"
-holograms:
-  below_name: "{prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  pro: "&7[Pro] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  ultra: "&7[Ultra] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-punishments:
-  reason: "Raveon detected unusual behavior"
 time:
   year: "{value} yr"
   month: "{value} mo"
@@ -128,3 +61,9 @@ logs:
   command-registered: "Command '{command}' registered"
   command-failed: "Could not register command {class}"
   commands-registered: "Registered commands: {count}"
+menus:
+  model: "&fModel: {model} &7(click to switch)"
+  refresh: "&fRefresh"
+  previous: "&#36cbe9◀ &#F3F3F3Previous page"
+  next: "&#F3F3F3Next page &#36cbe9▶"
+  back: "&#36cbe9◀ &#F3F3F3Back"

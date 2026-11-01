@@ -1,5 +1,5 @@
 # Message catalog: ru or en. Reload applies language changes.
-language: ru
+language: en
 
 # Storage configuration. Changes in this section require a restart.
 database:

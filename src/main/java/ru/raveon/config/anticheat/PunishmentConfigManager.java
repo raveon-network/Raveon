@@ -3,6 +3,7 @@ package ru.raveon.config.anticheat;
 import lombok.Getter;
 
 import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 
 import ru.raveon.api.configuration.ConfigManager;
@@ -38,9 +39,20 @@ public final class PunishmentConfigManager extends ConfigManager {
     @Override
     public void loadValues() {
         List<PunishGroupConfig> loaded = new ArrayList<>();
-        ConfigurationSection root = languageService.localize(
-                getCustomConfig("features/punishments.yml").getConfig());
+        CustomConfig config = getCustomConfig("features/punishments.yml");
+        String reason = config.getRawString("reason", "Raveon detected unusual behavior");
+        YamlConfiguration prepared = new YamlConfiguration();
+        for (String key : config.getConfig().getKeys(true)) {
+            Object value = config.getConfig().get(key);
+            if (value instanceof ConfigurationSection) continue;
+            if (value instanceof String text) value = withReason(text, reason);
+            else if (value instanceof List<?> lines)
+                value = lines.stream().map(line -> line instanceof String text ? withReason(text, reason) : line).toList();
+            prepared.set(key, value);
+        }
+        ConfigurationSection root = languageService.localize(prepared);
         for (String groupName : root.getKeys(false)) {
+            if (groupName.equals("reason")) continue;
             if (!groupName.matches("[a-z0-9_-]{1,64}"))
                 throw new IllegalArgumentException("Invalid punishment group name: " + groupName);
             ConfigurationSection section = root.getConfigurationSection(groupName);
@@ -74,6 +86,10 @@ public final class PunishmentConfigManager extends ConfigManager {
                     Collections.unmodifiableNavigableMap(stages), seconds * 1000));
         }
         punishGroups = List.copyOf(loaded);
+    }
+
+    private static String withReason(String text, String reason) {
+        return text.replace("{lang:punishments.reason}", reason).replace("{reason}", reason);
     }
 
     private List<String> strings(ConfigurationSection section, String path) {

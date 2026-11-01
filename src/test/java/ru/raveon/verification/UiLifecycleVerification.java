@@ -207,6 +207,37 @@ public final class UiLifecycleVerification {
         rejection(() -> HistoryMenuSettings.fromSection(history, plugin.getLanguageService()),"Invalid threshold material");
     }
 
+    static void historyPresentationTests() throws Exception {
+        var colors = new TreeMap<Double, String>();
+        colors.put(0.0, "§a");
+        colors.put(0.8, "§c");
+        set(plugin.main, "aiChanceColors", colors);
+        MemoryConfiguration section = new MemoryConfiguration();
+        section.set("size", 54);
+        var settings = HistoryMenuSettings.fromSection(section, plugin.getLanguageService());
+        var data = new ru.raveon.database.model.PlayerAIProbabilityData(
+                new ru.raveon.api.models.data.PlayerData("Alex", UUID.randomUUID()), "test",
+                List.of(), 0, 0, ru.raveon.model.ModelId.PRO);
+        var menu = new ru.raveon.menu.history.HistoryMenu(settings, data);
+        long now = System.currentTimeMillis();
+        var snapshot = new ru.raveon.database.model.PlayerAIProbabilityData.ProbSnapshot(
+                now - 120_000, List.of(new ru.raveon.database.model.PlayerAIProbabilityData.Prob(
+                        .97, "test", now - 65_000)));
+        var values = ru.raveon.menu.history.HistoryMenuPlaceholders.snapshotPlaceholders(snapshot, 12, menu);
+        check(values.get("snapshot_avg").equals("§c97"), "History probability keeps its configured color");
+        check(values.get("snapshot_number").equals("12"), "History check number");
+        check(values.get("snapshot_last_update").startsWith("1 min"),
+                "History time uses the last check rather than snapshot creation");
+        var translated = new org.bukkit.configuration.file.YamlConfiguration();
+        translated.set("lore", "{lang:menus.history.snapshot.lore}");
+        var lore = plugin.getLanguageService().localize(translated).getStringList("lore");
+        check(lore.size() == 2, "History card has two detail lines");
+        check(ru.raveon.utils.ItemPlaceholderUtils.apply(lore.get(0), values).contains("Probability: §c97%"),
+                "History probability label and colored percentage");
+        check(ru.raveon.utils.ItemPlaceholderUtils.apply(lore.get(1), values).contains("ago"),
+                "History uses elapsed time");
+    }
+
     static void menuTests() throws Exception {
         TestMenu menu = new TestMenu();
         TestMenu second = new TestMenu();
@@ -426,6 +457,7 @@ public final class UiLifecycleVerification {
         plugin.hologram=(HologramConfigManager)unsafe.allocateInstance(HologramConfigManager.class);
         set(plugin.hologram,"enabled",true);
         configurationTests();
+        historyPresentationTests();
         menuTests();
         monitorTests();
         playerBatchTests();

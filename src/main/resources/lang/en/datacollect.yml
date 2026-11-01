@@ -1,0 +1,18 @@
+# Translations for en. Runtime placeholders use {name}.
+datacollect:
+  statistics: "&8[{model}] &7{player}&f collected: &7{frames_collecting}&f (buffer: &7{frames_size}&f) saved: &7{sending}"
+  start:
+    help: "&fUsage: &7/raveon datacollect start <player> <cheat|legit> <dataset_name> [pro|ultra]"
+    none_selected: "&fSpecify a dataset name to start collecting."
+    success: "&fStarted dataset collection for &7{target}&f."
+    pending: "&cThe previous dataset is still being saved or has unsaved frames. Run stop again first."
+  stop:
+    help: "&fUsage: &7/raveon datacollect stop <player> [pro|ultra]"
+    no_collecting: "&fPlayer &7{target} &fis not collecting data."
+    success: "&fStopped dataset collection for &7{target}&f."
+    auto: "&fDataset collection automatically stopped for &7{target}&f."
+    failed: "&cDataset save failed. Unsaved frames were retained; run stop again to retry."
+  offline: "&fPlayer &7{target} &fis offline."
+  already_collecting: "&fData is already being collected from &7{target}&f."
+  invalid_type: "&fInvalid collection type. Available: &7cheat / legit"
+  invalid_model: "&fAvailable models: &7pro / ultra"

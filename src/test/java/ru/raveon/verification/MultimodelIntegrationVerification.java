@@ -73,7 +73,7 @@ public final class MultimodelIntegrationVerification {
     private static void setup() throws Exception {
         folder = Files.createTempDirectory("raveon-multimodel-integration");
         for (String name : List.of("checks.yml", "settings.yml", "features/datacollect.yml",
-                "features/hologram.yml", "features/punishments.yml", "lang/ru.yml", "lang/en.yml",
+                "features/hologram.yml", "features/punishments.yml",
                 "menu/players.yml", "menu/history.yml")) {
             Path file = folder.resolve(name);
             Files.createDirectories(file.getParent());
@@ -84,9 +84,10 @@ public final class MultimodelIntegrationVerification {
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(folder.resolve("settings.yml").toFile());
         yaml.set("language", "en");
         yaml.save(folder.resolve("settings.yml").toFile());
-        yaml = YamlConfiguration.loadConfiguration(folder.resolve("lang/en.yml").toFile());
+        Files.createDirectories(folder.resolve("lang/en"));
+        yaml = new YamlConfiguration();
         yaml.set("ai-alert", "{model}|{probability}|{vl}|{buffer}");
-        yaml.save(folder.resolve("lang/en.yml").toFile());
+        yaml.save(folder.resolve("lang/en/translations.yml").toFile());
         yaml = YamlConfiguration.loadConfiguration(folder.resolve("checks.yml").toFile());
         yaml.set("analyze.enabled", true);
         yaml.set("analyze.buffer.primary-multiplier", 1);

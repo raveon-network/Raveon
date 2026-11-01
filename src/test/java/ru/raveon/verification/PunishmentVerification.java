@@ -48,6 +48,21 @@ public final class PunishmentVerification {
         require(group.actions(5).contains("[ai_alert]") && group.actions(5).contains("[log]"),
                 "original observers changed");
 
+        require(group.actions(5).contains("ban {player} Raveon detected unusual behavior"),
+                "default punishment reason is not defined in punishments.yml");
+        YamlConfiguration customReason = new YamlConfiguration();
+        customReason.loadFromString(resource);
+        customReason.set("reason", "Custom reason");
+        customReason.save(folder.resolve("features/punishments.yml").toFile());
+        for (String code : List.of("en", "ru"))
+            require(new PunishmentConfigManager(plugin, LanguageService.load(plugin, code))
+                    .getPunishGroups().get(0).actions(5).contains("ban {player} Custom reason"),
+                    "punishment reason changed with the selected language");
+        customReason.set("aim_ai.commands", List.of("5:0 ban {player} {lang:punishments.reason}"));
+        customReason.save(folder.resolve("features/punishments.yml").toFile());
+        require(new PunishmentConfigManager(plugin, language).getPunishGroups().get(0)
+                .actions(5).contains("ban {player} Custom reason"), "legacy reason reference broke existing commands");
+
         YamlConfiguration yaml = new YamlConfiguration();
         yaml.loadFromString(resource);
         yaml.set("aim_ai.models", List.of("pro"));

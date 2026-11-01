@@ -1,0 +1,18 @@
+# Translations for ru. Runtime placeholders use {name}.
+datacollect:
+  statistics: "&8[{model}] &7{player}&f собрано: &7{frames_collecting}&f (буфер: &7{frames_size}&f) сохранено: &7{sending}"
+  start:
+    help: "&fИспользование: &7/raveon datacollect start <игрок> <cheat|legit> <название_датасета> [pro|ultra]"
+    none_selected: "&fУкажите название датасета для начала сбора."
+    success: "&fСбор датасета для &7{target} &fначат."
+    pending: "&cПредыдущий датасет ещё сохраняется или содержит несохранённые кадры. Сначала повторите stop."
+  stop:
+    help: "&fИспользование: &7/raveon datacollect stop <игрок> [pro|ultra]"
+    no_collecting: "&fИгрок &7{target} &fсейчас не собирает данные."
+    success: "&fСбор датасета для &7{target} &fостановлен."
+    auto: "&fСбор датасета для &7{target} &fавтоматически остановлен."
+    failed: "&cНе удалось сохранить датасет. Несохранённые кадры оставлены в памяти; повторите stop."
+  offline: "&fИгрок &7{target} &fне в сети."
+  already_collecting: "&fДанные игрока &7{target} &fуже собираются."
+  invalid_type: "&fНеизвестный тип сбора. Доступны: &7cheat / legit"
+  invalid_model: "&fДоступные модели: &7pro / ultra"

@@ -1,0 +1,24 @@
+# Translations for ru. Runtime placeholders use {name}.
+menus:
+  players:
+    title: "&8Подозреваемые: {model}"
+    player:
+      name: " &#36cbe9▶ &#F3F3F3{player_name} &#F3F3F3[{cheat_bar}&#F3F3F3] {avg_percent}%"
+      lore:
+        - ""
+        - " &#c1dce7Последние проверки:"
+        - "{checks}"
+        - ""
+        - " &#c1dce7Средняя вероятность"
+        - " &#e2c46eСреднее: {avg}%"
+        - ""
+        - " &#c1dce7Последний сервер:"
+        - " &f{last_server}"
+        - ""
+        - " &#c1dce7Последний удар:"
+        - " &f{last_check}"
+        - ""
+        - " &#36cbe9▶ &#F3F3F3ЛКМ &7— наблюдать"
+        - " &#36cbe9▶ &#F3F3F3ПКМ &7— открыть историю"
+    no_checks: " &7Нет данных"
+    empty: " &7—"

@@ -1,13 +1,8 @@
+# Translations for ru. Runtime placeholders use {name}.
 prefix: "&#4A92E2R&#509CE8a&#57A6EEv&#5DAFF3e&#64B9F9o&#6AC3FFn &7»"
 alerts-enabled: "{prefix} &#F3F3F3Оповещения &#95F643включены&#F3F3F3!"
 alerts-disabled: "{prefix} &#F3F3F3Оповещения &#F65943выключены&#F3F3F3!"
-holograms-enabled: "{prefix} &#F3F3F3Голограммы игроков &#95F643включены&#F3F3F3!"
-holograms-disabled: "{prefix} &#F3F3F3Голограммы игроков &#F65943выключены&#F3F3F3!"
 ai-alert: "{prefix} &#F3F3F3Игрок &#CDCDCD{player}&#F3F3F3 не прошёл проверку &#F65943Aim (AI / {model}) &#DBDBDB[&#F65943x{vl}&#DBDBDB] &#CDCDCD{probability}%"
-history-header: "{prefix} &#F3F3F3История проверок &#F65943{player} &7({page}&8/&7{max_pages})"
-history-entry: "{prefix} &8[&#93FFD7{server}&8] &#F3F3F3Нарушение &#93FFD7{check_name} &#F3F3F3(x&#F65943{vl}&f) &7{verbose} (&#93FFD7{time_ago} назад&7)"
-history-only-player: "{prefix} &#F3F3F3Это меню может открыть только игрок."
-history-no-data: "{prefix} &#F3F3F3Данные игрока &#F65943{player} &#F3F3F3не найдены."
 reloading: "{prefix} &#F3F3F3Перезагрузка конфигурации..."
 reloaded: "{prefix} &#F3F3F3Конфигурация перезагружена."
 reload-failed: "{prefix} &cКонфигурация не перезагружена: {error}"
@@ -45,68 +40,6 @@ monitor:
   switched: "{prefix} &#F3F3F3Цель мониторинга изменена на &#CDCDCD{player} &8[&f{model}&8]&f."
   player_not_found: "{prefix} &#F3F3F3Игрок не найден."
   target_left: "{prefix} &#F3F3F3Мониторинг остановлен: &#CDCDCD{player} &#F3F3F3вышел с сервера."
-datacollect:
-  statistics: "&8[{model}] &7{player}&f собрано: &7{frames_collecting}&f (буфер: &7{frames_size}&f) сохранено: &7{sending}"
-  start:
-    help: "&fИспользование: &7/raveon datacollect start <игрок> <cheat|legit> <название_датасета> [pro|ultra]"
-    none_selected: "&fУкажите название датасета для начала сбора."
-    success: "&fСбор датасета для &7{target} &fначат."
-    pending: "&cПредыдущий датасет ещё сохраняется или содержит несохранённые кадры. Сначала повторите stop."
-  stop:
-    help: "&fИспользование: &7/raveon datacollect stop <игрок> [pro|ultra]"
-    no_collecting: "&fИгрок &7{target} &fсейчас не собирает данные."
-    success: "&fСбор датасета для &7{target} &fостановлен."
-    auto: "&fСбор датасета для &7{target} &fавтоматически остановлен."
-    failed: "&cНе удалось сохранить датасет. Несохранённые кадры оставлены в памяти; повторите stop."
-  offline: "&fИгрок &7{target} &fне в сети."
-  already_collecting: "&fДанные игрока &7{target} &fуже собираются."
-  invalid_type: "&fНеизвестный тип сбора. Доступны: &7cheat / legit"
-  invalid_model: "&fДоступные модели: &7pro / ultra"
-menus:
-  model: "&fМодель: {model} &7(нажмите для смены)"
-  refresh: "&fОбновить"
-  players:
-    title: "&8Подозреваемые: {model}"
-    player:
-      name: " &#36cbe9▶ &#F3F3F3{player_name} &#F3F3F3[{cheat_bar}&#F3F3F3] {avg_percent}%"
-      lore:
-        - ""
-        - " &#c1dce7Последние проверки:"
-        - "{checks}"
-        - ""
-        - " &#c1dce7Средняя вероятность"
-        - " &#e2c46eСреднее: {avg}%"
-        - ""
-        - " &#c1dce7Последний сервер:"
-        - " &f{last_server}"
-        - ""
-        - " &#c1dce7Последний удар:"
-        - " &f{last_check}"
-        - ""
-        - " &#36cbe9▶ &#F3F3F3ЛКМ &7— наблюдать"
-        - " &#36cbe9▶ &#F3F3F3ПКМ &7— открыть историю"
-    no_checks: " &7Нет данных"
-    empty: " &7—"
-  history:
-    title: "&8{player_name}: история ({model})"
-    snapshot:
-      name: "&fСреднее: {snapshot_avg}%"
-      lore:
-        - ""
-        - "&7Вероят. &8&l| &7Сервер     &8&l| &7Время"
-        - "&8-------------------------------"
-        - "{entries}"
-    entry: "{chance}% &8&l| &f{server}&8&l| &f{time}"
-    empty_entries: "&7Нет записей"
-    empty_server: "—"
-  previous: "&#36cbe9◀ &#F3F3F3Предыдущая страница"
-  next: "&#F3F3F3Следующая страница &#36cbe9▶"
-holograms:
-  below_name: "{prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  pro: "&7[Pro] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  ultra: "&7[Ultra] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-punishments:
-  reason: "Raveon обнаружил подозрительное поведение"
 time:
   year: "{value} г"
   month: "{value} мес"
@@ -128,3 +61,9 @@ logs:
   command-registered: "Команда '{command}' зарегистрирована"
   command-failed: "Не удалось зарегистрировать команду {class}"
   commands-registered: "Зарегистрировано команд: {count}"
+menus:
+  model: "&fМодель: {model} &7(нажмите для смены)"
+  refresh: "&fОбновить"
+  previous: "&#36cbe9◀ &#F3F3F3Предыдущая страница"
+  next: "&#F3F3F3Следующая страница &#36cbe9▶"
+  back: "&#36cbe9◀ &#F3F3F3Назад"

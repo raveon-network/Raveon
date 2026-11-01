@@ -39,7 +39,7 @@ final class LanguageTestSupport {
         if (!folders.containsKey(config)) install(config, Map.of());
         Path folder = folders.get(config);
         YamlConfiguration custom = new YamlConfiguration();
-        try (var reader = Files.newBufferedReader(folder.resolve("lang/en.yml"), StandardCharsets.UTF_8)) {
+        try (var reader = Files.newBufferedReader(folder.resolve("lang/en/translations.yml"), StandardCharsets.UTF_8)) {
             custom.load(reader);
         }
         custom.set(key, value);
@@ -48,8 +48,8 @@ final class LanguageTestSupport {
     }
 
     private static void save(Path folder, YamlConfiguration custom) throws Exception {
-        Files.createDirectories(folder.resolve("lang"));
-        Files.writeString(folder.resolve("lang/en.yml"), custom.saveToString(), StandardCharsets.UTF_8);
+        Files.createDirectories(folder.resolve("lang/en"));
+        Files.writeString(folder.resolve("lang/en/translations.yml"), custom.saveToString(), StandardCharsets.UTF_8);
     }
 
     private static void publish(MainConfigManager config, Path folder) throws Exception {

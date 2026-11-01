@@ -13,7 +13,7 @@ public record RuntimeConfiguration(MainConfigManager main, ChecksConfigManager c
         PunishmentConfigManager punishments) {
     public static RuntimeConfiguration load(Plugin plugin, RuntimeConfiguration previous) {
         CustomConfig settings = new CustomConfig("settings.yml", plugin);
-        LanguageService language = LanguageService.load(plugin, settings.getRawString("language", "ru"));
+        LanguageService language = LanguageService.load(plugin, settings.getRawString("language", "en"));
         ChecksConfigManager checks = new ChecksConfigManager(plugin);
         if (previous != null && !previous.checks().getAnalyzeServer().equals(checks.getAnalyzeServer()))
             throw new IllegalArgumentException("Changing analyze.server requires a restart");

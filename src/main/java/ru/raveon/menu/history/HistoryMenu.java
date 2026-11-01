@@ -3,6 +3,7 @@ package ru.raveon.menu.history;
 import lombok.Getter;
 
 import org.bukkit.entity.Player;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.Nullable;
 
 import ru.raveon.Raveon;
@@ -17,6 +18,8 @@ import ru.raveon.menu.history.buttons.HistorySnapshotButton;
 import ru.raveon.menu.history.buttons.NextPageButton;
 import ru.raveon.menu.history.buttons.PreviousPageButton;
 import ru.raveon.menu.players.PlayersMenuPlaceholders;
+import ru.raveon.menu.players.PlayersMenu;
+import ru.raveon.utils.SchedulerUtils;
 import ru.raveon.utils.ItemPlaceholderUtils;
 
 import java.util.List;
@@ -74,6 +77,18 @@ public class HistoryMenu extends ActionMenu<PlayerHistoryPage> {
             case "previous_page", "previous-page", "prev_page", "prev-page" ->
                     new PreviousPageButton(menuItem, this);
             case "next_page", "next-page" -> new NextPageButton(menuItem, this);
+            case "back", "back_to_players", "back-to-players" -> Button.builder()
+                    .itemStack(ItemPlaceholderUtils.buildMenuItem(menuItem, getMenuPlaceholders()))
+                    .slots(menuItem.getSlot())
+                    .build(event -> {
+                        if (isLoading() || !(event.getWhoClicked() instanceof Player viewer)) return;
+                        SchedulerUtils.runEntity(Raveon.INSTANCE, viewer, () -> {
+                            if (viewer.getOpenInventory().getTopInventory().getHolder() != this) return;
+                            var destination = getParentMenu() != null ? getParentMenu()
+                                    : new PlayersMenu();
+                            destination.show(viewer);
+                        });
+                    });
             case "switch_model" -> Button.builder()
                     .itemStack(ItemPlaceholderUtils.buildMenuItem(menuItem, getMenuPlaceholders()))
                     .slots(menuItem.getSlot())
@@ -104,7 +119,7 @@ public class HistoryMenu extends ActionMenu<PlayerHistoryPage> {
                             .slots(menuItem.getSlot())
                             .build(event -> {
                                 if (event.getWhoClicked() instanceof Player viewer) {
-                                    ru.raveon.utils.SchedulerUtils.runEntity(
+                                    SchedulerUtils.runEntity(
                                             Raveon.INSTANCE, viewer, viewer::closeInventory);
                                 }
                             });
@@ -150,6 +165,7 @@ public class HistoryMenu extends ActionMenu<PlayerHistoryPage> {
 
     @Override
     protected void onLoad() {
+        addBackButtonIfMissing();
         if (historyMenuSettings.getSnapshotForm() == null
                 || historyMenuSettings.getSnapshotSlots().isEmpty()) return;
         List<ProbSnapshot> snapshots = playerData.getProbSnapshots();
@@ -162,6 +178,26 @@ public class HistoryMenu extends ActionMenu<PlayerHistoryPage> {
                     historyMenuSettings.getSnapshotSlots().get(index),
                     this));
         }
+    }
+
+    private void addBackButtonIfMissing() {
+        if (historyMenuSettings.getItems().stream().anyMatch(item ->
+                List.of("back", "back_to_players", "back-to-players").contains(item.getActionName()))) return;
+        var occupied = new java.util.HashSet<>(historyMenuSettings.getSnapshotSlots());
+        historyMenuSettings.getItems().forEach(item -> occupied.add(item.getSlot()));
+        int slot = getSize() - 6;
+        if (occupied.contains(slot)) {
+            slot = -1;
+            for (int candidate = Math.max(0, getSize() - 9); candidate < getSize(); candidate++)
+                if (!occupied.contains(candidate)) { slot = candidate; break; }
+        }
+        if (slot < 0) return;
+        var item = new YamlConfiguration();
+        item.set("material", "ARROW");
+        item.set("action", "back");
+        item.set("display_name", Raveon.INSTANCE.getLanguageService().text("menus.back"));
+        item.set("slot", slot);
+        menuButtons.add(createButton(MenuItem.fromSection(item)));
     }
 
     public Map<String, String> getMenuPlaceholders() {

@@ -1,0 +1,24 @@
+# Translations for en. Runtime placeholders use {name}.
+menus:
+  players:
+    title: "&8Suspects: {model}"
+    player:
+      name: " &#36cbe9▶ &#F3F3F3{player_name} &#F3F3F3[{cheat_bar}&#F3F3F3] {avg_percent}%"
+      lore:
+        - ""
+        - " &#c1dce7Recent checks:"
+        - "{checks}"
+        - ""
+        - " &#c1dce7Average probability"
+        - " &#e2c46eAVG: {avg}%"
+        - ""
+        - " &#c1dce7Last server:"
+        - " &f{last_server}"
+        - ""
+        - " &#c1dce7Last hit:"
+        - " &f{last_check}"
+        - ""
+        - " &#36cbe9▶ &#F3F3F3LEFT click &7to spectate"
+        - " &#36cbe9▶ &#F3F3F3RIGHT click &7to view history"
+    no_checks: " &7No data"
+    empty: " &7—"

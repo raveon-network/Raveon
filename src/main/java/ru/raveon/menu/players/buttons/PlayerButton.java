@@ -82,7 +82,9 @@ public class PlayerButton extends Button {
         }
 
         if (action.equalsIgnoreCase("[open-history]")) {
-            new HistoryMenu(playerData).show(player);
+            HistoryMenu history = new HistoryMenu(playerData);
+            history.setParentMenu(menu);
+            history.show(player);
             return;
         }
 

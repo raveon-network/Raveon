@@ -1,0 +1,16 @@
+# Translations for ru. Runtime placeholders use {name}.
+history-header: "{prefix} &#F3F3F3История проверок &#F65943{player} &7({page}&8/&7{max_pages})"
+history-entry: "{prefix} &8[&#93FFD7{server}&8] &#F3F3F3Нарушение &#93FFD7{check_name} &#F3F3F3(x&#F65943{vl}&f) &7{verbose} (&#93FFD7{time_ago} назад&7)"
+history-only-player: "{prefix} &#F3F3F3Это меню может открыть только игрок."
+history-no-data: "{prefix} &#F3F3F3Данные игрока &#F65943{player} &#F3F3F3не найдены."
+menus:
+  history:
+    title: "&8{player_name}: история ({model})"
+    snapshot:
+      name: "&fПроверка #{snapshot_number}"
+      lore:
+        - "&7Вероятность: {snapshot_avg}%"
+        - "&7Время: &f{snapshot_last_update} назад"
+    entry: "&7Вероятность: {chance}%\n&7Время: &f{time} назад"
+    empty_entries: "&7Нет записей"
+    empty_server: "—"

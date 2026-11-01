@@ -5,7 +5,7 @@ size: 54
 
 # Material names mapped to zero-based decorative slots.
 decoration:
-  LIGHT_BLUE_STAINED_GLASS_PANE: [ 45,46,48,52,53 ]
+  LIGHT_BLUE_STAINED_GLASS_PANE: [ 45,46,52,53 ]
 
 settings:
   # Zero-based slots used for history snapshots.
@@ -33,6 +33,12 @@ settings:
 
 # Navigation items. Slots are zero-based; actions select the previous or next page.
 items:
+  back-item:
+    material: ARROW
+    action: back
+    display_name: "{lang:menus.back}"
+    slot: 48
+
   previous-item:
     material: ARROW
     action: 'previous_page'
