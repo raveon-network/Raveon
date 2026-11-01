@@ -62,9 +62,9 @@ Folia 1.16.5 does not exist. Paper 1.16.5 must run on Java 17+ to load Raveon; s
 
 ## Installation
 
-1. Build `build/libs/Raveon-2.0.5.jar`.
+1. Build `build/libs/Raveon-2.0.6.jar`.
 2. Install `packetevents` in the `plugins/` directory.
-3. Copy `Raveon-2.0.5.jar` to `plugins/`.
+3. Copy `Raveon-2.0.6.jar` to `plugins/`.
 4. Start the server once to generate the configuration files.
 5. Stop the server and edit the configuration.
 6. Connect the plugin with `/raveon connect <code>`.
@@ -77,6 +77,8 @@ Reload validates and applies the entire configuration together. If validation fa
 Probability history is stored separately for Pro and Ultra. The model selector in the player and history menus changes the displayed model; it defaults to the enabled primary model, or the other enabled model. Existing Pro history remains in its original tables. Ultra uses its own snapshot and entry tables. Paging the player ranking reuses the loaded list; use Refresh to load new results.
 
 The client supports one below-name slot. If another plugin uses it, Raveon yields the slot. A second line requires another display method.
+
+Floating holograms and below-name displays rotate through enabled, available models. Each selected model keeps showing its latest probability, average, and buffer and updates when a new result arrives. Configure the switch interval in ticks with `model_rotation.interval_ticks` (default 80) and the displayed names with `model_rotation.names` in `features/hologram.yml`. Templates use `{model}`. A model without results shows `--`. Missing rotation settings are added to existing configs; legacy per-model floating templates remain supported.
 
 ## Language and time format
 
@@ -130,7 +132,7 @@ gradlew.bat shadowJar
 The resulting JAR is written to:
 
 ```text
-build/libs/Raveon-2.0.5.jar
+build/libs/Raveon-2.0.6.jar
 ```
 
 Main classes are compiled with `--release 17`. GitHub Actions builds with JDK 21. The first Gradle run downloads public dependencies; with a populated local cache, add `--offline`.

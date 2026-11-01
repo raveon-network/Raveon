@@ -109,6 +109,10 @@ public final class AnalyzeBatchDispatcher {
         blockedUntil = Long.MIN_VALUE;
     }
 
+    public boolean isModelAvailable(ModelId model) {
+        return allowedModels.contains(model);
+    }
+
     public void enqueue(byte[] payload, RaveonPlayer player) {
         enqueue(payload, player, ModelId.PRO);
     }

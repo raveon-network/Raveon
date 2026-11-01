@@ -4,19 +4,28 @@ enable: true
 line_spacing: 0.28
 # Floating display height relative to the player's position, in blocks.
 offset: 2.7
+
+model_rotation:
+  # Ticks between model switches; 80 ticks = 4 seconds at 20 TPS. Range: 1-72000.
+  # Only enabled models available to this server are shown.
+  interval_ticks: 80
+  # Display names inserted into {model}; colors are supported.
+  names:
+    pro: "Pro"
+    ultra: "Ultra"
+
 below_name:
   # Use the client's single below-name slot; yield when another plugin owns it.
   enable: true
-  # Also display floating lines when Raveon's below-name display is active.
+  # Also display the rotating floating line when below-name is active.
   also_show_hologram: false
 
 # Below-name text; only the first list entry is used.
-# {lang:key} resolves a message from the selected language catalog.
+# {model} is the selected model's configured name.
 lines:
   - "{lang:holograms.below_name}"
 
-# Floating text for each model.
-# Tokens: {prob}, {avg}, {buffer}, {prob_color}, {probability_color}, {avg_color}.
-floating_lines:
-  pro: "{lang:holograms.pro}"
-  ultra: "{lang:holograms.ultra}"
+# Floating text for the currently selected model.
+# Tokens: {model}, {prob}, {avg}, {buffer}, {prob_color}, {probability_color}, {avg_color}.
+# Optional floating_lines.<model> overrides from existing configs are still supported.
+floating_line: "{lang:holograms.line}"

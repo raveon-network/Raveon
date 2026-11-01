@@ -2,6 +2,7 @@
 holograms-enabled: "{prefix} &#F3F3F3Голограммы игроков &#95F643включены&#F3F3F3!"
 holograms-disabled: "{prefix} &#F3F3F3Голограммы игроков &#F65943выключены&#F3F3F3!"
 holograms:
-  below_name: "{prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  pro: "&7[Pro] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
-  ultra: "&7[Ultra] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
+  line: "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
+  below_name: "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
+  pro: "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"
+  ultra: "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}"

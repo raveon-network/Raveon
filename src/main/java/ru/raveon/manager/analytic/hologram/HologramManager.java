@@ -22,8 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public final class HologramManager {
-    private final Map<UUID, List<String>> hologramLinesByTarget = new ConcurrentHashMap<>();
-    private final Map<UUID, String> belowNameLineByTarget = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<ModelId, HologramText>> textByTarget = new ConcurrentHashMap<>();
     private final Map<UUID, TargetSnapshot> targets = new ConcurrentHashMap<>();
     private final Map<Integer, UUID> targetIdByEntityId = new ConcurrentHashMap<>();
     private final Map<UUID, ViewerState> viewers = new ConcurrentHashMap<>();
@@ -35,15 +34,46 @@ public final class HologramManager {
     private final BelowNameBridge belowNameBridge = new BelowNameBridge();
     private SchedulerUtils.TaskHandle updateTask;
     private volatile boolean running;
+    private volatile long rotationTicks;
+    private volatile ModelId displayedModel;
 
     public void start() {
         if (updateTask != null) updateTask.cancel();
         running = true;
-        updateTask = SchedulerUtils.runTimer(Raveon.INSTANCE, this::updateVisibleHolograms, 10L, 10L);
+        rotationTicks = 0L;
+        displayedModel = null;
+        updateTask = SchedulerUtils.runTimer(Raveon.INSTANCE, this::tick, 1L, 1L);
+    }
+
+    private void tick() {
+        if (!running) return;
+        long tick = ++rotationTicks;
+        HologramConfigManager config = Raveon.INSTANCE.getHologramConfigManager();
+        ModelId selected = selectModel(config);
+        boolean changed = selected != displayedModel;
+        displayedModel = selected;
+        if (tick % 10L == 0) updateVisibleHolograms();
+        else if (changed)
+            for (UUID viewerId : viewers.keySet()) scheduleViewer(viewerId, true, null);
+    }
+
+    private ModelId selectModel(HologramConfigManager config) {
+        if (config == null || !config.isEnabled()) return null;
+        var checks = Raveon.INSTANCE.getChecksConfigManager();
+        var dispatcher = Raveon.INSTANCE.getAnalyzeBatchDispatcher();
+        List<ModelId> models = java.util.Arrays.stream(ModelId.values())
+                .filter(checks::isModelEnabled)
+                .filter(dispatcher::isModelAvailable)
+                .toList();
+        if (models.isEmpty()) return null;
+        int index = Math.floorMod(rotationTicks / config.getModelRotationIntervalTicks(), models.size());
+        return models.get(index);
     }
 
     public void stop() {
         running = false;
+        displayedModel = null;
+        rotationTicks = 0L;
         if (updateTask != null) updateTask.cancel();
         updateTask = null;
         for (ViewerState state : viewers.values()) clearState(state);
@@ -53,8 +83,7 @@ public final class HologramManager {
         viewerPreferences.clear();
         synchronized (targets) { targets.clear(); }
         targetIdByEntityId.clear();
-        hologramLinesByTarget.clear();
-        belowNameLineByTarget.clear();
+        textByTarget.clear();
         pendingCaptures.clear();
         requestedLineRefreshes.clear();
         belowNameBridge.shutdown();
@@ -121,8 +150,7 @@ public final class HologramManager {
     }
 
     public void handleConfigReload() {
-        hologramLinesByTarget.clear();
-        belowNameLineByTarget.clear();
+        textByTarget.clear();
         for (ViewerState state : viewers.values()) {
             state.reset.set(true);
             scheduleViewer(state.viewer.getUniqueId(), true, null);
@@ -186,23 +214,33 @@ public final class HologramManager {
         belowNameBridge.observe(event);
     }
 
+    public void handleAnalysisUpdate(UUID targetId) {
+        if (!running || enabledViewers.isEmpty()) return;
+        refreshCachedLines(targetId);
+        for (UUID viewerId : viewers.keySet()) scheduleViewer(viewerId, false, targetId);
+    }
+
     public void refreshCachedLines(UUID targetId) {
         HologramConfigManager config = Raveon.INSTANCE.getHologramConfigManager();
         if (config == null || !config.isEnabled()) {
-            hologramLinesByTarget.remove(targetId);
-            belowNameLineByTarget.remove(targetId);
+            textByTarget.remove(targetId);
             return;
         }
         var manager = Raveon.INSTANCE.getViolationManager();
-        var pro = manager.getAnalysisSnapshot(targetId);
-        var ultra = manager.getAnalysisSnapshot(targetId, ModelId.ULTRA);
-        double proAverage = manager.getAverageProbability(targetId, pro.probability(), ModelId.PRO);
-        double ultraAverage = manager.getAverageProbability(targetId, ultra.probability(), ModelId.ULTRA);
-        hologramLinesByTarget.put(targetId, List.of(
-                applyPlaceholders(config.getProLine(), pro.probability(), proAverage, pro.buffer()),
-                applyPlaceholders(config.getUltraLine(), ultra.probability(), ultraAverage, ultra.buffer())));
-        belowNameLineByTarget.put(targetId,
-                applyPlaceholders(config.getBelowNameLine(), pro.probability(), proAverage, pro.buffer()));
+        Map<ModelId, HologramText> texts = new java.util.EnumMap<>(ModelId.class);
+        for (ModelId model : ModelId.values()) {
+            var snapshot = manager.getAnalysisSnapshot(targetId, model);
+            var probabilities = manager.getLocalProbabilities(targetId, model);
+            boolean hasResult = !probabilities.isEmpty();
+            double average = probabilities.stream().mapToDouble(Double::doubleValue)
+                    .average().orElse(snapshot.probability());
+            String floating = applyPlaceholders(config.getFloatingLine(model), model, config,
+                    snapshot.probability(), average, snapshot.buffer(), hasResult);
+            String below = applyPlaceholders(config.getBelowNameLine(), model, config,
+                    snapshot.probability(), average, snapshot.buffer(), hasResult);
+            texts.put(model, new HologramText(List.of(floating), below));
+        }
+        textByTarget.put(targetId, Map.copyOf(texts));
     }
 
     private void updateVisibleHolograms() {
@@ -240,7 +278,7 @@ public final class HologramManager {
         if (!SchedulerUtils.runEntity(Raveon.INSTANCE, target, () -> {
             try {
                 if (!running || !target.isOnline()) return;
-                if (requestedLineRefreshes.remove(id) || !hologramLinesByTarget.containsKey(id)) {
+                if (requestedLineRefreshes.remove(id) || !textByTarget.containsKey(id)) {
                     refreshCachedLines(id);
                 }
                 Location location = target.getLocation();
@@ -312,6 +350,7 @@ public final class HologramManager {
                 changed.addAll(state.belowEntries.keySet());
             }
             state.usingBelowName = belowName;
+            ModelId selected = displayedModel;
             Location viewerLocation = state.viewer.getLocation();
             UUID viewerWorld = viewerLocation.getWorld().getUID();
             for (UUID targetId : changed) {
@@ -325,12 +364,14 @@ public final class HologramManager {
                     removeTarget(state, targetId);
                     continue;
                 }
-                String belowText = belowNameLineByTarget.get(targetId);
+                HologramText text = selected == null ? null
+                        : textByTarget.getOrDefault(targetId, Map.of()).get(selected);
+                String belowText = text == null ? null : text.below();
                 boolean hasBelowName = belowName && belowText != null && !belowText.isEmpty();
                 if (hasBelowName) state.belowEntries.put(targetId, new BelowEntry(target.name, belowText));
                 else state.belowEntries.remove(targetId);
                 if (!hasBelowName || config.isAlsoShowHologramWithBelowName()) {
-                    showHologram(state, targetId, target, config);
+                    showHologram(state, targetId, target, config, text);
                 } else {
                     removeHologram(state, targetId);
                 }
@@ -342,8 +383,8 @@ public final class HologramManager {
     }
 
     private void showHologram(ViewerState state, UUID targetId, TargetSnapshot target,
-            HologramConfigManager config) {
-        List<String> lines = hologramLinesByTarget.get(targetId);
+            HologramConfigManager config, HologramText text) {
+        List<String> lines = text == null ? List.of() : text.lines();
         if (lines == null || lines.isEmpty()) {
             removeHologram(state, targetId);
             return;
@@ -395,8 +436,7 @@ public final class HologramManager {
     private void hideTarget(UUID targetId) {
         TargetSnapshot previous = targets.remove(targetId);
         if (previous != null) targetIdByEntityId.remove(previous.entityId, targetId);
-        hologramLinesByTarget.remove(targetId);
-        belowNameLineByTarget.remove(targetId);
+        textByTarget.remove(targetId);
         requestedLineRefreshes.remove(targetId);
         for (ViewerState state : viewers.values()) {
             if (previous != null) state.hiddenEntities.remove(previous.entityId);
@@ -404,16 +444,24 @@ public final class HologramManager {
         }
     }
 
-    private String applyPlaceholders(String template, double probability, double average, double buffer) {
+    private String applyPlaceholders(String template, ModelId model, HologramConfigManager hologram,
+            double probability, double average, double buffer, boolean hasResult) {
+        if (template.isEmpty()) return "";
+        String normalized = template.replace("[" + model.displayName() + "]", "[{model}]");
+        if (!normalized.contains("{model}")) normalized = "\u00a77[{model}] " + normalized;
         var config = Raveon.INSTANCE.getMainConfigManager();
-        String probabilityColor = config.getChanceColor(probability);
-        return template.replace("{prob_color}", probabilityColor)
+        String probabilityColor = hasResult ? config.getChanceColor(probability) : "\u00a77";
+        String averageColor = hasResult ? config.getChanceColor(average) : "\u00a77";
+        return normalized.replace("{prob_color}", probabilityColor)
                 .replace("{probability_color}", probabilityColor)
-                .replace("{avg_color}", config.getChanceColor(average))
-                .replace("{prob}", ProbabilityUtils.formatPercent(probability))
-                .replace("{avg}", ProbabilityUtils.formatPercent(average))
-                .replace("{buffer}", String.format(Locale.ROOT, "%.2f", buffer));
+                .replace("{avg_color}", averageColor)
+                .replace("{prob}", hasResult ? ProbabilityUtils.formatPercent(probability) : "--")
+                .replace("{avg}", hasResult ? ProbabilityUtils.formatPercent(average) : "--")
+                .replace("{buffer}", hasResult ? String.format(Locale.ROOT, "%.2f", buffer) : "--")
+                .replace("{model}", hologram.getModelName(model));
     }
+
+    private record HologramText(List<String> lines, String below) {}
 
     private record TargetSnapshot(Player player, String name, int entityId, Location location,
             UUID worldId, int[] passengers) {}

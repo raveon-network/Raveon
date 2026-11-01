@@ -138,6 +138,7 @@ public final class AimAI extends Check implements PacketCheck {
                     player.getUuid(), check.lastProbability, check.getBuffer(), current);
         }
         Raveon.INSTANCE.getMonitorManager().publish(bukkitPlayer, lastProbability, getBuffer(), model);
+        Raveon.INSTANCE.getHologramManager().handleAnalysisUpdate(player.getUuid());
         if (result.crossed()) handleFlag(result);
     }
 
