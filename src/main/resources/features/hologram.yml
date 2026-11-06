@@ -9,10 +9,7 @@ model_rotation:
   # Ticks between model switches; 80 ticks = 4 seconds at 20 TPS. Range: 1-72000.
   # Only enabled models available to this server are shown.
   interval_ticks: 80
-  # Display names inserted into {model}; colors are supported.
-  names:
-    pro: "Pro"
-    ultra: "Ultra"
+  # {model} uses the API profile's short_title. Configure it on the website.
 
 below_name:
   # Use the client's below-name slot for a single line; yield when another plugin owns it.

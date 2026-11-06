@@ -186,7 +186,8 @@ public final class MonitorManager implements Listener {
     }
 
     private void sendChat(Player target, AiSnapshot snapshot) {
-        String message = format(plugin.getMainConfigManager().getLanguageService().text("monitor.chat.format"), target.getName(), snapshot);
+        String message = format(plugin.getMainConfigManager().getLanguageService().text("monitor.chat.format"),
+                target.getName(), snapshot, plugin.getChecksConfigManager().getModelName(snapshot.model()));
 
         for (Map.Entry<UUID, ChatSubscription> entry : chatSubscriptions.entrySet()) {
             ChatSubscription subscription = entry.getValue();
@@ -281,6 +282,11 @@ public final class MonitorManager implements Listener {
                         chat.modelFilter()));
         }
         if (!sessions.isEmpty()) startUpdaterIfNeeded();
+    }
+
+    public synchronized void handleConfigReload() {
+        snapshots.clear();
+        modelSnapshots.clear();
     }
 
     public synchronized void shutdown() {
@@ -407,11 +413,11 @@ public final class MonitorManager implements Listener {
         if (!template.contains("{model}")) {
             template = "\u00a77[{model}] \u00a7r" + template;
         }
-        return format(template, targetName, snapshot);
+        return format(template, targetName, snapshot, plugin.getChecksConfigManager().getModelShortTitle(snapshot.model()));
     }
 
-    private String format(String template, String targetName, AiSnapshot snapshot) {
-        return template.replace("{model}", snapshot.model().displayName())
+    private String format(String template, String targetName, AiSnapshot snapshot, String modelName) {
+        return template.replace("{model}", modelName)
                 .replace("{player}", targetName)
                 .replace("{prob_color}", plugin.getMainConfigManager().getChanceColor(snapshot.probability()))
                 .replace("{avg_color}", plugin.getMainConfigManager().getChanceColor(snapshot.average()))

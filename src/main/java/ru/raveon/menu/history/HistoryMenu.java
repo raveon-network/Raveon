@@ -203,7 +203,7 @@ public class HistoryMenu extends ActionMenu<PlayerHistoryPage> {
     public Map<String, String> getMenuPlaceholders() {
         Map<String, String> values =
                 HistoryMenuPlaceholders.menuPlaceholders(playerName, page, maxPages, snapshotsCount);
-        values.put("model", model.displayName());
+        values.put("model", Raveon.INSTANCE.getChecksConfigManager().getModelName(model));
         return values;
     }
 

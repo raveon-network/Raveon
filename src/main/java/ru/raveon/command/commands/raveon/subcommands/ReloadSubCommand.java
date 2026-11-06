@@ -18,18 +18,15 @@ public class ReloadSubCommand implements BuildableCommand {
         commandSender.sendMessage(Raveon.INSTANCE.getMainConfigManager().getLanguageService().text("reloading"));
 
         SchedulerUtils.run(Raveon.INSTANCE, () -> {
-            String result;
-            try {
-                Raveon.INSTANCE.reloadConfiguration();
-                result = Raveon.INSTANCE.getMainConfigManager().getLanguageService().text("reloaded");
-            } catch (RuntimeException error) {
-                result = Raveon.INSTANCE.getLanguageService().text("reload-failed", "error", error.getMessage());
-                Raveon.INSTANCE.getLogger().warning(org.bukkit.ChatColor.stripColor(result));
-            }
-            String message = result;
-            if (commandSender instanceof Player player)
-                SchedulerUtils.runEntity(Raveon.INSTANCE, player, () -> player.sendMessage(message));
-            else commandSender.sendMessage(message);
+            Raveon.INSTANCE.reloadConfigurationAsync().whenComplete((ignored, error) -> {
+                String message = error == null
+                        ? Raveon.INSTANCE.getLanguageService().text("reloaded")
+                        : Raveon.INSTANCE.getLanguageService().text("reload-failed", "error", error.getMessage());
+                if (error != null) Raveon.INSTANCE.getLogger().warning(org.bukkit.ChatColor.stripColor(message));
+                if (commandSender instanceof Player player)
+                    SchedulerUtils.runEntity(Raveon.INSTANCE, player, () -> player.sendMessage(message));
+                else SchedulerUtils.run(Raveon.INSTANCE, () -> commandSender.sendMessage(message));
+            });
         });
     }
 

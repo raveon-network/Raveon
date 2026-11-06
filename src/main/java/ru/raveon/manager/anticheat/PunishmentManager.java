@@ -75,7 +75,7 @@ public final class PunishmentManager {
     private void execute(String action, Flag flag, ModelActions roles, LanguageService language,
             String group, long checkViolations, long total) {
         switch (action.toLowerCase(Locale.ROOT)) {
-            case "[alert]", "[ai_alert]" -> {
+            case "[alert]" -> {
                 if (roles.alert()) sendAlert(flag, language, group, checkViolations, total);
             }
             case "[log]" -> plugin.getViolationManager().getViolationStorage().logAlert(
@@ -112,7 +112,7 @@ public final class PunishmentManager {
 
     public static String format(String template, Flag flag, String group, long checkVl, long total) {
         String probability = flag.probability() < 0 ? "0" : ProbabilityUtils.formatPercent(flag.probability());
-        return template.replace("{model}", flag.model().displayName())
+        return template.replace("{model}", Raveon.INSTANCE.getChecksConfigManager().getModelName(flag.model()))
                 .replace("{group}", group)
                 .replace("{player}", flag.name())
                 .replace("{check}", flag.check())

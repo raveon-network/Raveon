@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.raveon"
-version = "2.0.7"
+version = "2.0.8"
 
 repositories {
     exclusiveContent {
@@ -51,6 +51,7 @@ dependencies {
 
     compileOnly(libs.geyser.api) { isTransitive = false }
     compileOnly("org.geysermc.api:base-api:1.0.2") { isTransitive = false }
+    compileOnly("org.geysermc.cumulus:cumulus:1.1.2") { isTransitive = false }
     compileOnly(libs.floodgate.api) { isTransitive = false }
     compileOnly("com.mojang:authlib:1.5.21") { isTransitive = false }
 
@@ -150,3 +151,14 @@ tasks.withType<JavaCompile>().configureEach {
     options.release.set(17)
     options.encoding = "UTF-8"
 }
+
+// Run the protocol contract without adding a test framework to the plugin JAR.
+sourceSets.test {
+    compileClasspath += sourceSets.main.get().compileClasspath
+}
+val verifyModelProfile by tasks.registering(JavaExec::class) {
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets.test.get().output + sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    mainClass.set("ru.raveon.service.analyze.ModelProfileContractTest")
+}
+tasks.check { dependsOn(verifyModelProfile) }

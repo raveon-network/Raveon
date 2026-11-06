@@ -10,12 +10,14 @@ import ru.raveon.api.configuration.CustomConfig;
 import ru.raveon.integration.worldguard.WorldGuardRegionBypassConfig;
 import ru.raveon.integration.worldguard.WorldGuardRegionBypassService;
 import ru.raveon.model.ModelId;
+import ru.raveon.model.PluginModelProfile;
+import ru.raveon.model.ModelPolicy;
 
 import java.util.EnumMap;
 import java.util.Map;
 
 @Getter
-public class ChecksConfigManager extends ConfigManager {
+public class ChecksConfigManager extends ConfigManager implements ru.raveon.manager.anticheat.DetectionSettings {
     private boolean analysisEnabled;
     private String analyzeServer;
     private String apiKey;
@@ -24,11 +26,12 @@ public class ChecksConfigManager extends ConfigManager {
     private BufferSettings bufferSettings;
     private ModelId primaryModel;
     private MitigationSettings mitigationSettings;
+    private final PluginModelProfile remoteProfile;
 
     public record ModelActions(boolean alert, boolean mitigate, boolean punish) {}
 
-    public record AnalysisSettings(boolean enabled, int step, long combatMillis,
-            double probability, ModelActions actions, double mitigationWeight, ModelId bufferOwner) {}
+    public record AnalysisSettings(boolean enabled, int window, int step, long combatMillis,
+            double probability, ModelActions actions, double mitigationWeight, ModelId bufferOwner, ModelPolicy.Buffer buffer) {}
 
     public record BufferSettings(double flag, double reset, double multiplier, double decrease,
             double primaryMultiplier, Map<ModelId, Double> weights) {}
@@ -38,7 +41,12 @@ public class ChecksConfigManager extends ConfigManager {
             double fullEffectScore, double maxScore, double maxDamageReduction) {}
 
     public ChecksConfigManager(Plugin plugin) {
+        this(plugin, PluginModelProfile.EMPTY);
+    }
+
+    public ChecksConfigManager(Plugin plugin, PluginModelProfile remoteProfile) {
         super(plugin);
+        this.remoteProfile = remoteProfile;
         initialize();
     }
 
@@ -56,7 +64,7 @@ public class ChecksConfigManager extends ConfigManager {
         requireSection(config, "analyze.buffer.weights");
         requireSection(config, "analyze.mitigation");
         analysisEnabled = config.getBoolean("analyze.enabled", false);
-        primaryModel = ModelId.parse(config.getRawString("analyze.primary", "pro"));
+        primaryModel = remoteProfile.primary() == null ? ModelId.PRO : remoteProfile.primary();
         Map<ModelId, AnalysisSettings> loaded = new EnumMap<>(ModelId.class);
         Map<ModelId, Double> weights = new EnumMap<>(ModelId.class);
         for (ModelId model : ModelId.values()) {
@@ -64,18 +72,23 @@ public class ChecksConfigManager extends ConfigManager {
             requireSection(config, path);
             requireSection(config, path + ".actions");
             String inherited = config.getRawString(path + ".inherit-buffer", "").trim();
+            var spec = remoteProfile.models().get(model);
+            ModelPolicy remote = spec == null ? null : spec.policy();
             ModelId owner = inherited.isEmpty() ? model : ModelId.parse(inherited);
             if (!inherited.isEmpty() && owner == model)
                 throw new IllegalArgumentException(path + ".inherit-buffer cannot refer to itself");
+            if (remote != null) owner = remote.buffer().inherit() == null ? model : remote.buffer().inherit();
             loaded.put(model, new AnalysisSettings(
                     config.getBoolean(path + ".enabled", true),
-                    config.requireInt(path + ".step", model.step(), 1, model.sequence()),
+                    remoteProfile.models().containsKey(model) ? remoteProfile.models().get(model).window() : model.sequence(),
+                    remoteProfile.models().containsKey(model) ? remoteProfile.models().get(model).step() : model.step(),
                     config.requireInt(path + ".combat", model == ModelId.PRO ? 50 : 64, 0, 72000) * 50L,
-                    config.requireDouble(path + ".probability", .85, 0, 1),
-                    new ModelActions(config.getBoolean(path + ".actions.alert", true),
-                            config.getBoolean(path + ".actions.mitigate", true),
-                            config.getBoolean(path + ".actions.punish", true)),
-                    config.requireDouble(path + ".mitigation-weight", 1, 0, Double.MAX_VALUE), owner));
+                    remote == null ? config.requireDouble(path + ".probability", .85, 0, 1) : remote.buffer().threshold(),
+                    new ModelActions(config.getBoolean(path + ".actions.alert", true) && (remote == null || remote.alert()),
+                            config.getBoolean(path + ".actions.mitigate", true) && (remote == null || remote.mitigate()),
+                            config.getBoolean(path + ".actions.punish", true) && (remote == null || remote.punish())),
+                    remote == null ? config.requireDouble(path + ".mitigation-weight", 1, 0, Double.MAX_VALUE) : remote.mitigationWeight(),
+                    owner, remote == null ? null : remote.buffer()));
             weights.put(model, config.requireDouble(
                     "analyze.buffer.weights." + model.key(), 1, 0, Double.MAX_VALUE));
         }
@@ -85,6 +98,11 @@ public class ChecksConfigManager extends ConfigManager {
                 throw new IllegalArgumentException("Buffer inheritance chains and cycles are not supported");
         }
         modelSettings = Map.copyOf(loaded);
+        // Local switches may narrow the site's profile, including disabling its preferred lead.
+        if (!modelSettings.get(primaryModel).enabled() || !remoteProfile.models().containsKey(primaryModel))
+            primaryModel = java.util.Arrays.stream(ModelId.values())
+                    .filter(model -> remoteProfile.models().containsKey(model) && modelSettings.get(model).enabled())
+                    .findFirst().orElse(ModelId.PRO);
         double flag = config.requireDouble("analyze.buffer.flag", 50, .001, 1_000_000);
         bufferSettings = new BufferSettings(flag,
                 config.requireDouble("analyze.buffer.reset_on_flag", 25, 0, flag),
@@ -138,7 +156,7 @@ public class ChecksConfigManager extends ConfigManager {
     }
 
     public boolean isModelEnabled(ModelId model) {
-        return analysisEnabled && modelSettings.get(model).enabled();
+        return analysisEnabled && remoteProfile.models().containsKey(model) && modelSettings.get(model).enabled();
     }
 
     public int getAnalysisSequence() {
@@ -146,7 +164,17 @@ public class ChecksConfigManager extends ConfigManager {
     }
 
     public int getAnalysisSequence(ModelId model) {
-        return model.sequence();
+        return modelSettings.get(model).window();
+    }
+
+    public String getModelName(ModelId model) {
+        var spec = remoteProfile.models().get(model);
+        return spec == null ? model.displayName() : spec.name();
+    }
+
+    public String getModelShortTitle(ModelId model) {
+        var spec = remoteProfile.models().get(model);
+        return spec == null ? model.displayName() : spec.shortTitle();
     }
 
     public int getAnalysisStep() {

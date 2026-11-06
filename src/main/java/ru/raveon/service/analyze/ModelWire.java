@@ -15,6 +15,10 @@ public final class ModelWire {
     public record Result(ModelId model, double probability, int status) {}
 
     public static byte[] pro(List<RotationFrame> frames) {
+        return request(ModelId.PRO, "", frames.size(), proValues(frames));
+    }
+
+    public static float[] proValues(List<RotationFrame> frames) {
         float[] values = new float[frames.size() * 8];
         int i = 0;
         for (RotationFrame f : frames) {
@@ -27,10 +31,14 @@ public final class ModelWire {
             values[i++] = f.getGcdErrorYaw();
             values[i++] = f.getGcdErrorPitch();
         }
-        return request(ModelId.PRO, "", frames.size(), values);
+        return values;
     }
 
     public static byte[] ultra(String player, List<UltraFrame> frames) {
+        return request(ModelId.ULTRA, player, frames.size(), ultraValues(frames));
+    }
+
+    public static float[] ultraValues(List<UltraFrame> frames) {
         float[] values = new float[frames.size() * ModelId.ULTRA.features()];
         int at = 0;
         for (UltraFrame frame : frames) {
@@ -38,7 +46,16 @@ public final class ModelWire {
             System.arraycopy(row, 0, values, at, row.length);
             at += row.length;
         }
-        return request(ModelId.ULTRA, player, frames.size(), values);
+        return values;
+    }
+
+    public static byte[] raw(float[] values) {
+        ByteBuffer out = ByteBuffer.allocate(values.length * Float.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+        for (float value : values) {
+            if (!Float.isFinite(value)) throw new IllegalArgumentException("Nonfinite frame");
+            out.putFloat(value);
+        }
+        return out.array();
     }
 
     public static byte[] request(ModelId model, String player, int count, float[] values) {

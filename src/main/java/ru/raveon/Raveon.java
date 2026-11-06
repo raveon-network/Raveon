@@ -56,14 +56,58 @@ public class Raveon extends JavaPlugin {
     public DataCollectConfigManager getDataCollectConfigManager() { return configuration.datasets(); }
     public HologramConfigManager getHologramConfigManager() { return configuration.holograms(); }
 
-    public synchronized void reloadConfiguration() {
-        RuntimeConfiguration candidate = RuntimeConfiguration.load(this, configuration);
-        configuration = candidate;
-        for (var player : playerDataManager.getEntries()) {
-            Player entity = player.getBukkitPlayer();
-            if (entity != null) SchedulerUtils.runEntity(this, entity, player::reload);
+    public java.util.concurrent.CompletableFuture<Void> reloadConfigurationAsync() {
+        RuntimeConfiguration previous = configuration;
+        ChecksConfigManager requested;
+        try {
+            requested = new ChecksConfigManager(this);
+            if (!previous.checks().getAnalyzeServer().equals(requested.getAnalyzeServer()))
+                throw new IllegalArgumentException("Changing analyze.server requires a restart");
+        } catch (RuntimeException error) {
+            return java.util.concurrent.CompletableFuture.failedFuture(error);
         }
-        hologramManager.handleConfigReload();
+        try {
+            return analyzeConnection.fetch(requested)
+                    .thenCompose(result -> analyzeConnection.prepare(previous, requested, result))
+                    .thenCompose(prepared -> applyPreparedProfile(previous, requested, prepared, true));
+        } catch (RuntimeException error) {
+            return java.util.concurrent.CompletableFuture.failedFuture(error);
+        }
+    }
+
+    public java.util.concurrent.CompletableFuture<Void> applyPreparedProfile(RuntimeConfiguration previous,
+            ChecksConfigManager requested, AnalyzeConnection.Prepared prepared, boolean explicit) {
+        var applied = new java.util.concurrent.CompletableFuture<Void>();
+        try {
+            SchedulerUtils.run(this, () -> {
+                try {
+                    if (!isEnabled() || configuration != previous)
+                        throw new IllegalStateException("Configuration changed during profile fetch; retry reload");
+                    var result = prepared.result();
+                    if (!explicit && result.profile().equals(previous.checks().getRemoteProfile())
+                            && !analyzeConnection.localChanged(prepared)) { applied.complete(null); return; }
+                    RuntimeConfiguration candidate = RuntimeConfiguration.load(this, previous, result.profile());
+                    if (!candidate.checks().getApiKey().equals(requested.getApiKey())
+                            || !candidate.checks().getAnalyzeServer().equals(requested.getAnalyzeServer()))
+                        throw new IllegalStateException("Connection settings changed during profile fetch; retry reload");
+                    analyzeConnection.commitRules(prepared, previous);
+                    configuration = candidate;
+                    analyzeConnection.acknowledge(prepared);
+                    analyzeBatchDispatcher.connected(result.profile().models().keySet());
+                    for (var player : playerDataManager.getEntries()) {
+                        Player entity = player.getBukkitPlayer();
+                        if (entity != null) SchedulerUtils.runEntity(this, entity, player::reload);
+                    }
+                    hologramManager.handleConfigReload();
+                    monitorManager.handleConfigReload();
+                    if (requested.getApiKey().isEmpty())
+                        getLogger().warning(getLanguageService().plain("logs.plugin-not-connected"));
+                    else getLogger().info("Applied model profile " + result.profile().crc() + ": " + result.modelNames());
+                    applied.complete(null);
+                } catch (RuntimeException failure) { applied.completeExceptionally(failure); }
+            });
+        } catch (RuntimeException error) { applied.completeExceptionally(error); }
+        return applied;
     }
 
     private AIResultManager aiResultManager;
@@ -107,8 +151,7 @@ public class Raveon extends JavaPlugin {
         this.analyzeBatchDispatcher = new AnalyzeBatchDispatcher(this, this::getChecksConfigManager);
         this.analyzeBatchDispatcher.start();
         this.analyzeConnection =
-                new AnalyzeConnection(this, this::getChecksConfigManager, analyzeBatchDispatcher);
-        this.analyzeConnection.refresh();
+                new AnalyzeConnection(this, this::getChecksConfigManager);
         this.analyzeService =
                 new FlatBufferAnalyzeService(this::getChecksConfigManager, analyzeBatchDispatcher);
         this.alertManager = new AlertManager(this::getMainConfigManager);
@@ -142,6 +185,8 @@ public class Raveon extends JavaPlugin {
         packetManager.register();
         this.playerDataManager.loadOnlinePlayers();
         for (Player player : Bukkit.getOnlinePlayers()) viewerPreferences.restore(player);
+        this.analyzeConnection.refresh();
+        this.analyzeConnection.startWatching();
 
     }
 
@@ -174,6 +219,7 @@ public class Raveon extends JavaPlugin {
 
             }
         }
+        if (analyzeConnection != null) cleanup("profile watcher", analyzeConnection::stop);
         if (analyzeBatchDispatcher != null) cleanup("HTTP", analyzeBatchDispatcher::stop);
         if (playerDataManager != null) cleanup("dataset sessions", () -> {
             try {
@@ -192,6 +238,7 @@ public class Raveon extends JavaPlugin {
         else if (configuration != null) cleanup("database", () -> getMainConfigManager().getDatabaseManager().shutdown().join());
         if (redisManager != null) cleanup("Redis", redisManager::onDisable);
         if (targetEntityIndex != null) cleanup("entity index", targetEntityIndex::clear);
+        if (playerDataManager != null) cleanup("session buffer cache", playerDataManager.getBufferCache()::clear);
     }
 
     private void cleanup(String service, Runnable close) {

@@ -13,9 +13,7 @@ import ru.raveon.utils.StringColorize;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.EnumMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -33,7 +31,6 @@ public class HologramConfigManager extends ConfigManager {
     private List<String> lines;
     private String belowNameLine;
     private int modelRotationIntervalTicks;
-    private Map<ModelId, String> modelNames;
     private final LanguageService languageService;
 
     public HologramConfigManager(Plugin plugin, LanguageService languageService) {
@@ -45,7 +42,7 @@ public class HologramConfigManager extends ConfigManager {
     @Override
     public void loadConfigs() {
         CustomConfig config = new CustomConfig("features/hologram.yml", plugin);
-        for (String path : List.of("model_rotation", "model_rotation.names"))
+        for (String path : List.of("model_rotation"))
             if (config.getConfig().contains(path) && !config.getConfig().isConfigurationSection(path))
                 throw new IllegalArgumentException(path + " must be a section");
         boolean migrate = hasLanguageReferences(config) || config.getConfig().contains("floating_line")
@@ -55,7 +52,7 @@ public class HologramConfigManager extends ConfigManager {
             config.getConfig().set("lines", List.of(config.getRawString("floating_line", DEFAULT_LINE)));
             changed = true;
         }
-        for (String obsolete : List.of("floating_line", "floating_lines")) {
+        for (String obsolete : List.of("floating_line", "floating_lines", "model_rotation.names")) {
             if (config.getConfig().contains(obsolete)) {
                 config.getConfig().set(obsolete, null);
                 changed = true;
@@ -64,13 +61,6 @@ public class HologramConfigManager extends ConfigManager {
         if (!config.getConfig().contains("model_rotation.interval_ticks")) {
             config.getConfig().set("model_rotation.interval_ticks", 80);
             changed = true;
-        }
-        for (ModelId model : ModelId.values()) {
-            String path = "model_rotation.names." + model.key();
-            if (!config.getConfig().contains(path)) {
-                config.getConfig().set(path, model.displayName());
-                changed = true;
-            }
         }
         if (changed) {
             if (migrate) {
@@ -154,17 +144,9 @@ public class HologramConfigManager extends ConfigManager {
         if (lines.size() > 32 || lines.stream().anyMatch(line -> line.length() > 4096))
             throw new IllegalArgumentException("Hologram lines exceed the limit");
         belowNameLine = lines.size() == 1 ? lines.get(0) : "";
-        Map<ModelId, String> names = new EnumMap<>(ModelId.class);
-        for (ModelId model : ModelId.values()) {
-            String name = config.getRawString("model_rotation.names." + model.key(), model.displayName());
-            if (name.isBlank() || name.length() > 128)
-                throw new IllegalArgumentException("Invalid hologram model name: " + model.key());
-            names.put(model, StringColorize.parse(name));
-        }
-        modelNames = Map.copyOf(names);
     }
 
     public String getModelName(ModelId model) {
-        return modelNames.get(model);
+        return ru.raveon.Raveon.INSTANCE.getChecksConfigManager().getModelShortTitle(model);
     }
 }

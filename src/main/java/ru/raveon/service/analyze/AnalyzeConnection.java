@@ -2,7 +2,6 @@ package ru.raveon.service.analyze;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 
 import org.bukkit.plugin.Plugin;
@@ -10,6 +9,10 @@ import org.bukkit.plugin.Plugin;
 import ru.raveon.Raveon;
 import ru.raveon.config.anticheat.ChecksConfigManager;
 import ru.raveon.model.ModelId;
+import ru.raveon.model.PluginModelProfile;
+import ru.raveon.model.CloudPunishments;
+import ru.raveon.config.RuntimeConfiguration;
+import ru.raveon.config.anticheat.PunishmentConfigManager;
 import ru.raveon.service.LanguageService;
 import ru.raveon.utils.SchedulerUtils;
 
@@ -33,26 +36,29 @@ public final class AnalyzeConnection {
 
     public enum Status { CONNECTED, REJECTED, UNAVAILABLE }
 
-    public record Result(Status status, String server, Set<ModelId> models, String apiKey, String detail) {
+    public record Result(Status status, String server, PluginModelProfile profile, String apiKey, String detail) {
         static Result failed(Status status, String detail) {
-            return new Result(status, "", Set.of(), "", detail);
+            return new Result(status, "", PluginModelProfile.EMPTY, "", detail);
         }
 
         public String modelNames() {
-            return models.stream().map(ModelId::displayName).collect(Collectors.joining(", "));
+            return profile.models().values().stream().map(PluginModelProfile.Model::name).collect(Collectors.joining(", "));
         }
     }
 
     private final Plugin plugin;
     private final Supplier<ChecksConfigManager> settings;
-    private final AnalyzeBatchDispatcher dispatcher;
+    private final java.util.concurrent.atomic.AtomicBoolean polling = new java.util.concurrent.atomic.AtomicBoolean();
+    private final Set<CompletableFuture<?>> pending = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private volatile CloudPunishments.Policy observedLocal;
+    private volatile boolean stopped;
+    private SchedulerUtils.TaskHandle watchTask;
+    private volatile long lastFailure;
     private final HttpClient httpClient = HttpClient.newBuilder().connectTimeout(TIMEOUT).build();
 
-    public AnalyzeConnection(Plugin plugin, Supplier<ChecksConfigManager> settings,
-            AnalyzeBatchDispatcher dispatcher) {
+    public AnalyzeConnection(Plugin plugin, Supplier<ChecksConfigManager> settings) {
         this.plugin = plugin;
         this.settings = settings;
-        this.dispatcher = dispatcher;
     }
 
     /** Exchanges the code for an API key, stores the key and enables analysis without a restart. */
@@ -61,27 +67,108 @@ public final class AnalyzeConnection {
                 ? apply(result) : CompletableFuture.completedFuture(result));
     }
 
-    /** Reports the stored key's state at startup and restricts the models it may use. */
+    /** Fetches the same complete profile on startup and every explicit reload. */
     public void refresh() {
         LanguageService language = Raveon.INSTANCE.getLanguageService();
-        String apiKey = settings.get().getApiKey();
-        if (apiKey.isEmpty()) {
-            plugin.getLogger().warning(language.plain("logs.plugin-not-connected"));
-            return;
-        }
-        check(apiKey).thenAccept(result -> {
-            switch (result.status()) {
-                case CONNECTED -> {
-                    dispatcher.connected(result.models());
-                    plugin.getLogger().info(language.plain("logs.plugin-connected",
-                            "server", result.server(), "models", result.modelNames()));
-                }
-                case REJECTED -> plugin.getLogger().warning(
-                        language.plain("logs.plugin-rejected", "reason", result.detail()));
-                case UNAVAILABLE -> plugin.getLogger().warning(
-                        language.plain("logs.plugin-check-failed", "error", result.detail()));
-            }
+        Raveon.INSTANCE.reloadConfigurationAsync().whenComplete((ignored, error) -> {
+            if (error != null) plugin.getLogger().warning(language.plain("logs.plugin-check-failed", "error", error.getMessage()));
         });
+    }
+
+    public CompletableFuture<Result> fetch(ChecksConfigManager candidate) {
+        if (candidate.getApiKey().isEmpty())
+            return CompletableFuture.completedFuture(new Result(Status.CONNECTED, "", PluginModelProfile.EMPTY, "", ""));
+        URI url = URI.create(candidate.getAnalyzeServer()).resolve("/v1/auth/check");
+        return send(HttpRequest.newBuilder(url).header("Authorization", "Bearer " + candidate.getApiKey()).GET());
+    }
+
+    public record Prepared(Result result, CloudPunishments.Policy local) {}
+
+    public void startWatching() {
+        watchTask = SchedulerUtils.runTimerAsync(plugin, this::requestRefresh, 100, 100);
+    }
+
+    public void stop() {
+        stopped = true;
+        if (watchTask != null) watchTask.cancel();
+        pending.forEach(future -> future.cancel(true));
+        pending.clear();
+    }
+
+    public void requestRefresh() {
+        if (stopped || !plugin.isEnabled() || settings.get().getApiKey().isEmpty() || !polling.compareAndSet(false, true)) return;
+        RuntimeConfiguration previous = Raveon.INSTANCE.getConfiguration();
+        ChecksConfigManager candidate = previous.checks();
+        var request = HttpRequest.newBuilder(URI.create(candidate.getAnalyzeServer()).resolve("/v1/auth/check"))
+                .header("Authorization", "Bearer " + candidate.getApiKey()).GET();
+        if (!candidate.getRemoteProfile().crc().isEmpty())
+            request.header("If-None-Match", "\"" + candidate.getRemoteProfile().crc() + "\"");
+        send(request, candidate.getRemoteProfile())
+                .thenCompose(result -> prepare(previous, candidate, result))
+                .thenCompose(prepared -> Raveon.INSTANCE.applyPreparedProfile(previous, candidate, prepared, false))
+                .whenComplete((ignored, error) -> {
+                    polling.set(false);
+                    long now = System.nanoTime();
+                    if (!stopped && error != null && now - lastFailure > java.util.concurrent.TimeUnit.SECONDS.toNanos(60)) {
+                        lastFailure = now;
+                        plugin.getLogger().warning("Cloud profile update failed; keeping current settings: " + error.getMessage());
+                    }
+                });
+    }
+
+    public CompletableFuture<Prepared> prepare(RuntimeConfiguration previous, ChecksConfigManager candidate, Result result) {
+        if (result.status() != Status.CONNECTED)
+            return CompletableFuture.failedFuture(new IllegalStateException(result.detail()));
+        CompletableFuture<Prepared> prepared = new CompletableFuture<>();
+        try {
+            SchedulerUtils.run(plugin, () -> {
+                try {
+                    if (stopped || Raveon.INSTANCE.getConfiguration() != previous)
+                        throw new IllegalStateException("Settings changed while fetching profile");
+                    var local = new PunishmentConfigManager(plugin, previous.main().getLanguageService()).getLocalPolicy();
+                    var cloud = result.profile().punishments();
+                    RuleSyncPlan plan = RuleSyncPlan.decide(cloud, previous.checks().getRemoteProfile().punishments().revision(), local, observedLocal);
+                    if (plan.conflict()) plugin.getLogger().warning("Punishment rules changed locally and in the panel; newer panel revision wins");
+                    if (!plan.upload()) { prepared.complete(new Prepared(result, local)); return; }
+                    JsonObject body = new JsonObject();
+                    body.addProperty("revision", cloud.revision());
+                    body.add("policy", local.json());
+                    var request = HttpRequest.newBuilder(URI.create(candidate.getAnalyzeServer()).resolve("/v1/plugin/punishments"))
+                            .header("Authorization", "Bearer " + candidate.getApiKey()).header("Content-Type", "application/json")
+                            .timeout(TIMEOUT).POST(HttpRequest.BodyPublishers.ofString(body.toString())).build();
+                    track(httpClient.sendAsync(request, HttpResponse.BodyHandlers.ofString())).whenComplete((response, error) -> {
+                        if (error != null) { prepared.completeExceptionally(error); return; }
+                        if (response.statusCode() == 409) plugin.getLogger().warning("Punishment revision conflict; current panel rules retained");
+                        Result updated = describe(request, parse(response.statusCode() == 409 ? 200 : response.statusCode(), response.body()));
+                        if (updated.status() == Status.CONNECTED) prepared.complete(new Prepared(updated, local));
+                        else prepared.completeExceptionally(new IllegalStateException(updated.detail()));
+                    });
+                } catch (RuntimeException error) { prepared.completeExceptionally(error); }
+            });
+        } catch (RuntimeException error) { prepared.completeExceptionally(error); }
+        return prepared;
+    }
+
+    public boolean localChanged(Prepared prepared) { return !prepared.local().equals(observedLocal); }
+
+    public void commitRules(Prepared prepared, RuntimeConfiguration previous) {
+        var latest = new PunishmentConfigManager(plugin, previous.main().getLanguageService()).getLocalPolicy();
+        if (!latest.equals(prepared.local())) throw new IllegalStateException("Local punishment file changed during sync; retry");
+        var cloud = prepared.result().profile().punishments();
+        if (cloud.mode().equals("sync") && cloud.policy() != null && !latest.equals(cloud.policy()))
+            PunishmentConfigManager.writeCloudPolicy(plugin, cloud.policy());
+    }
+
+    public void acknowledge(Prepared prepared) {
+        var cloud = prepared.result().profile().punishments();
+        observedLocal = cloud.mode().equals("sync") && cloud.policy() != null ? cloud.policy() : prepared.local();
+    }
+
+    private <T> CompletableFuture<T> track(CompletableFuture<T> future) {
+        pending.add(future);
+        future.whenComplete((value, error) -> pending.remove(future));
+        if (stopped) future.cancel(true);
+        return future;
     }
 
     CompletableFuture<Result> exchange(String code) {
@@ -101,10 +188,19 @@ public final class AnalyzeConnection {
         return URI.create(settings.get().getAnalyzeServer()).resolve(path);
     }
 
-    private CompletableFuture<Result> send(HttpRequest.Builder request) {
-        return httpClient.sendAsync(request.timeout(TIMEOUT).build(), HttpResponse.BodyHandlers.ofString())
-                .thenApply(response -> parse(response.statusCode(), response.body()))
-                .exceptionally(error -> Result.failed(Status.UNAVAILABLE, String.valueOf(error.getMessage())));
+    private CompletableFuture<Result> send(HttpRequest.Builder request) { return send(request, null); }
+
+    private CompletableFuture<Result> send(HttpRequest.Builder request, PluginModelProfile unchanged) {
+        HttpRequest outgoing = request.timeout(TIMEOUT).build();
+        return track(httpClient.sendAsync(outgoing, HttpResponse.BodyHandlers.ofString()))
+                .thenApply(response -> response.statusCode() == 304 && unchanged != null
+                        ? new Result(Status.CONNECTED, "", unchanged, "", "") : describe(outgoing, parse(response.statusCode(), response.body())))
+                .exceptionally(error -> describe(outgoing, Result.failed(Status.UNAVAILABLE, String.valueOf(error.getMessage()))));
+    }
+
+    static Result describe(HttpRequest request, Result result) {
+        return result.status() == Status.CONNECTED ? result
+                : Result.failed(result.status(), request.method() + " " + request.uri() + ": " + result.detail());
     }
 
     private CompletableFuture<Result> apply(Result result) {
@@ -112,9 +208,10 @@ public final class AnalyzeConnection {
         SchedulerUtils.run(plugin, () -> {
             try {
                 ChecksConfigManager.saveConnection(plugin, result.apiKey());
-                Raveon.INSTANCE.reloadConfiguration();
-                dispatcher.connected(result.models());
-                applied.complete(result);
+                Raveon.INSTANCE.reloadConfigurationAsync().whenComplete((ignored, error) -> {
+                    if (error == null) applied.complete(result);
+                    else applied.completeExceptionally(error);
+                });
             } catch (RuntimeException error) {
                 applied.completeExceptionally(error);
             }
@@ -123,15 +220,24 @@ public final class AnalyzeConnection {
     }
 
     static Result parse(int status, String body) {
+        if (status < 200 || status >= 300) {
+            String detail = "HTTP " + status;
+            try {
+                String reason = text(JsonParser.parseString(body).getAsJsonObject(), "detail");
+                if (!reason.isBlank()) detail += ": " + reason;
+            } catch (RuntimeException ignored) {
+                // Reverse proxies often return plain text or HTML for errors.
+            }
+            return Result.failed(status == 401 || status == 403 ? Status.REJECTED : Status.UNAVAILABLE, detail);
+        }
         try {
             JsonObject json = JsonParser.parseString(body).getAsJsonObject();
-            if (status == 401 || status == 403)
-                return Result.failed(Status.REJECTED, text(json, "detail"));
-            if (status < 200 || status >= 300)
-                return Result.failed(Status.UNAVAILABLE, "HTTP " + status);
-            return new Result(Status.CONNECTED, text(json, "server"), models(json), text(json, "api_key"), "");
-        } catch (JsonParseException | IllegalStateException error) {
-            return Result.failed(Status.UNAVAILABLE, "HTTP " + status);
+            PluginModelProfile profile = PluginModelProfile.parse(json.getAsJsonObject("profile"));
+            if (!models(json).equals(profile.models().keySet()))
+                throw new IllegalArgumentException("Allowed models/profile mismatch");
+            return new Result(Status.CONNECTED, text(json, "server"), profile, text(json, "api_key"), "");
+        } catch (RuntimeException error) {
+            return Result.failed(Status.UNAVAILABLE, "Invalid model profile (HTTP " + status + ")");
         }
     }
 

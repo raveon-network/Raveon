@@ -14,11 +14,18 @@ public enum MonitorModelFilter {
     }
 
     public String displayName() {
-        return switch (this) {
-            case PRO -> "Pro";
-            case ULTRA -> "Ultra";
-            case ALL -> ru.raveon.Raveon.INSTANCE.getLanguageService().text("monitor.models.all");
-        };
+        return displayName(false);
+    }
+
+    public String fullDisplayName() {
+        return displayName(true);
+    }
+
+    private String displayName(boolean full) {
+        if (this == ALL) return ru.raveon.Raveon.INSTANCE.getLanguageService().text("monitor.models.all");
+        ModelId model = this == PRO ? ModelId.PRO : ModelId.ULTRA;
+        var checks = ru.raveon.Raveon.INSTANCE.getChecksConfigManager();
+        return full ? checks.getModelName(model) : checks.getModelShortTitle(model);
     }
 
     public static MonitorModelFilter parse(String argument) {

@@ -17,6 +17,7 @@ errors:
   data-load: "{prefix} &cНе удалось загрузить данные. Повторите попытку позже."
   no-permission: "{prefix} &cУ вас нет прав на эту команду."
 monitor:
+  # {model}: API short_title in action_bar, API name in chat.
   action_bar:
     format: "&8[{model}] {prob_color}{prob}% &7| {avg_color}{avg}% &7| {trend} &7| &f{buffer}"
     waiting: "&#93FFD7&lAI &#F3F3F3{player} &8• &#CDCDCDожидание результата анализа..."

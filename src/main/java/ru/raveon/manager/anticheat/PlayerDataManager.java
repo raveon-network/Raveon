@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerDataManager {
+    @Getter private final SessionBufferCache bufferCache = new SessionBufferCache();
     @Getter private final Collection<User> exemptUsers = ConcurrentHashMap.newKeySet();
     private final ConcurrentHashMap<UUID, User> connections = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, RaveonPlayer> playerDataMap = new ConcurrentHashMap<>();
@@ -93,11 +94,11 @@ public class PlayerDataManager {
         if (user == null || user.getUUID() == null || !ChannelHelper.isOpen(user.getChannel())) return;
         connections.compute(user.getUUID(), (uuid, previous) -> {
             if (previous == user) return previous;
-            RaveonPlayer player = exemptCheck(user) ? null : new RaveonPlayer(user);
             if (previous != null) {
                 exemptUsers.remove(previous);
                 clearSession(uuid, remove(previous));
             }
+            RaveonPlayer player = exemptCheck(user) ? null : new RaveonPlayer(user);
             if (player != null) {
                 playerDataMap.put(uuid, player);
                 Raveon.INSTANCE.getPlayerOnlineService().heartbeat(uuid, user.getName());
@@ -126,6 +127,7 @@ public class PlayerDataManager {
 
     private void clearSession(UUID uuid, RaveonPlayer player) {
         if (player != null) player.getCheckManager().close();
+        if (Raveon.INSTANCE.getAnalyzeBatchDispatcher() != null) Raveon.INSTANCE.getAnalyzeBatchDispatcher().disconnected(uuid);
         Raveon.INSTANCE.getPlayerOnlineService().quit(uuid);
         Raveon.INSTANCE.getAlertManager().clearSession(uuid);
         Raveon.INSTANCE.getViolationManager().removePlayerData(uuid);

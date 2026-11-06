@@ -11,7 +11,7 @@ import java.util.function.LongSupplier;
 public final class ModelDetectionState {
     private final Map<ModelId, Double> buffers = new EnumMap<>(ModelId.class);
     private final LongSupplier clock;
-    private ChecksConfigManager settings;
+    private DetectionSettings settings;
     private boolean enabled;
     private volatile MitigationSnapshot mitigation = new MitigationSnapshot(0, 0, 0, false);
 
@@ -23,13 +23,13 @@ public final class ModelDetectionState {
         this.clock = clock;
     }
 
-    public void reload(ChecksConfigManager next) {
+    public synchronized void reload(DetectionSettings next) {
         boolean nextEnabled = next.isAnalysisEnabled();
         boolean changed = settings == null || enabled != nextEnabled
                 || !settings.getModelSettings().equals(next.getModelSettings())
                 || !settings.getBufferSettings().equals(next.getBufferSettings())
                 || settings.getPrimaryModel() != next.getPrimaryModel();
-        if (changed) buffers.clear();
+        // Detection buffers survive reconnects, elapsed time and every policy reload.
         if (changed || settings.getPrimaryModel() != next.getPrimaryModel()
                 || !settings.getMitigationSettings().equals(next.getMitigationSettings()))
             mitigation = new MitigationSnapshot(0, 0, 0, false);
@@ -37,34 +37,40 @@ public final class ModelDetectionState {
         enabled = nextEnabled;
     }
 
-    public Result accept(ModelId source, double probability) {
+    public synchronized Result accept(ModelId source, double probability) {
         if (!enabled || !settings.isModelEnabled(source) || !Double.isFinite(probability))
             return null;
         probability = Math.max(0, Math.min(1, probability));
         var modelSettings = settings.getModelSettings().get(source);
         var config = settings.getBufferSettings();
-        double weight = config.weights().get(source);
+        var sourceBuffer = modelSettings.buffer();
+        double weight = sourceBuffer == null ? config.weights().get(source) : sourceBuffer.weight();
         if (source == settings.getPrimaryModel())
-            weight = Math.min(Double.MAX_VALUE, weight * config.primaryMultiplier());
+            weight = Math.min(Double.MAX_VALUE, weight * (sourceBuffer == null ? config.primaryMultiplier() : sourceBuffer.primaryMultiplier()));
         ModelId owner = modelSettings.bufferOwner();
+        var ownerBuffer = settings.getModelSettings().get(owner).buffer();
+        double flag = ownerBuffer == null ? config.flag() : ownerBuffer.flag();
+        double reset = ownerBuffer == null ? config.reset() : ownerBuffer.reset();
+        double multiplier = ownerBuffer == null ? config.multiplier() : ownerBuffer.multiplier();
+        double decreaseRate = ownerBuffer == null ? config.decrease() : ownerBuffer.decrease();
         double before = buffers.getOrDefault(owner, 0.0);
         double after = before;
         if (weight > 0) {
             if (probability > modelSettings.probability()) {
-                double increase = (probability - modelSettings.probability()) * config.multiplier();
+                double increase = (probability - modelSettings.probability()) * multiplier;
                 after = Math.min(Double.MAX_VALUE, before + increase * weight);
-            } else if (probability < .1) {
-                double decrease = Math.min(Double.MAX_VALUE, config.decrease() * weight);
+            } else if (probability < (sourceBuffer == null ? .1 : sourceBuffer.legitThreshold())) {
+                double decrease = Math.min(Double.MAX_VALUE, decreaseRate * weight);
                 after = Math.max(0, before - decrease);
             }
         }
-        boolean crossed = after > config.flag() && weight > 0;
-        buffers.put(owner, crossed ? config.reset() : after);
+        boolean crossed = after > flag && after > before && weight > 0;
+        buffers.put(owner, crossed ? reset : after);
         recordMitigation(source, probability);
         return new Result(source, owner, probability, after, crossed, modelSettings.actions());
     }
 
-    public double buffer(ModelId model) {
+    public synchronized double buffer(ModelId model) {
         return buffers.getOrDefault(settings.getModelSettings().get(model).bufferOwner(), 0.0);
     }
 
@@ -107,11 +113,11 @@ public final class ModelDetectionState {
                 now, answers, true);
     }
 
-    public double damageMultiplier(ChecksConfigManager current) {
+    public double damageMultiplier(DetectionSettings current) {
         return damageMultiplier(current, clock.getAsLong());
     }
 
-    private double damageMultiplier(ChecksConfigManager current, long now) {
+    private double damageMultiplier(DetectionSettings current, long now) {
         var config = current.getMitigationSettings();
         if (settings != current || !enabled || !config.enabled()) return 1;
         MitigationSnapshot snapshot = mitigation;

@@ -74,7 +74,7 @@ public class MonitorSubCommand implements BuildableCommand {
                     case SWITCHED -> config.getLanguageService().text("monitor.switched");
                     case DISABLED -> config.getLanguageService().text("monitor.disabled");
                 };
-        viewer.sendMessage(selection(response, target.getName(), filter));
+        viewer.sendMessage(selection(response, target.getName(), filter.displayName()));
     }
 
     private void chat(
@@ -110,7 +110,7 @@ public class MonitorSubCommand implements BuildableCommand {
                 selection(
                         response,
                         target == null ? config.getLanguageService().text("monitor.chat.all_name") : target.getName(),
-                        filter));
+                        filter.fullDisplayName()));
     }
 
     private static Player findPlayer(String name) {
@@ -118,8 +118,8 @@ public class MonitorSubCommand implements BuildableCommand {
         return target == null ? Bukkit.getPlayer(name) : target;
     }
 
-    private static String selection(String template, String player, MonitorModelFilter filter) {
-        return template.replace("{player}", player).replace("{model}", filter.displayName());
+    private static String selection(String template, String player, String modelName) {
+        return template.replace("{player}", player).replace("{model}", modelName);
     }
 
     private static void usage(Player viewer, MainConfigManager config) {

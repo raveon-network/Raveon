@@ -8,6 +8,7 @@ import org.bukkit.plugin.Plugin;
 import ru.raveon.api.configuration.ConfigManager;
 import ru.raveon.api.configuration.CustomConfig;
 import ru.raveon.model.ModelId;
+import ru.raveon.model.CloudPunishments;
 import ru.raveon.service.LanguageService;
 
 import java.util.ArrayList;
@@ -23,10 +24,17 @@ import java.util.TreeMap;
 public final class PunishmentConfigManager extends ConfigManager {
     private List<PunishGroupConfig> punishGroups = List.of();
     private final LanguageService languageService;
+    private final CloudPunishments cloud;
+    @Getter private CloudPunishments.Policy localPolicy;
 
     public PunishmentConfigManager(Plugin plugin, LanguageService languageService) {
+        this(plugin, languageService, CloudPunishments.OFF);
+    }
+
+    public PunishmentConfigManager(Plugin plugin, LanguageService languageService, CloudPunishments cloud) {
         super(plugin);
         this.languageService = languageService;
+        this.cloud = cloud;
         initialize();
     }
 
@@ -72,6 +80,17 @@ public final class PunishmentConfigManager extends ConfigManager {
             }
             loaded.add(new PunishGroupConfig(groupName, checks, Set.copyOf(models), commands,
                     Collections.unmodifiableNavigableMap(stages), seconds * 1000));
+        }
+        localPolicy = new CloudPunishments.Policy(loaded.stream().map(g -> new CloudPunishments.Group(
+                g.name(), g.models(), g.checks(), (int)(g.removeViolationsAfterMillis() / 1000),
+                g.commands().stream().map(c -> c.threshold() + ":" + c.interval() + " " + c.command()).toList(), g.stages())).toList());
+        CloudPunishments.parsePolicy(localPolicy.json());
+        if (cloud.mode().equals("sync") && cloud.policy() != null) {
+            loaded.clear();
+            for (var g : cloud.policy().groups()) loaded.add(new PunishGroupConfig(g.name(),
+                    g.checks().stream().map(s -> s.toLowerCase(Locale.ROOT)).toList(), g.models(),
+                    g.commands().stream().map(this::parseCommand).toList(),
+                    Collections.unmodifiableNavigableMap(new TreeMap<>(g.stages())), g.seconds() * 1000L));
         }
         punishGroups = List.copyOf(loaded);
     }
@@ -134,4 +153,36 @@ public final class PunishmentConfigManager extends ConfigManager {
     }
 
     public record ParsedPunishmentCommand(int threshold, int interval, String command) {}
+
+    public static void writeCloudPolicy(Plugin plugin, CloudPunishments.Policy policy) {
+        var file = new java.io.File(plugin.getDataFolder(), "features/punishments.yml").toPath();
+        var yaml = new org.bukkit.configuration.file.YamlConfiguration();
+        for (var group : policy.groups()) {
+            var section = yaml.createSection(group.name());
+            section.set("models", group.models().stream().sorted().map(ModelId::key).toList());
+            section.set("checks", group.checks());
+            section.set("remove-violations-after", group.seconds());
+            section.set("commands", group.commands());
+            if (!group.stages().isEmpty()) {
+                var stages = section.createSection("stages");
+                new TreeMap<>(group.stages()).forEach((key,value) -> stages.set(key.toString(), value));
+            }
+        }
+        java.nio.file.Path temporary = null;
+        try {
+            java.nio.file.Files.createDirectories(file.getParent());
+            temporary = java.nio.file.Files.createTempFile(file.getParent(), ".punishments-", ".tmp");
+            java.nio.file.Files.writeString(temporary, yaml.saveToString(), java.nio.charset.StandardCharsets.UTF_8);
+            try {
+                java.nio.file.Files.move(temporary, file, java.nio.file.StandardCopyOption.ATOMIC_MOVE,
+                        java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            } catch (java.nio.file.AtomicMoveNotSupportedException unsupported) {
+                java.nio.file.Files.move(temporary, file, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (java.io.IOException error) {
+            throw new IllegalStateException("Cannot synchronize punishments.yml", error);
+        } finally {
+            if (temporary != null) try { java.nio.file.Files.deleteIfExists(temporary); } catch (java.io.IOException ignored) {}
+        }
+    }
 }

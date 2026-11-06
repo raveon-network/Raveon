@@ -87,6 +87,7 @@ public final class LanguageService {
                 migrateMenuLabels(directory.resolve(code), code);
                 migrateDataCollectionUsage(directory.resolve(code));
                 migrateHologramMessages(directory.resolve(code));
+                removeLocalModelNames(directory.resolve(code));
             }
             Map<String, Object> entries = new LinkedHashMap<>();
             for (String name : CATALOG_FILES) merge(entries, bundled("en", name));
@@ -98,6 +99,20 @@ public final class LanguageService {
         } catch (IOException | InvalidConfigurationException error) {
             throw new IllegalArgumentException("Cannot load lang/" + language + "/", error);
         }
+    }
+
+    private static void removeLocalModelNames(Path folder)
+            throws IOException, InvalidConfigurationException {
+        Path file = folder.resolve("translations.yml");
+        YamlConfiguration translations = read(file);
+        boolean changed = false;
+        for (String key : List.of("monitor.models.pro", "monitor.models.ultra")) {
+            if (translations.contains(key)) {
+                translations.set(key, null);
+                changed = true;
+            }
+        }
+        if (changed) translations.save(file.toFile());
     }
 
     private static void migrateHologramMessages(Path folder)

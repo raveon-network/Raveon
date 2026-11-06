@@ -28,7 +28,7 @@ public class CheckManager {
     private static final int MAX_PENDING_PACKETS = 128;
     private static final int PACKETS_PER_TICK = 16;
 
-    private final ModelDetectionState detectionState = new ModelDetectionState();
+    private final ModelDetectionState detectionState;
     private final RotationData rotationData;
     private final TelemetryState telemetry = new TelemetryState();
     private final RaveonPlayer player;
@@ -43,6 +43,7 @@ public class CheckManager {
 
     public CheckManager(RaveonPlayer player) {
         this.player = player;
+        this.detectionState = Raveon.INSTANCE.getPlayerDataManager().getBufferCache().get(player.getUuid());
         this.rotationData = new RotationData(player);
         for (ModelId model : ModelId.values()) {
             aimChecks.put(model, new AimAI(player, model));

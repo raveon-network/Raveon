@@ -50,6 +50,23 @@ analyze:
 
 The model service is not included in the JAR. Checks stay off until the plugin is connected: get a code on your server's page on the website and run `/raveon connect <code>`. The plugin obtains an API key, stores it in `analyze.api-key` and enables analysis without a restart.
 
+## Model profile
+
+The plugin loads `id`, `name`, `short_title`, `primary`, capture window and step
+from the API at startup, `/raveon reload`, connection and automatic five-second CRC polling. Select the primary
+enabled model on the server's Models tab; administrators edit names/window/step
+in `/admin/model-cards`. Roles and buffer policies are saved separately for each
+server/model in the server panel; admin card policies provide defaults.
+Local model/role switches narrow API permissions.
+Old `analyze.primary`, model `step`, and hologram model-name overrides are ignored. API buffer policies take precedence over local defaults. Detection buffers stay cached by UUID until the plugin stops, including reconnects and reloads; normal decreases and flag resets remain active. The Models tab also edits revisioned punishment groups (sync/upload/off). The plugin uses CRC-bound incremental streams with acknowledgements and persisted retry receipts on `/v1/inference` (application/x-raveon-stream). The first request sends a full capture; subsequent requests send verified new rows. Legacy full-window FlatBuffers clients remain supported on the same path.
+An invalid/unavailable profile leaves the previous configuration active; on the
+first startup detection waits for a valid profile. A failed reload reports an error.
+The backend and shared website database must be upgraded before installing this JAR.
+Current trained windows are Pro 50 and Ultra 64; capture windows may be increased
+up to 600 frames, with step between 1 and the capture window. Larger captures are
+split into trained windows on the backend. Smaller windows require different weights.
+
+
 ## Requirements
 
 - Java 17+ for Raveon; Java 21 for Minecraft 1.21.11.
@@ -62,9 +79,9 @@ Folia 1.16.5 does not exist. Paper 1.16.5 must run on Java 17+ to load Raveon; s
 
 ## Installation
 
-1. Build `build/libs/Raveon-2.0.7.jar`.
+1. Build `build/libs/Raveon-2.0.8.jar`.
 2. Install `packetevents` in the `plugins/` directory.
-3. Copy `Raveon-2.0.7.jar` to `plugins/`.
+3. Copy `Raveon-2.0.8.jar` to `plugins/`.
 4. Start the server once to generate the configuration files.
 5. Stop the server and edit the configuration.
 6. Connect the plugin with `/raveon connect <code>`.
@@ -78,7 +95,7 @@ Probability history is stored separately for Pro and Ultra. The model selector i
 
 The client supports one below-name slot. If another plugin uses it, Raveon yields the slot. A second line requires another display method.
 
-Floating holograms and below-name displays rotate through enabled, available models. Each selected model keeps showing its latest probability, average, and buffer and updates when a new result arrives. Configure the switch interval in ticks with `model_rotation.interval_ticks` (default 80) and the displayed names with `model_rotation.names` in `features/hologram.yml`. Templates use `{model}`. A model without results shows `--`. All hologram text is configured directly in the `lines` list in `features/hologram.yml`. Each entry becomes a separate line, including static text and blank lines. A single line can use below-name; multiple lines automatically use a floating hologram. Hologram toggle messages live in each language's `translations.yml`. On upgrade, old language references are expanded into literal config text and old toggle messages are copied without replacing custom messages. The old language hologram files are preserved as backups.
+Floating holograms and below-name displays rotate through enabled, available models. Each selected model keeps showing its latest probability, average, and buffer and updates when a new result arrives. Configure the switch interval in ticks with `model_rotation.interval_ticks` (default 80) in `features/hologram.yml`. Displayed short titles come from the website (API `short_title`). Templates use `{model}`. A model without results shows `--`. All hologram text is configured directly in the `lines` list in `features/hologram.yml`. Each entry becomes a separate line, including static text and blank lines. A single line can use below-name; multiple lines automatically use a floating hologram. Hologram toggle messages live in each language's `translations.yml`. On upgrade, old language references are expanded into literal config text and old toggle messages are copied without replacing custom messages. The old language hologram files are preserved as backups.
 
 ## Language and time format
 
@@ -132,7 +149,7 @@ gradlew.bat shadowJar
 The resulting JAR is written to:
 
 ```text
-build/libs/Raveon-2.0.7.jar
+build/libs/Raveon-2.0.8.jar
 ```
 
 Main classes are compiled with `--release 17`. GitHub Actions builds with JDK 21. The first Gradle run downloads public dependencies; with a populated local cache, add `--offline`.
@@ -153,3 +170,8 @@ When reporting an issue, include:
 Raveon is distributed under the [GNU General Public License v3.0](LICENSE).
 
 Ultra API/CSV feature order and backend requirements: [Ultra feature protocol](docs/ULTRA_FEATURES.md) and [machine-readable schema](docs/ultra-schema.json). Pro retains its original eight-feature format.
+
+Holograms and `/raveon monitor prob` use API `short_title`; `/raveon monitor chat` uses API `name`, including model selection confirmations. Obsolete local `model_rotation.names` and `monitor.models.pro/ultra` entries are removed on configuration load. Templates retain `{model}` for placement; the model name comes from the API profile.
+
+
+Punishment alerts use `[alert]`.

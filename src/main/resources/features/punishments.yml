@@ -10,10 +10,10 @@ aim_ai:
 
   # Format: threshold:interval action. Interval 0 runs only at the exact threshold.
   # Positive intervals repeat from the threshold. Other actions run as console commands.
-  # [ai_alert] sends an alert; [log] records history. Source actions.alert controls built-in alerts.
+  # [alert] sends an alert; [log] records history. Source actions.alert controls built-in alerts.
   # {model} is the flag's source; {probability} is its percentage; {vl} is the group counter.
   # {player} is the player name; {buffer} is the value before reset. Write the punishment reason directly in the command.
   commands:
-    - "1:1 [ai_alert]"
+    - "1:1 [alert]"
     - "1:1 [log]"
     - "5:0 ban {player} Raveon detected unusual behavior"

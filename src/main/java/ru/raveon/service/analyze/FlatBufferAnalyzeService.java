@@ -28,11 +28,11 @@ public final class FlatBufferAnalyzeService implements AnalyzeService {
             if (model == ModelId.PRO) {
                 var frames = player.getRotationBuffer().pollSnapshot(step);
                 if (frames == null || frames.isEmpty()) return;
-                payload = ModelWire.pro(frames);
+                payload = ModelWire.raw(ModelWire.proValues(frames));
             } else {
                 var frames = player.getUltraData().pollSnapshot(step);
                 if (frames == null || frames.isEmpty()) return;
-                payload = ModelWire.ultra(player.getName(), frames);
+                payload = ModelWire.raw(ModelWire.ultraValues(frames));
             }
             dispatcher.enqueue(payload, player, model);
         } catch (RuntimeException error) {

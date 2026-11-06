@@ -153,7 +153,7 @@ public class PlayersMenu extends ActionMenu<List<PlayerAIProbabilityData>> {
 
     public Map<String, String> getMenuPlaceholders() {
         Map<String, String> values = PlayersMenuPlaceholders.menuPlaceholders(page, maxPages, playersCount);
-        values.put("model", model.displayName());
+        values.put("model", Raveon.INSTANCE.getChecksConfigManager().getModelName(model));
         return values;
     }
 

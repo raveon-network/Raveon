@@ -57,6 +57,7 @@ public final class AnalyzeBatchDispatcher {
     private final ScheduledExecutorService flusher;
     private final Object lock = new Object();
     private final LinkedHashMap<PlayerModel, PendingAnalyze> queue = new LinkedHashMap<>();
+    private final Map<PlayerModel, StreamSession> streams = new HashMap<>();
     private final Map<PlayerModel, PendingAnalyze> active = new HashMap<>();
     private final Set<CompletableFuture<?>> requests = ConcurrentHashMap.newKeySet();
     private final AtomicLong lastWarning = new AtomicLong(Long.MIN_VALUE / 2);
@@ -65,7 +66,7 @@ public final class AnalyzeBatchDispatcher {
     private int inFlight;
     private volatile boolean stopped;
     private volatile long blockedUntil = Long.MIN_VALUE;
-    private volatile Set<ModelId> allowedModels = Set.of(ModelId.values());
+    private volatile Set<ModelId> allowedModels = Set.of();
 
     public AnalyzeBatchDispatcher(Plugin plugin, Supplier<ChecksConfigManager> configManager) {
         this.plugin = plugin;
@@ -96,6 +97,7 @@ public final class AnalyzeBatchDispatcher {
         httpExecutor.shutdownNow();
         synchronized (lock) {
             queue.clear();
+            streams.clear();
             active.clear();
             batches.clear();
             inFlight = 0;
@@ -107,6 +109,24 @@ public final class AnalyzeBatchDispatcher {
     public void connected(Set<ModelId> models) {
         allowedModels = Set.copyOf(models);
         blockedUntil = Long.MIN_VALUE;
+        synchronized (lock) {
+            queue.clear(); active.clear(); streams.clear(); pendingBytes = 0;
+        }
+    }
+
+    public void disconnected(UUID player) {
+        synchronized (lock) {
+            streams.keySet().removeIf(key -> key.uuid.equals(player));
+            var iterator = queue.entrySet().iterator();
+            while (iterator.hasNext()) {
+                var entry = iterator.next();
+                if (entry.getKey().uuid.equals(player)) {
+                    pendingBytes -= entry.getValue().payload.length;
+                    iterator.remove();
+                }
+            }
+            active.keySet().removeIf(key -> key.uuid.equals(player));
+        }
     }
 
     public boolean isModelAvailable(ModelId model) {
@@ -122,15 +142,21 @@ public final class AnalyzeBatchDispatcher {
         ChecksConfigManager settings = configManager.get();
         if (stopped || now < blockedUntil || settings.getApiKey().isEmpty()
                 || !allowedModels.contains(model) || !settings.isModelEnabled(model)) return;
-        if (payload == null || payload.length > MAX_PAYLOAD_BYTES) {
+        if (payload == null || payload.length > MAX_PAYLOAD_BYTES - 6) {
             warn("Analyze window exceeds the payload limit");
             return;
         }
         PlayerModel key = new PlayerModel(player.getUuid(), model);
-        PendingAnalyze item = new PendingAnalyze(key, payload, player,
-                player.getCheckManager().getGeneration(model), now, settings);
         synchronized (lock) {
             if (stopped) return;
+            long generation = player.getCheckManager().getGeneration(model);
+            StreamSession session = streams.get(key);
+            if (session == null || session.player != player || session.generation != generation || session.configuration != settings) {
+                session = new StreamSession(player, generation, settings,
+                        new StreamWindowCursor(player.getUuid(), model, settings.getAnalysisSequence(model), settings.getAnalysisStep(model)));
+                streams.put(key,session);
+            }
+            PendingAnalyze item = new PendingAnalyze(key,payload,player,generation,now,settings,session.cursor,session.cursor.offer(payload));
             PendingAnalyze replaced = queue.remove(key);
             if (replaced != null) pendingBytes -= replaced.payload.length;
             if (queue.size() >= MAX_PENDING || pendingBytes + payload.length > MAX_PENDING_BYTES) {
@@ -153,11 +179,10 @@ public final class AnalyzeBatchDispatcher {
     private void flush() {
         if (stopped) return;
         long now = System.nanoTime();
-        URI endpoint = URI.create(configManager.get().getAnalyzeServer());
         while (!stopped) {
             Batch batch = new Batch();
             synchronized (lock) {
-                active.entrySet().removeIf(entry -> obsolete(entry.getValue(), now));
+                active.values().stream().filter(item -> obsolete(item,now)).toList().forEach(this::resetStream);
                 Iterator<PendingAnalyze> iterator = queue.values().iterator();
                 while (iterator.hasNext()) {
                     PendingAnalyze item = iterator.next();
@@ -168,9 +193,14 @@ public final class AnalyzeBatchDispatcher {
                 }
                 if (now < blockedUntil || inFlight >= MAX_IN_FLIGHT) return;
                 iterator = queue.values().iterator();
+                int bodySize = 2;
                 while (iterator.hasNext() && batch.items.size() < MAX_BATCH_SIZE) {
                     PendingAnalyze item = iterator.next();
                     if (active.containsKey(item.key)) continue;
+                    if (!batch.items.isEmpty() && item.configuration != batch.items.get(0).configuration) continue;
+                    item.request=item.cursor.request(item.offer);
+                    if (bodySize + 4 + item.request.bytes().length > MAX_PAYLOAD_BYTES) break;
+                    bodySize += 4 + item.request.bytes().length;
                     iterator.remove();
                     pendingBytes -= item.payload.length;
                     active.put(item.key, item);
@@ -181,8 +211,8 @@ public final class AnalyzeBatchDispatcher {
                 inFlight++;
             }
             try {
-                sendBatch(endpoint, batch, ModelWire.batch(
-                        batch.items.stream().map(item -> item.payload).toList()), 0);
+                URI endpoint=URI.create(batch.items.get(0).configuration.getAnalyzeServer()).resolve("/v1/inference");
+                sendBatch(endpoint,batch,ModelWire.batch(batch.items.stream().map(item -> item.request.bytes()).toList()),0);
             } catch (RuntimeException error) {
                 finish(batch, false);
                 throw error;
@@ -199,15 +229,15 @@ public final class AnalyzeBatchDispatcher {
         HttpRequest request;
         try {
             request = HttpRequest.newBuilder(endpoint)
-                    .header("Content-Type", "application/x-flatbuffers")
-                    .header("Accept", "application/x-flatbuffers")
+                    .header("Content-Type", "application/x-raveon-stream")
+                    .header("Accept", "application/json")
                     .header("X-Batch", "1")
-                    .header("X-Raveon-Protocol", "2")
-                    .header("Authorization", "Bearer " + configManager.get().getApiKey())
+                    .header("X-Model-Config",batch.items.get(0).configuration.getRemoteProfile().crc())
+                    .header("Authorization", "Bearer " + batch.items.get(0).configuration.getApiKey())
                     .timeout(REQUEST_TIMEOUT)
                     .POST(HttpRequest.BodyPublishers.ofByteArray(body)).build();
             CompletableFuture<HttpResponse<byte[]>> future =
-                    sendWithDeadline(request, 12 + batch.items.size() * 10);
+                    sendWithDeadline(request, 1024 * 1024);
             requests.add(future);
             future.whenComplete((response, error) -> {
                 requests.remove(future);
@@ -231,6 +261,11 @@ public final class AnalyzeBatchDispatcher {
                     finish(batch, false);
                     return;
                 }
+                if (status == 409) {
+                    Raveon.INSTANCE.getAnalyzeConnection().requestRefresh();
+                    finish(batch,false);
+                    return;
+                }
                 if (status < 200 || status >= 300) {
                     warn("Analyze server returned HTTP " + status);
                     long pause = retryAfter(response);
@@ -243,13 +278,16 @@ public final class AnalyzeBatchDispatcher {
                     return;
                 }
                 try {
-                    ModelWire.Result[] results = ModelWire.decode(
-                            response.body(), batch.items.stream().map(item -> item.key.model).toList());
+                    var results=StreamWire.decode(response.body(),batch.items.stream().map(item -> item.request).toList(),
+                            batch.items.get(0).configuration.getRemoteProfile().crc());
                     for (int index = 0; index < batch.items.size(); index++) {
                         PendingAnalyze item = batch.items.get(index);
-                        ModelWire.Result result = results[index];
+                        var result=results.get(index);
+                        if (!current(item)) { release(item); continue; }
+                        if (!result.error().isEmpty()) { resetStream(item); continue; }
+                        item.cursor.acknowledge(item.request,result.have());
                         if (result.status() != 0) {
-                            warn(result.model().displayName() + " inference is unavailable: " + result.status());
+                            warn(item.key.model.displayName() + " inference is unavailable: " + result.status());
                             release(item);
                             continue;
                         }
@@ -308,7 +346,7 @@ public final class AnalyzeBatchDispatcher {
                 try {
                     if (current(item)) {
                         item.player.getCheckManager().refreshSettings();
-                        if (current(item))
+                        if (current(item) && item.cursor.claim(item.request))
                             Raveon.INSTANCE.getAiResultManager().handleAnalyzeResult(
                                     item.player, probability, item.key.model);
                     }
@@ -344,10 +382,22 @@ public final class AnalyzeBatchDispatcher {
         }
     }
 
+    private void resetStream(PendingAnalyze item) {
+        synchronized (lock) {
+            StreamSession session=streams.get(item.key);
+            if (session != null && session.cursor == item.cursor) {
+                streams.remove(item.key);
+                PendingAnalyze queued=queue.remove(item.key);
+                if (queued != null) pendingBytes-=queued.payload.length;
+            }
+            active.remove(item.key,item);
+        }
+    }
+
     private void finish(Batch batch, boolean scheduled) {
         synchronized (lock) {
             if (!batches.remove(batch)) return;
-            if (!scheduled) batch.items.forEach(item -> active.remove(item.key, item));
+            if (!scheduled) batch.items.forEach(this::resetStream);
             inFlight--;
         }
     }
@@ -492,7 +542,21 @@ public final class AnalyzeBatchDispatcher {
 
     private record PlayerModel(UUID uuid, ModelId model) {}
 
-    private record PendingAnalyze(
-            PlayerModel key, byte[] payload, RaveonPlayer player, long generation, long createdAt,
-            ChecksConfigManager configuration) {}
+    private record StreamSession(RaveonPlayer player,long generation,ChecksConfigManager configuration,StreamWindowCursor cursor) {}
+
+    private static final class PendingAnalyze {
+        final PlayerModel key;
+        final byte[] payload;
+        final RaveonPlayer player;
+        final long generation,createdAt;
+        final ChecksConfigManager configuration;
+        final StreamWindowCursor cursor;
+        final StreamWindowCursor.Offer offer;
+        StreamWindowCursor.Request request;
+        PendingAnalyze(PlayerModel key,byte[] payload,RaveonPlayer player,long generation,long createdAt,
+                ChecksConfigManager configuration,StreamWindowCursor cursor,StreamWindowCursor.Offer offer) {
+            this.key=key; this.payload=payload; this.player=player; this.generation=generation;
+            this.createdAt=createdAt; this.configuration=configuration; this.cursor=cursor; this.offer=offer;
+        }
+    }
 }
