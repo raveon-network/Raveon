@@ -79,9 +79,9 @@ Folia 1.16.5 does not exist. Paper 1.16.5 must run on Java 17+ to load Raveon; s
 
 ## Installation
 
-1. Build `build/libs/Raveon-2.0.10.jar`.
+1. Build `build/libs/Raveon-2.0.9.jar`.
 2. Install `packetevents` in the `plugins/` directory.
-3. Copy `Raveon-2.0.10.jar` to `plugins/`.
+3. Copy `Raveon-2.0.9.jar` to `plugins/`.
 4. Start the server once to generate the configuration files.
 5. Stop the server and edit the configuration.
 6. Connect the plugin with `/raveon connect <code>`.
@@ -149,7 +149,7 @@ gradlew.bat shadowJar
 The resulting JAR is written to:
 
 ```text
-build/libs/Raveon-2.0.10.jar
+build/libs/Raveon-2.0.9.jar
 ```
 
 Main classes are compiled with `--release 17`. GitHub Actions builds with JDK 21. The first Gradle run downloads public dependencies; with a populated local cache, add `--offline`.
@@ -176,4 +176,4 @@ Holograms and `/raveon monitor prob` use API `short_title`; `/raveon monitor cha
 
 Punishment alerts use `[alert]`.
 
-API-defined inference models (2.0.10+): [profile, capture formats and local settings](docs/DYNAMIC_MODELS.md).
+API-defined inference models (2.0.9+): [profile, capture formats and local settings](docs/DYNAMIC_MODELS.md).

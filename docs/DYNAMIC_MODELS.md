@@ -1,4 +1,4 @@
-# API-defined models (plugin 2.0.10+)
+# API-defined models (plugin 2.0.9+)
 
 Inference models are loaded from the license profile, not a Java enum. Up to 32
 models may be present. Each has a stable ID, independent capture window/cadence,
