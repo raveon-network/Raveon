@@ -58,7 +58,7 @@ public class PlayersMenu extends ActionMenu<List<PlayerAIProbabilityData>> {
                     .slots(menuItem.getSlot())
                     .build(event -> {
                         if (isLoading() || !(event.getWhoClicked() instanceof Player viewer)) return;
-                        model = model == ModelId.PRO ? ModelId.ULTRA : ModelId.PRO;
+                        model = ru.raveon.Raveon.INSTANCE.getChecksConfigManager().nextModel(model);
                         page = 0;
                         loaded = false;
                         show(viewer);

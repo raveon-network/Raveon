@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ru.raveon"
-version = "2.0.9"
+version = "2.0.10"
 
 repositories {
     exclusiveContent {
@@ -30,6 +30,7 @@ repositories {
 }
 
 dependencies {
+    testRuntimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
 
     compileOnly(libs.lombok)
@@ -158,7 +159,7 @@ sourceSets.test {
 }
 val verifyModelProfile by tasks.registering(JavaExec::class) {
     dependsOn(tasks.testClasses)
-    classpath = sourceSets.test.get().output + sourceSets.main.get().output + sourceSets.main.get().compileClasspath
+    classpath = sourceSets.test.get().runtimeClasspath + sourceSets.main.get().compileClasspath
     mainClass.set("ru.raveon.service.analyze.ModelProfileContractTest")
 }
 tasks.check { dependsOn(verifyModelProfile) }

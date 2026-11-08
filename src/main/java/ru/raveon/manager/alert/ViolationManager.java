@@ -22,7 +22,7 @@ public class ViolationManager {
     private final Map<ModelId, Map<UUID, PlayerAnalysisSnapshot>> analysisByModel = modelMaps();
 
     private static <T> Map<ModelId, Map<UUID, T>> modelMaps() {
-        Map<ModelId, Map<UUID, T>> result = new EnumMap<>(ModelId.class);
+        Map<ModelId, Map<UUID, T>> result = new java.util.concurrent.ConcurrentHashMap<>();
         for (ModelId model : ModelId.values()) result.put(model, new ConcurrentHashMap<>());
         return result;
     }
@@ -44,7 +44,7 @@ public class ViolationManager {
 
     public void addAiProbability(UUID id, double chance, boolean save, ModelId model) {
         probabilitiesByModel
-                .get(model)
+                .computeIfAbsent(model, ignored -> new ConcurrentHashMap<>())
                 .compute(
                         id,
                         (key, values) -> {
@@ -65,7 +65,7 @@ public class ViolationManager {
     }
 
     public Deque<Double> getLocalProbabilities(UUID id, ModelId model) {
-        Deque<Double> history = probabilitiesByModel.get(model).get(id);
+        Deque<Double> history = probabilitiesByModel.computeIfAbsent(model, ignored -> new ConcurrentHashMap<>()).get(id);
         if (history == null) return new ArrayDeque<>();
         synchronized (history) {
             return new ArrayDeque<>(history);
@@ -82,7 +82,7 @@ public class ViolationManager {
     public void updateAnalysisSnapshot(UUID id, double probability, double buffer, ModelId model) {
         if (Double.isFinite(probability) && Double.isFinite(buffer))
             analysisByModel
-                    .get(model)
+                    .computeIfAbsent(model, ignored -> new ConcurrentHashMap<>())
                     .put(
                             id,
                             new PlayerAnalysisSnapshot(
@@ -94,7 +94,7 @@ public class ViolationManager {
     }
 
     public PlayerAnalysisSnapshot getAnalysisSnapshot(UUID id, ModelId model) {
-        return analysisByModel.get(model).getOrDefault(id, PlayerAnalysisSnapshot.EMPTY);
+        return analysisByModel.computeIfAbsent(model, ignored -> new ConcurrentHashMap<>()).getOrDefault(id, PlayerAnalysisSnapshot.EMPTY);
     }
 
     public void removePlayerData(UUID id) {

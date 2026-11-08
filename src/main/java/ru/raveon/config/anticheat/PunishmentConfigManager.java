@@ -25,6 +25,7 @@ public final class PunishmentConfigManager extends ConfigManager {
     private List<PunishGroupConfig> punishGroups = List.of();
     private final LanguageService languageService;
     private final CloudPunishments cloud;
+    private final Set<ModelId> availableModels;
     @Getter private CloudPunishments.Policy localPolicy;
 
     public PunishmentConfigManager(Plugin plugin, LanguageService languageService) {
@@ -32,9 +33,14 @@ public final class PunishmentConfigManager extends ConfigManager {
     }
 
     public PunishmentConfigManager(Plugin plugin, LanguageService languageService, CloudPunishments cloud) {
+        this(plugin, languageService, cloud, ru.raveon.Raveon.INSTANCE.getConfiguration() == null
+                ? Set.of(ModelId.values()) : ru.raveon.Raveon.INSTANCE.getChecksConfigManager().activeModels());
+    }
+    public PunishmentConfigManager(Plugin plugin, LanguageService languageService, CloudPunishments cloud, Set<ModelId> availableModels) {
         super(plugin);
         this.languageService = languageService;
         this.cloud = cloud;
+        this.availableModels = Set.copyOf(availableModels);
         initialize();
     }
 
@@ -55,8 +61,8 @@ public final class PunishmentConfigManager extends ConfigManager {
             if (section == null) throw new IllegalArgumentException(groupName + " must be a section");
             List<String> checks = strings(section, "checks").stream()
                     .map(value -> value.toLowerCase(Locale.ROOT)).toList();
-            Set<ModelId> models = EnumSet.noneOf(ModelId.class);
-            if (!section.contains("models")) models.addAll(EnumSet.allOf(ModelId.class));
+            Set<ModelId> models = new java.util.HashSet<>();
+            if (!section.contains("models")) models.addAll(availableModels);
             else for (String model : strings(section, "models")) models.add(ModelId.parse(model));
             List<ParsedPunishmentCommand> commands =
                     strings(section, "commands").stream().map(this::parseCommand).toList();

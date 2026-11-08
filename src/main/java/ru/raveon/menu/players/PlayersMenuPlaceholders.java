@@ -30,7 +30,7 @@ public class PlayersMenuPlaceholders {
         var settings = Raveon.INSTANCE.getChecksConfigManager();
         ModelId primary = settings.getPrimaryModel();
         if (settings.isModelEnabled(primary)) return primary;
-        for (ModelId model : ModelId.values())
+        for (ModelId model : ru.raveon.Raveon.INSTANCE.getChecksConfigManager().activeModels())
             if (settings.isModelEnabled(model)) return model;
         return primary;
     }

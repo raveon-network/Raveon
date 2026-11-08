@@ -1,0 +1,94 @@
+{
+  "crc": "1bb64ec0",
+  "models": [
+    {
+      "buffer": {
+        "decrease": 0.25,
+        "flag": 50,
+        "inherit": null,
+        "legit_threshold": 0.1,
+        "multiplier": 100,
+        "primary_multiplier": 2,
+        "reset": 25,
+        "threshold": 0.85,
+        "weight": 1
+      },
+      "capture": "pro",
+      "id": "pro",
+      "mitigation_weight": 1,
+      "name": "Pro",
+      "roles": {
+        "alert": true,
+        "mitigate": true,
+        "punish": true
+      },
+      "short_title": "Pro",
+      "step": 10,
+      "window": 50,
+      "wire_id": 1
+    },
+    {
+      "buffer": {
+        "decrease": 0.25,
+        "flag": 50,
+        "inherit": null,
+        "legit_threshold": 0.1,
+        "multiplier": 100,
+        "primary_multiplier": 2,
+        "reset": 25,
+        "threshold": 0.85,
+        "weight": 1
+      },
+      "capture": "ultra",
+      "id": "ultra",
+      "mitigation_weight": 1,
+      "name": "Ultra",
+      "roles": {
+        "alert": true,
+        "mitigate": true,
+        "punish": true
+      },
+      "short_title": "Ultra",
+      "step": 32,
+      "window": 64,
+      "wire_id": 2
+    },
+    {
+      "buffer": {
+        "decrease": 0.25,
+        "flag": 50,
+        "inherit": "ultra",
+        "legit_threshold": 0.1,
+        "multiplier": 100,
+        "primary_multiplier": 2,
+        "reset": 25,
+        "threshold": 0.85,
+        "weight": 1.25
+      },
+      "capture": "pro",
+      "id": "aim_fast",
+      "mitigation_weight": 1,
+      "name": "Aim Fast",
+      "roles": {
+        "alert": true,
+        "mitigate": true,
+        "punish": true
+      },
+      "short_title": "Fast",
+      "step": 10,
+      "window": 50,
+      "wire_id": 3
+    }
+  ],
+  "primary": "aim_fast",
+  "punishments": {
+    "mode": "off",
+    "policy": null,
+    "revision": 0
+  },
+  "transport": {
+    "max_chunk_rows": 600,
+    "version": 1
+  },
+  "version": 1
+}

@@ -22,15 +22,16 @@ public final class FlatBufferAnalyzeService implements AnalyzeService {
         if (!settings.isModelEnabled(model)) return;
         Player bukkit = player.getBukkitPlayer();
         if (bukkit == null || !bukkit.isOnline()) return;
+        if (!player.isModelInCombat(model)) { player.getCheckManager().invalidate(model); return; }
         int step = settings.getAnalysisStep(model);
         try {
             byte[] payload;
-            if (model == ModelId.PRO) {
-                var frames = player.getRotationBuffer().pollSnapshot(step);
+            if (model.proCapture()) {
+                var frames = player.getCheckManager().getCaptureBuffers().pro(model, step);
                 if (frames == null || frames.isEmpty()) return;
                 payload = ModelWire.raw(ModelWire.proValues(frames));
             } else {
-                var frames = player.getUltraData().pollSnapshot(step);
+                var frames = player.getCheckManager().getCaptureBuffers().ultra(model, step);
                 if (frames == null || frames.isEmpty()) return;
                 payload = ModelWire.raw(ModelWire.ultraValues(frames));
             }

@@ -24,7 +24,7 @@ public final class AimAI extends Check implements PacketCheck {
 
     @Override
     public String getCheckName() {
-        return model == ModelId.PRO ? super.getCheckName() : super.getCheckName() + "-Ultra";
+        return model.equals(ModelId.PRO) ? super.getCheckName() : super.getCheckName() + "-" + model.key();
     }
 
     @Override
@@ -51,7 +51,7 @@ public final class AimAI extends Check implements PacketCheck {
     }
 
     public void handleRotation(Player bukkitPlayer, float yaw, float pitch) {
-        if (isEnabled() || player.getTrainData().isDatasetsCollecting()) {
+        if (player.getCheckManager().requestedCapture("pro")) {
             processRotation(bukkitPlayer, normalizeYaw(yaw), clampPitch(pitch));
         }
     }
@@ -70,7 +70,7 @@ public final class AimAI extends Check implements PacketCheck {
 
         if (settings.isAimAiBypassedInRegion(bukkitPlayer)) {
             updateRotationState(currentYaw, currentPitch);
-            player.getRotationBuffer().clear();
+            player.getCheckManager().invalidateCapture("pro");
             return;
         }
 
@@ -118,7 +118,7 @@ public final class AimAI extends Check implements PacketCheck {
         }
 
         if (settings.isAimAiBypassedInRegion(bukkitPlayer)) {
-            player.getRotationBuffer().clear();
+            player.getCheckManager().invalidateCapture("pro");
             return;
         }
 
@@ -132,7 +132,7 @@ public final class AimAI extends Check implements PacketCheck {
         ModelDetectionState.Result result =
                 player.getCheckManager().getDetectionState().accept(model, lastProbability);
         if (result == null) return;
-        for (ModelId current : ModelId.values()) {
+        for (ModelId current : settings.activeModels()) {
             AimAI check = player.getCheckManager().getAimAI(current);
             Raveon.INSTANCE.getViolationManager().updateAnalysisSnapshot(
                     player.getUuid(), check.lastProbability, check.getBuffer(), current);

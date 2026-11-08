@@ -22,11 +22,11 @@ public class DataCollectConfigManager extends ConfigManager {
 
     private TrainStatisticInfoType infoType;
     public int getFramesToCollect(ModelId model) {
-        return model == ModelId.PRO ? framesToCollect : ultraFramesToCollect;
+        return model.equals(ModelId.PRO) ? framesToCollect : ultraFramesToCollect;
     }
 
     public long getCombatTimer(ModelId model) {
-        return model == ModelId.PRO ? combatTimer : ultraCombatTimer;
+        return model.equals(ModelId.PRO) ? combatTimer : ultraCombatTimer;
     }
 
     public DataCollectConfigManager(Plugin plugin) {

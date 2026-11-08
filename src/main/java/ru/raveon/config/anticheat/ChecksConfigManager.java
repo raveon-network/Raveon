@@ -63,9 +63,11 @@ public class ChecksConfigManager extends ConfigManager implements ru.raveon.mana
         requireSection(config, "analyze.mitigation");
         analysisEnabled = config.getBoolean("analyze.enabled", false);
         primaryModel = remoteProfile.primary() == null ? ModelId.PRO : remoteProfile.primary();
-        Map<ModelId, AnalysisSettings> loaded = new EnumMap<>(ModelId.class);
-        Map<ModelId, Double> weights = new EnumMap<>(ModelId.class);
-        for (ModelId model : ModelId.values()) {
+        Map<ModelId, AnalysisSettings> loaded = new java.util.concurrent.ConcurrentHashMap<>();
+        Map<ModelId, Double> weights = new java.util.concurrent.ConcurrentHashMap<>();
+        var definitions = new java.util.LinkedHashSet<ModelId>(java.util.List.of(ModelId.values()));
+        definitions.addAll(remoteProfile.models().keySet());
+        for (ModelId model : definitions) {
             String path = "analyze.models." + model.key();
             requireSection(config, path);
             requireSection(config, path + ".actions");
@@ -77,7 +79,7 @@ public class ChecksConfigManager extends ConfigManager implements ru.raveon.mana
                     config.getBoolean(path + ".enabled", true),
                     remoteProfile.models().containsKey(model) ? remoteProfile.models().get(model).window() : model.sequence(),
                     remoteProfile.models().containsKey(model) ? remoteProfile.models().get(model).step() : model.step(),
-                    config.requireInt(path + ".combat", model == ModelId.PRO ? 50 : 64, 0, 72000) * 50L,
+                    config.requireInt(path + ".combat", model.sequence(), 0, 72000) * 50L,
                     buffer.threshold(),
                     new ModelActions(config.getBoolean(path + ".actions.alert", true) && (remote == null || remote.alert()),
                             config.getBoolean(path + ".actions.mitigate", true) && (remote == null || remote.mitigate()),
@@ -89,7 +91,7 @@ public class ChecksConfigManager extends ConfigManager implements ru.raveon.mana
         modelSettings = ModelBufferConfig.owners(loaded, remoteProfile.models().keySet());
         // Local switches may narrow the site's profile, including disabling its preferred lead.
         if (!modelSettings.get(primaryModel).enabled() || !remoteProfile.models().containsKey(primaryModel))
-            primaryModel = java.util.Arrays.stream(ModelId.values())
+            primaryModel = remoteProfile.models().keySet().stream()
                     .filter(model -> remoteProfile.models().containsKey(model) && modelSettings.get(model).enabled())
                     .findFirst().orElse(ModelId.PRO);
         var base = loaded.get(ModelId.PRO).buffer();
@@ -141,7 +143,18 @@ public class ChecksConfigManager extends ConfigManager implements ru.raveon.mana
     }
 
     public boolean isModelEnabled(ModelId model) {
-        return analysisEnabled && remoteProfile.models().containsKey(model) && modelSettings.get(model).enabled();
+        return analysisEnabled && remoteProfile.models().containsKey(model) && modelSettings.get(model) != null && modelSettings.get(model).enabled();
+    }
+
+    public java.util.Set<ModelId> activeModels() { return remoteProfile.models().keySet(); }
+    public ModelId nextModel(ModelId current) {
+        var models = new java.util.ArrayList<>(activeModels());
+        return models.isEmpty() ? ModelId.PRO : models.get(Math.floorMod(models.indexOf(current) + 1, models.size()));
+    }
+    public long captureCombat(String capture) {
+        return modelSettings.entrySet().stream().filter(e -> e.getKey().capture().equals(capture)
+                && isModelEnabled(e.getKey())).mapToLong(e -> e.getValue().combatMillis()).max()
+                .orElse(capture.equals("pro") ? 2500L : 3200L);
     }
 
     public int getAnalysisSequence() {
@@ -171,7 +184,7 @@ public class ChecksConfigManager extends ConfigManager implements ru.raveon.mana
     }
 
     public long getCombatTimer() {
-        return getCombatTimer(ModelId.PRO);
+        return captureCombat("pro");
     }
 
     public long getCombatTimer(ModelId model) {

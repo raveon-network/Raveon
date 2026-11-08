@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.LongSupplier;
 
 public final class ModelDetectionState {
-    private final Map<ModelId, Double> buffers = new EnumMap<>(ModelId.class);
+    private final Map<ModelId, Double> buffers = new java.util.concurrent.ConcurrentHashMap<>();
     private final LongSupplier clock;
     private DetectionSettings settings;
     private boolean enabled;
@@ -28,11 +28,12 @@ public final class ModelDetectionState {
         boolean changed = settings == null || enabled != nextEnabled
                 || !settings.getModelSettings().equals(next.getModelSettings())
                 || !settings.getBufferSettings().equals(next.getBufferSettings())
-                || settings.getPrimaryModel() != next.getPrimaryModel();
+                || !java.util.Objects.equals(settings.getPrimaryModel(), next.getPrimaryModel());
         // Detection buffers survive reconnects, elapsed time and every policy reload.
-        if (changed || settings.getPrimaryModel() != next.getPrimaryModel()
+        if (changed || !java.util.Objects.equals(settings.getPrimaryModel(), next.getPrimaryModel())
                 || !settings.getMitigationSettings().equals(next.getMitigationSettings()))
             mitigation = new MitigationSnapshot(0, 0, 0, false);
+        buffers.keySet().retainAll(next.getModelSettings().keySet());
         settings = next;
         enabled = nextEnabled;
     }
@@ -45,7 +46,7 @@ public final class ModelDetectionState {
         var config = settings.getBufferSettings();
         var sourceBuffer = modelSettings.buffer();
         double weight = sourceBuffer == null ? config.weights().get(source) : sourceBuffer.weight();
-        if (source == settings.getPrimaryModel())
+        if (source.equals(settings.getPrimaryModel()))
             weight = Math.min(Double.MAX_VALUE, weight * (sourceBuffer == null ? config.primaryMultiplier() : sourceBuffer.primaryMultiplier()));
         ModelId owner = modelSettings.bufferOwner();
         var ownerSettings = settings.getModelSettings().get(owner);
@@ -83,16 +84,16 @@ public final class ModelDetectionState {
         if (!config.enabled() || !policy.actions().mitigate() || policy.mitigationWeight() == 0) return;
         double maxWeight = 0;
         ModelId lead = null;
-        for (ModelId model : ModelId.values()) {
+        for (ModelId model : settings.getModelSettings().keySet()) {
             var candidate = settings.getModelSettings().get(model);
             if (!settings.isModelEnabled(model) || !candidate.actions().mitigate()
                     || candidate.mitigationWeight() == 0) continue;
             maxWeight = Math.max(maxWeight, candidate.mitigationWeight());
-            if (lead == null || model == settings.getPrimaryModel()) lead = model;
+            if (lead == null || model.equals(settings.getPrimaryModel())) lead = model;
         }
         if (maxWeight == 0) return;
         double sum = 0;
-        for (ModelId model : ModelId.values()) {
+        for (ModelId model : settings.getModelSettings().keySet()) {
             var candidate = settings.getModelSettings().get(model);
             if (settings.isModelEnabled(model) && candidate.actions().mitigate())
                 sum += candidate.mitigationWeight() / maxWeight;
@@ -110,7 +111,7 @@ public final class ModelDetectionState {
         double score = fresh
                 ? previous.score() * Math.pow(.5, (double) elapsed / config.halfLifeMillis()) : 0;
         int answers = fresh ? previous.answers() : 0;
-        if (source == lead && answers < Integer.MAX_VALUE) answers++;
+        if (source.equals(lead) && answers < Integer.MAX_VALUE) answers++;
         mitigation = new MitigationSnapshot(
                 Math.max(0, Math.min(config.maxScore(), score + contribution)),
                 now, answers, true);

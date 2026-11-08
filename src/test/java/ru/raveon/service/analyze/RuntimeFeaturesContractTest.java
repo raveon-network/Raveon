@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 
 public final class RuntimeFeaturesContractTest {
     public static void run() throws Exception {
-        testBuffers(); BufferInheritanceContractTest.run(); testRuleSync(); testFullWindows(); testCloudFile(); StreamIsolationContractTest.run();
+        testBuffers(); BufferInheritanceContractTest.run(); DynamicModelContractTest.run(); testRuleSync(); testFullWindows(); testCloudFile(); StreamIsolationContractTest.run();
         System.out.println("Runtime roles/buffers, session cache, rule conflicts, YAML and full-window wire checks passed");
     }
 

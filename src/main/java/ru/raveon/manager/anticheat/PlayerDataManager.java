@@ -32,14 +32,14 @@ public class PlayerDataManager {
             createTrainMaps();
 
     private static Map<ModelId, ConcurrentHashMap<UUID, TrainData>> createTrainMaps() {
-        var maps = new EnumMap<ModelId, ConcurrentHashMap<UUID, TrainData>>(ModelId.class);
+        var maps = new ConcurrentHashMap<ModelId, ConcurrentHashMap<UUID, TrainData>>();
         for (var model : ModelId.values()) maps.put(model, new ConcurrentHashMap<>());
         return maps;
     }
 
     public TrainData getOrCreateTrainData(UUID uuid, String name, ModelId model) {
         return trainDataByModel
-                .get(model)
+                .computeIfAbsent(model, ignored -> new ConcurrentHashMap<>())
                 .computeIfAbsent(uuid, key -> new TrainData(uuid, name, model));
     }
 

@@ -17,7 +17,7 @@ public final class StreamWire {
                 || rows.length % rowBytes != 0 || rows.length / rowBytes > 600)
             throw new IllegalArgumentException("Invalid stream range");
         ByteBuffer out = ByteBuffer.allocate(50 + rows.length);
-        out.put(new byte[]{'R','V','S','1'}).put((byte) model.wireId()).put((byte)(model == ModelId.PRO ? 2 : 3));
+        out.put(new byte[]{'R','V','S','1'}).put((byte) model.wireId()).put((byte)(model.proCapture() ? 2 : 3));
         out.putLong(key.getMostSignificantBits()).putLong(key.getLeastSignificantBits());
         out.putLong(player.getMostSignificantBits()).putLong(player.getLeastSignificantBits());
         out.order(ByteOrder.LITTLE_ENDIAN).putLong(from).putInt(rows.length / rowBytes).put(rows);

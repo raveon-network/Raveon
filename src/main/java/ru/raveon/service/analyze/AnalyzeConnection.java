@@ -242,12 +242,10 @@ public final class AnalyzeConnection {
     }
 
     private static Set<ModelId> models(JsonObject json) {
-        Set<ModelId> models = EnumSet.noneOf(ModelId.class);
+        Set<ModelId> models = new java.util.HashSet<>();
         if (!json.has("models")) return models;
         for (JsonElement element : json.getAsJsonArray("models")) {
-            // A newer API may list models this plugin build does not know about.
-            for (ModelId model : ModelId.values())
-                if (model.key().equals(element.getAsString())) models.add(model);
+            if (!models.add(ModelId.parse(element.getAsString()))) throw new IllegalArgumentException("Duplicate allowed model");
         }
         return models;
     }

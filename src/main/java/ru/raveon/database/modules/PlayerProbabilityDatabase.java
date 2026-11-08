@@ -45,18 +45,20 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
     private final DatabaseManager databaseManager;
     private final DatabaseInitialization initialization = new DatabaseInitialization();
     private long nextRetentionCleanup;
+    private final java.util.Set<ModelId> knownModels = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     @Override
     public synchronized CompletableFuture<Void> createTable() {
         return initialization.ensure(databaseManager, () -> {
             try (Connection connection = databaseManager.getConnection()) {
                 createTables(connection);
+                restoreModelRegistry(connection);
                 createIndexIfAbsent(connection, PLAYER_TABLE, USERNAME_INDEX, "username");
                 for (ModelId model : ModelId.values()) {
                     createIndexIfAbsent(connection, entryTable(model),
-                            (model == ModelId.PRO ? "idx_probability_received_at" : "idx_ultra_probability_received_at"), "received_at");
+                            (model.equals(ModelId.PRO) ? "idx_probability_received_at" : "idx_ultra_probability_received_at"), "received_at");
                     createIndexIfAbsent(connection, snapshotTable(model),
-                            (model == ModelId.PRO ? "idx_snapshot_created_at" : "idx_ultra_snapshot_created_at"), "created_at");
+                            (model.equals(ModelId.PRO) ? "idx_snapshot_created_at" : "idx_ultra_snapshot_created_at"), "created_at");
                 }
                 return null;
             } catch (SQLException exception) {
@@ -64,6 +66,57 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
                 throw new CompletionException(exception);
             }
         });
+    }
+
+    private <T> CompletableFuture<T> submit(ModelId model, Supplier<T> task) {
+        return submit(() -> {
+            try {
+                if (!knownModels.contains(model)) {
+                    try (Connection connection = databaseManager.getConnection()) { ensureModelTables(connection, model); }
+                }
+            }
+            catch (SQLException e) { throw new CompletionException(e); }
+            return task.get();
+        });
+    }
+
+    private void restoreModelRegistry(Connection connection) throws SQLException {
+        knownModels.addAll(java.util.List.of(ModelId.values()));
+        try (Statement statement = connection.createStatement(); ResultSet rows = statement.executeQuery("SELECT id FROM raveon_model_history_models")) {
+            while (rows.next()) knownModels.add(ModelId.parse(rows.getString(1)));
+        }
+    }
+
+    private synchronized void ensureModelTables(Connection connection, ModelId model) throws SQLException {
+        if (knownModels.contains(model)) return;
+        createModelTables(connection, model);
+        createIndexIfAbsent(connection, entryTable(model), "idx_m_" + model.key() + "_received", "received_at");
+        createIndexIfAbsent(connection, snapshotTable(model), "idx_m_" + model.key() + "_created", "created_at");
+        try (PreparedStatement statement = connection.prepareStatement("INSERT INTO raveon_model_history_models (id) VALUES (?)")) {
+            statement.setString(1, model.key());
+            try { statement.executeUpdate(); }
+            catch (SQLException error) {
+                if (!"23505".equals(error.getSQLState()) && !"23000".equals(error.getSQLState()) && error.getErrorCode() != 19) throw error;
+            }
+        }
+        if (!connection.getAutoCommit()) connection.commit();
+        knownModels.add(model);
+    }
+
+    private void createModelTables(Connection connection, ModelId model) throws SQLException {
+        try (Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE IF NOT EXISTS " + snapshotTable(model)
+                    + " (player_uuid VARCHAR(36) NOT NULL, snapshot_index INTEGER NOT NULL,"
+                    + " created_at BIGINT NOT NULL, PRIMARY KEY (player_uuid, snapshot_index),"
+                    + " FOREIGN KEY (player_uuid) REFERENCES " + PLAYER_TABLE + "(uuid) ON DELETE CASCADE)");
+            statement.execute("CREATE TABLE IF NOT EXISTS " + entryTable(model)
+                    + " (player_uuid VARCHAR(36) NOT NULL, snapshot_index INTEGER NOT NULL,"
+                    + " entry_index INTEGER NOT NULL, chance DOUBLE NOT NULL,"
+                    + " server_name VARCHAR(64) NOT NULL, received_at BIGINT NOT NULL,"
+                    + " PRIMARY KEY (player_uuid, snapshot_index, entry_index),"
+                    + " FOREIGN KEY (player_uuid, snapshot_index) REFERENCES " + snapshotTable(model)
+                    + "(player_uuid, snapshot_index) ON DELETE CASCADE)");
+        }
     }
 
     private <T> CompletableFuture<T> submit(Supplier<T> task) {
@@ -76,7 +129,7 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
 
     @Override
     public CompletableFuture<PlayerAIProbabilityData> getPlayerDataByUUID(UUID uniqueId, ModelId model) {
-        return submit(
+        return submit(model,
                 () -> {
                     String query =
                             "SELECT uuid, username, last_server, created_at, updated_at "
@@ -109,7 +162,7 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
 
     @Override
     public CompletableFuture<PlayerAIProbabilityData> getPlayerDataByName(String playerName, ModelId model) {
-        return submit(
+        return submit(model,
                 () -> {
                     String query =
                             "SELECT uuid, username, last_server, created_at, updated_at "
@@ -163,7 +216,7 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
         long receivedAt = System.currentTimeMillis();
         int maxEntries = Math.max(1, Raveon.INSTANCE.getMainConfigManager().getMaxProbEntries());
 
-        return submit(
+        return submit(model,
                 () ->
                         addProbability(
                                 uniqueId,
@@ -253,7 +306,7 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
             return CompletableFuture.failedFuture(new IllegalArgumentException("Player summary limit exceeded"));
         List<UUID> requested = uniqueIds.stream().distinct().toList();
         if (requested.isEmpty()) return CompletableFuture.completedFuture(List.of());
-        return submit(() -> {
+        return submit(model,() -> {
             Map<UUID, PlayerAIProbabilityData> players = new LinkedHashMap<>();
             try (Connection connection = databaseManager.getConnection()) {
                 for (int start = 0; start < requested.size(); start += 250) {
@@ -313,7 +366,7 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
     public CompletableFuture<PlayerHistoryPage> getPlayerHistory(UUID uniqueId, int page, int pageSize, ModelId model) {
         if (page < 0 || pageSize < 1 || pageSize > 54)
             return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid history page"));
-        return submit(() -> {
+        return submit(model,() -> {
             try (Connection connection = databaseManager.getConnection();
                     PreparedStatement playerQuery = connection.prepareStatement(
                             "SELECT uuid, username, last_server, created_at, updated_at FROM "
@@ -347,7 +400,7 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
         if (days == 0 || now < nextRetentionCleanup) return;
         nextRetentionCleanup = now + 300_000L;
         long cutoff = now - java.util.concurrent.TimeUnit.DAYS.toMillis(days);
-        for (ModelId model : ModelId.values()) {
+        for (ModelId model : knownModels) {
             try (PreparedStatement entries = connection.prepareStatement(
                             "DELETE FROM " + entryTable(model) + " WHERE (player_uuid, snapshot_index, entry_index) IN "
                                     + "(SELECT player_uuid, snapshot_index, entry_index FROM (SELECT player_uuid, "
@@ -370,15 +423,16 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
     }
 
     private static String snapshotTable(ModelId model) {
-        return model == ModelId.PRO ? SNAPSHOT_TABLE : "ultra_probability_snapshots";
+        return model.equals(ModelId.PRO) ? SNAPSHOT_TABLE : model.equals(ModelId.ULTRA) ? "ultra_probability_snapshots" : "m_" + model.key() + "_snapshots";
     }
 
     private static String entryTable(ModelId model) {
-        return model == ModelId.PRO ? ENTRY_TABLE : "ultra_probability_entries";
+        return model.equals(ModelId.PRO) ? ENTRY_TABLE : model.equals(ModelId.ULTRA) ? "ultra_probability_entries" : "m_" + model.key() + "_entries";
     }
 
     private void createTables(Connection connection) throws SQLException {
         try (Statement statement = connection.createStatement()) {
+            statement.execute("CREATE TABLE IF NOT EXISTS raveon_model_history_models (id VARCHAR(32) PRIMARY KEY)");
             statement.execute("CREATE TABLE IF NOT EXISTS " + PLAYER_TABLE
                     + " (uuid VARCHAR(36) PRIMARY KEY, username VARCHAR(16) NOT NULL,"
                     + " last_server VARCHAR(64) NOT NULL, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL)");
@@ -662,7 +716,7 @@ public class PlayerProbabilityDatabase implements PlayerProbabilityStorage {
     }
 
     private void deleteSnapshotData(Connection connection, UUID uniqueId) throws SQLException {
-        for (ModelId model : ModelId.values()) {
+        for (ModelId model : knownModels) {
             executeDelete(connection, entryTable(model), "player_uuid", uniqueId.toString());
             executeDelete(connection, snapshotTable(model), "player_uuid", uniqueId.toString());
         }

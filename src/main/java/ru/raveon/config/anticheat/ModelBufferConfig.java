@@ -27,7 +27,7 @@ public final class ModelBufferConfig {
         String inherit = config.contains(block + ".inherit") ? text(config, block + ".inherit", "")
                 : text(config, path + ".inherit-buffer", "");
         ModelId owner = inherit.isEmpty() ? null : ModelId.parse(inherit);
-        if (owner == model) throw invalid(block + ".inherit", "cannot refer to itself");
+        if (model.equals(owner)) throw invalid(block + ".inherit", "cannot refer to itself");
         return new ModelPolicy.Buffer(flag,
                 number(config, block + ".reset", "analyze.buffer.reset_on_flag", 25, 0, flag),
                 number(config, block + ".multiplier", "analyze.buffer.multiplier", 100, 0, 1_000_000),
@@ -40,13 +40,13 @@ public final class ModelBufferConfig {
     public static Map<ModelId, AnalysisSettings> owners(Map<ModelId, AnalysisSettings> models, Set<ModelId> licensed) {
         for (var entry : models.entrySet()) {
             ModelId owner = entry.getValue().bufferOwner();
-            if (models.get(owner).bufferOwner() != owner)
+            if (models.containsKey(owner) && !models.get(owner).bufferOwner().equals(owner))
                 throw invalid("analyze.models." + entry.getKey().key() + ".buffer.inherit", "chains and cycles are not supported");
         }
-        var result = new EnumMap<ModelId, AnalysisSettings>(models);
+        var result = new java.util.LinkedHashMap<ModelId, AnalysisSettings>(models);
         for (var entry : models.entrySet()) {
             ModelId model = entry.getKey(), owner = entry.getValue().bufferOwner();
-            if (owner != model && (!models.get(owner).enabled() || !licensed.contains(owner))) {
+            if (!owner.equals(model) && (!models.containsKey(owner) || !models.get(owner).enabled() || !licensed.contains(owner))) {
                 var source = entry.getValue();
                 result.put(model, new AnalysisSettings(source.enabled(), source.window(), source.step(), source.combatMillis(),
                         source.probability(), source.actions(), source.mitigationWeight(), model, source.buffer()));
