@@ -6,65 +6,61 @@ analyze:
   # Inference endpoint. Changing this address requires a restart.
   server: https://api.raveon.wtf/v1/inference
   # Primary model, capture window, step and display names are loaded from the API
-  # at startup and /raveon reload. Configure them on the website.
+  # at startup, on profile updates and /raveon reload. Configure them on the website.
 
   models:
-    # Pro's trained window is 50 frames; the website may configure a larger capture.
     pro:
-      # Requires analyze.enabled. Disabled models send no new requests.
+      # Local switches can only narrow the models and roles allowed by the API.
       enabled: true
-      # Buffer owner: "" for this model, or "ultra". Self-references and cycles are invalid.
-      inherit-buffer: ""
       actions:
-        # Send built-in alerts for this model's flags; buffer updates and punishments remain active.
         alert: true
-        # Include this model's answers in damage mitigation.
         mitigate: true
-        # Add this model's flags to punishment groups and execute their actions.
         punish: true
       # Analysis period after an attack, in units of 50 ms.
       combat: 50
-      # Buffer growth starts above this probability; range: 0-1.
-      probability: 0.85
-      # Relative contribution to mitigation only; 0 removes this model's contribution.
       mitigation-weight: 1.0
+      buffer:
+        # website: use the API buffer; local: use this entire block.
+        # Without an API buffer, these values are the fallback in either mode.
+        # Apply local edits with /raveon reload. This does not grant model access.
+        source: website
+        # "" = own buffer; "ultra" = share Ultra's buffer.
+        # A shared buffer uses its owner's flag/reset/growth/decay and BOTH
+        # probability thresholds. Disabled/unlicensed owners fall back to own buffer.
+        # Chains and cycles are invalid.
+        inherit: ""
+        flag: 50.0
+        reset: 25.0
+        multiplier: 100.0
+        decrease: 0.25
+        threshold: 0.85
+        legit-threshold: 0.1
+        # Contribution of this answer source, including when sharing a buffer.
+        weight: 1.0
+        # Extra source weight when this model is primary; minimum 1.
+        primary-multiplier: 2.0
 
-    # Ultra's trained window is 64 frames; the website may configure a larger capture.
     ultra:
-      # Requires analyze.enabled. Both models disabled means no detection.
       enabled: true
-      # Buffer owner: "" for this model, or "pro". Source actions and probability still apply.
-      inherit-buffer: ""
       actions:
-        # Send built-in alerts for this model's flags; buffer updates and punishments remain active.
         alert: true
-        # Include this model's answers in damage mitigation.
         mitigate: true
-        # Add this model's flags to punishment groups and execute their actions.
         punish: true
-      # Analysis period after an attack, in units of 50 ms.
       combat: 64
-      # Buffer growth starts above this probability; range: 0-1.
-      probability: 0.85
-      # Relative contribution to mitigation only; 0 removes this model's contribution.
       mitigation-weight: 1.0
-
-  # Shared parameters for separate buffers; inherit-buffer selects another buffer.
-  buffer:
-    # A flag occurs when the selected buffer strictly exceeds this value.
-    flag: 50.0
-    # Buffer value after every flag; must not exceed flag.
-    reset_on_flag: 25.0
-    # Growth: (probability - source threshold) * multiplier * effective weight.
-    multiplier: 100.0
-    # Base decrease for probability below 0.1 when growth does not apply; scaled by effective weight.
-    decrease: 0.25
-    # Extra multiplier for primary on both growth and decrease; minimum: 1.
-    primary-multiplier: 2.0
-    # Base weights by answer source. Zero disables that source's buffer changes.
-    weights:
-      pro: 1.0
-      ultra: 1.0
+      buffer:
+        # website = API values; local = this block. Apply with /raveon reload.
+        source: website
+        # "" = own buffer; "pro" = share Pro's buffer, using Pro's thresholds.
+        inherit: ""
+        flag: 50.0
+        reset: 25.0
+        multiplier: 100.0
+        decrease: 0.25
+        threshold: 0.85
+        legit-threshold: 0.1
+        weight: 1.0
+        primary-multiplier: 2.0
 
   mitigation:
     # Reduce outgoing PvP melee damage using a score separate from punishment buffers.

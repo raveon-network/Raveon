@@ -60,8 +60,6 @@ public class ChecksConfigManager extends ConfigManager implements ru.raveon.mana
         CustomConfig config = getChecksConfig();
         requireSection(config, "analyze");
         requireSection(config, "analyze.models");
-        requireSection(config, "analyze.buffer");
-        requireSection(config, "analyze.buffer.weights");
         requireSection(config, "analyze.mitigation");
         analysisEnabled = config.getBoolean("analyze.enabled", false);
         primaryModel = remoteProfile.primary() == null ? ModelId.PRO : remoteProfile.primary();
@@ -71,45 +69,32 @@ public class ChecksConfigManager extends ConfigManager implements ru.raveon.mana
             String path = "analyze.models." + model.key();
             requireSection(config, path);
             requireSection(config, path + ".actions");
-            String inherited = config.getRawString(path + ".inherit-buffer", "").trim();
             var spec = remoteProfile.models().get(model);
             ModelPolicy remote = spec == null ? null : spec.policy();
-            ModelId owner = inherited.isEmpty() ? model : ModelId.parse(inherited);
-            if (!inherited.isEmpty() && owner == model)
-                throw new IllegalArgumentException(path + ".inherit-buffer cannot refer to itself");
-            if (remote != null) owner = remote.buffer().inherit() == null ? model : remote.buffer().inherit();
+            var buffer = ModelBufferConfig.resolve(config.getConfig(), model, remote == null ? null : remote.buffer());
+            ModelId owner = buffer.inherit() == null ? model : buffer.inherit();
             loaded.put(model, new AnalysisSettings(
                     config.getBoolean(path + ".enabled", true),
                     remoteProfile.models().containsKey(model) ? remoteProfile.models().get(model).window() : model.sequence(),
                     remoteProfile.models().containsKey(model) ? remoteProfile.models().get(model).step() : model.step(),
                     config.requireInt(path + ".combat", model == ModelId.PRO ? 50 : 64, 0, 72000) * 50L,
-                    remote == null ? config.requireDouble(path + ".probability", .85, 0, 1) : remote.buffer().threshold(),
+                    buffer.threshold(),
                     new ModelActions(config.getBoolean(path + ".actions.alert", true) && (remote == null || remote.alert()),
                             config.getBoolean(path + ".actions.mitigate", true) && (remote == null || remote.mitigate()),
                             config.getBoolean(path + ".actions.punish", true) && (remote == null || remote.punish())),
                     remote == null ? config.requireDouble(path + ".mitigation-weight", 1, 0, Double.MAX_VALUE) : remote.mitigationWeight(),
-                    owner, remote == null ? null : remote.buffer()));
-            weights.put(model, config.requireDouble(
-                    "analyze.buffer.weights." + model.key(), 1, 0, Double.MAX_VALUE));
+                    owner, buffer));
+            weights.put(model, buffer.weight());
         }
-        for (var settings : loaded.values()) {
-            ModelId owner = settings.bufferOwner();
-            if (loaded.get(owner).bufferOwner() != owner)
-                throw new IllegalArgumentException("Buffer inheritance chains and cycles are not supported");
-        }
-        modelSettings = Map.copyOf(loaded);
+        modelSettings = ModelBufferConfig.owners(loaded, remoteProfile.models().keySet());
         // Local switches may narrow the site's profile, including disabling its preferred lead.
         if (!modelSettings.get(primaryModel).enabled() || !remoteProfile.models().containsKey(primaryModel))
             primaryModel = java.util.Arrays.stream(ModelId.values())
                     .filter(model -> remoteProfile.models().containsKey(model) && modelSettings.get(model).enabled())
                     .findFirst().orElse(ModelId.PRO);
-        double flag = config.requireDouble("analyze.buffer.flag", 50, .001, 1_000_000);
-        bufferSettings = new BufferSettings(flag,
-                config.requireDouble("analyze.buffer.reset_on_flag", 25, 0, flag),
-                config.requireDouble("analyze.buffer.multiplier", 100, 0, 1_000_000),
-                config.requireDouble("analyze.buffer.decrease", .25, 0, 1_000_000),
-                config.requireDouble("analyze.buffer.primary-multiplier", 2, 1, Double.MAX_VALUE),
-                Map.copyOf(weights));
+        var base = loaded.get(ModelId.PRO).buffer();
+        bufferSettings = new BufferSettings(base.flag(), base.reset(), base.multiplier(), base.decrease(),
+                base.primaryMultiplier(), Map.copyOf(weights));
 
         String path = "analyze.mitigation";
         long halfLife = config.getLong(path + ".half-life-seconds", 30);

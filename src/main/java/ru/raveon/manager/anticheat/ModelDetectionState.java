@@ -48,7 +48,10 @@ public final class ModelDetectionState {
         if (source == settings.getPrimaryModel())
             weight = Math.min(Double.MAX_VALUE, weight * (sourceBuffer == null ? config.primaryMultiplier() : sourceBuffer.primaryMultiplier()));
         ModelId owner = modelSettings.bufferOwner();
-        var ownerBuffer = settings.getModelSettings().get(owner).buffer();
+        var ownerSettings = settings.getModelSettings().get(owner);
+        var ownerBuffer = ownerSettings.buffer();
+        double threshold = ownerBuffer == null ? ownerSettings.probability() : ownerBuffer.threshold();
+        double legitThreshold = ownerBuffer == null ? .1 : ownerBuffer.legitThreshold();
         double flag = ownerBuffer == null ? config.flag() : ownerBuffer.flag();
         double reset = ownerBuffer == null ? config.reset() : ownerBuffer.reset();
         double multiplier = ownerBuffer == null ? config.multiplier() : ownerBuffer.multiplier();
@@ -56,10 +59,10 @@ public final class ModelDetectionState {
         double before = buffers.getOrDefault(owner, 0.0);
         double after = before;
         if (weight > 0) {
-            if (probability > modelSettings.probability()) {
-                double increase = (probability - modelSettings.probability()) * multiplier;
+            if (probability > threshold) {
+                double increase = (probability - threshold) * multiplier;
                 after = Math.min(Double.MAX_VALUE, before + increase * weight);
-            } else if (probability < (sourceBuffer == null ? .1 : sourceBuffer.legitThreshold())) {
+            } else if (probability < legitThreshold) {
                 double decrease = Math.min(Double.MAX_VALUE, decreaseRate * weight);
                 after = Math.max(0, before - decrease);
             }
