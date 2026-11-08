@@ -58,7 +58,7 @@ enabled model on the server's Models tab; administrators edit names/window/step
 in `/admin/model-cards`. Roles and buffer policies are saved separately for each
 server/model in the server panel; admin card policies provide defaults.
 Local model/role switches narrow API permissions.
-Old `analyze.primary`, model `step`, and hologram model-name overrides are ignored. API buffer policies take precedence over local defaults. Detection buffers stay cached by UUID until the plugin stops, including reconnects and reloads; normal decreases and flag resets remain active. The Models tab also edits revisioned punishment groups (sync/upload/off). The plugin uses CRC-bound incremental streams with acknowledgements and persisted retry receipts on `/v1/inference` (application/x-raveon-stream). The first request sends a full capture; subsequent requests send verified new rows. Legacy full-window FlatBuffers clients remain supported on the same path.
+Old `analyze.primary`, model `step`, and hologram model-name overrides are ignored. Each model has its own buffer block in checks.yml. buffer.source: website uses the API policy (default); buffer.source: local selects that model’s local buffer. Shared buffers use both probability thresholds and arithmetic parameters of their owner; source weights remain independent. See [model buffer settings](docs/MODEL_BUFFERS.md). Detection buffers stay cached by UUID until the plugin stops, including reconnects and reloads; normal decreases and flag resets remain active. The Models tab also edits revisioned punishment groups (sync/upload/off). The plugin uses CRC-bound incremental streams with acknowledgements and persisted retry receipts on `/v1/inference` (application/x-raveon-stream). The first request sends a full capture; subsequent requests send verified new rows. Legacy full-window FlatBuffers clients remain supported on the same path.
 An invalid/unavailable profile leaves the previous configuration active; on the
 first startup detection waits for a valid profile. A failed reload reports an error.
 The backend and shared website database must be upgraded before installing this JAR.
@@ -79,9 +79,9 @@ Folia 1.16.5 does not exist. Paper 1.16.5 must run on Java 17+ to load Raveon; s
 
 ## Installation
 
-1. Build `build/libs/Raveon-2.0.8.jar`.
+1. Build `build/libs/Raveon-2.0.9.jar`.
 2. Install `packetevents` in the `plugins/` directory.
-3. Copy `Raveon-2.0.8.jar` to `plugins/`.
+3. Copy `Raveon-2.0.9.jar` to `plugins/`.
 4. Start the server once to generate the configuration files.
 5. Stop the server and edit the configuration.
 6. Connect the plugin with `/raveon connect <code>`.
@@ -149,7 +149,7 @@ gradlew.bat shadowJar
 The resulting JAR is written to:
 
 ```text
-build/libs/Raveon-2.0.8.jar
+build/libs/Raveon-2.0.9.jar
 ```
 
 Main classes are compiled with `--release 17`. GitHub Actions builds with JDK 21. The first Gradle run downloads public dependencies; with a populated local cache, add `--offline`.
