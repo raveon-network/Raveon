@@ -1,45 +1,25 @@
 package ru.raveon.api.models.monitor;
-
 import ru.raveon.model.ModelId;
-
-import java.util.Locale;
-
-public enum MonitorModelFilter {
-    PRO,
-    ULTRA,
-    ALL;
-
-    public boolean accepts(ModelId model) {
-        return this == ALL || (this == PRO ? model == ModelId.PRO : model == ModelId.ULTRA);
-    }
-
-    public String displayName() {
-        return displayName(false);
-    }
-
-    public String fullDisplayName() {
-        return displayName(true);
-    }
-
-    private String displayName(boolean full) {
-        if (this == ALL) return ru.raveon.Raveon.INSTANCE.getLanguageService().text("monitor.models.all");
-        ModelId model = this == PRO ? ModelId.PRO : ModelId.ULTRA;
+public record MonitorModelFilter(ModelId model) {
+    public static final MonitorModelFilter PRO = new MonitorModelFilter(ModelId.PRO);
+    public static final MonitorModelFilter ULTRA = new MonitorModelFilter(ModelId.ULTRA);
+    public static final MonitorModelFilter ALL = new MonitorModelFilter(null);
+    public boolean accepts(ModelId id) { return model == null || model.equals(id); }
+    public String displayName() { return title(false); }
+    public String fullDisplayName() { return title(true); }
+    private String title(boolean full) {
         var checks = ru.raveon.Raveon.INSTANCE.getChecksConfigManager();
-        return full ? checks.getModelName(model) : checks.getModelShortTitle(model);
+        return model == null ? ru.raveon.Raveon.INSTANCE.getLanguageService().text("monitor.models.all")
+                : full ? checks.getModelName(model) : checks.getModelShortTitle(model);
     }
-
     public static MonitorModelFilter parse(String argument) {
-        return switch (argument.toLowerCase(Locale.ROOT)) {
-            case "pro" -> PRO;
-            case "ultra" -> ULTRA;
-            case "all" -> ALL;
-            default -> throw new IllegalArgumentException("Unknown monitor model: " + argument);
-        };
+        if (argument.equalsIgnoreCase("all")) return ALL;
+        ModelId id = ModelId.parse(argument);
+        if (!ru.raveon.Raveon.INSTANCE.getChecksConfigManager().activeModels().contains(id))
+            throw new IllegalArgumentException("Unknown monitor model: " + argument);
+        return new MonitorModelFilter(id);
     }
-
     public static boolean isArgument(String argument) {
-        return argument.equalsIgnoreCase("pro")
-                || argument.equalsIgnoreCase("ultra")
-                || argument.equalsIgnoreCase("all");
+        try { parse(argument); return true; } catch (IllegalArgumentException e) { return false; }
     }
 }

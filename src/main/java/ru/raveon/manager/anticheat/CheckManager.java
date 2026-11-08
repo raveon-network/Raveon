@@ -32,14 +32,15 @@ public class CheckManager {
     private final RotationData rotationData;
     private final TelemetryState telemetry = new TelemetryState();
     private final RaveonPlayer player;
-    private final Map<ModelId, AimAI> aimChecks = new EnumMap<>(ModelId.class);
-    private final Map<ModelId, AtomicLong> generations = new EnumMap<>(ModelId.class);
+    private final Map<ModelId, AimAI> aimChecks = new java.util.concurrent.ConcurrentHashMap<>();
+    private final Map<ModelId, AtomicLong> generations = new java.util.concurrent.ConcurrentHashMap<>();
     private final PacketWorkQueue<PacketInput> pending =
             new PacketWorkQueue<>(MAX_PENDING_PACKETS, PACKETS_PER_TICK);
     private final AtomicLong droppedPackets = new AtomicLong();
     private long lastOverflowWarning;
     private long reportedDroppedPackets;
     private volatile ChecksConfigManager activeConfig;
+    private final ru.raveon.service.analyze.ModelCaptureBuffers captureBuffers = new ru.raveon.service.analyze.ModelCaptureBuffers();
 
     public CheckManager(RaveonPlayer player) {
         this.player = player;
@@ -61,12 +62,13 @@ public class CheckManager {
     }
 
     public long getGeneration(ModelId model) {
-        return generations.get(model).get();
+        var generation = generations.get(model); return generation == null ? -1 : generation.get();
     }
 
     public void invalidate(ModelId model) {
-        generations.get(model).incrementAndGet();
-        if (model == ModelId.PRO) {
+        generations.computeIfAbsent(model, ignored -> new AtomicLong()).incrementAndGet();
+        captureBuffers.clear(model);
+        if (model.proCapture()) {
             if (player.getRotationBuffer() != null) player.getRotationBuffer().clear();
         } else {
             player.getUltraData().clearHistory();
@@ -76,11 +78,11 @@ public class CheckManager {
     public void onPacketReceive(PacketReceiveEvent packet) {
         if (packet.isCancelled()
                 || activeConfig == Raveon.INSTANCE.getChecksConfigManager()
-                        && !isRequested(ModelId.PRO) && !isRequested(ModelId.ULTRA)) return;
+                        && !requestedCapture("pro") && !requestedCapture("ultra")) return;
         Player bukkit = packet.getPlayer();
         if (bukkit == null) return;
         if (!WrapperPlayClientPlayerFlying.isFlying(packet.getPacketType())) {
-            if (isRequested(ModelId.ULTRA)) {
+            if (requestedCapture("ultra")) {
                 try {
                     handleTelemetry(bukkit, TelemetryPackets.receive(packet));
                 } catch (IllegalArgumentException ignored) {}
@@ -95,7 +97,7 @@ public class CheckManager {
             enqueue(bukkit, new PacketInput(Kind.RESET, false, 0.0F, 0.0F, -1, null));
             return;
         }
-        if (!isRequested(ModelId.ULTRA)) {
+        if (!requestedCapture("ultra")) {
             enqueue(bukkit, new PacketInput(Kind.MOVEMENT, rotated, yaw, pitch, -1, null));
             return;
         }
@@ -115,17 +117,28 @@ public class CheckManager {
     }
 
     public void handleAttack(Player bukkit, int entityId) {
-        if (bukkit != null && (isRequested(ModelId.PRO) || isRequested(ModelId.ULTRA)))
+        if (bukkit != null && (requestedCapture("pro") || requestedCapture("ultra")))
             enqueue(bukkit, new PacketInput(Kind.ATTACK, false, 0.0F, 0.0F, entityId, null));
     }
 
     public void handleTelemetry(Player bukkit, TelemetryUpdate update) {
-        if (bukkit != null && update != null && isRequested(ModelId.ULTRA))
+        if (bukkit != null && update != null && requestedCapture("ultra"))
             enqueue(bukkit, new PacketInput(Kind.TELEMETRY, false, 0, 0, -1, update));
     }
 
     private boolean isRequested(ModelId model) {
-        return getAimAI(model).isEnabled() || player.getTrainData(model).isDatasetsCollecting();
+        var check = getAimAI(model);
+        return check != null && check.isEnabled()
+                || (model.equals(ModelId.PRO) || model.equals(ModelId.ULTRA)) && player.getTrainData(model).isDatasetsCollecting();
+    }
+
+    public boolean requestedCapture(String capture) {
+        var config = activeConfig == null ? Raveon.INSTANCE.getChecksConfigManager() : activeConfig;
+        return config.activeModels().stream().anyMatch(m -> m.capture().equals(capture) && config.isModelEnabled(m))
+                || player.getTrainData(capture.equals("pro") ? ModelId.PRO : ModelId.ULTRA).isDatasetsCollecting();
+    }
+    public void invalidateCapture(String capture) {
+        for (var model : aimChecks.keySet()) if (model.capture().equals(capture)) invalidate(model);
     }
 
     private void enqueue(Player bukkit, PacketInput input) {
@@ -184,7 +197,7 @@ public class CheckManager {
         }
         if (input.kind == Kind.TELEMETRY) {
             if (input.telemetry.kind() == TelemetryUpdate.Kind.TELEPORT) {
-                invalidate(ModelId.ULTRA);
+                invalidateCapture("ultra");
                 player.getUltraData().reset();
             }
             telemetry.apply(bukkit, input.telemetry);
@@ -192,15 +205,16 @@ public class CheckManager {
         }
         if (input.kind == Kind.ATTACK) {
             UUID targetId = Raveon.INSTANCE.getTargetEntityIndex().getUniqueIdByEntityId(input.entityId);
-            if (isRequested(ModelId.ULTRA)) telemetry.attack(bukkit, input.entityId, targetId);
+            if (requestedCapture("ultra")) telemetry.attack(bukkit, input.entityId, targetId);
             if (targetId == null) return;
-            if (isRequested(ModelId.PRO)) player.markAttack(targetId);
-            if (isRequested(ModelId.ULTRA)) rotationData.handleUltraAttack(targetId);
+            player.noteAnalysisAttack();
+            if (requestedCapture("pro")) player.markAttack(targetId);
+            if (requestedCapture("ultra")) rotationData.handleUltraAttack(targetId);
             return;
         }
-        boolean ultraRequested = isRequested(ModelId.ULTRA);
+        boolean ultraRequested = requestedCapture("ultra");
         if (ultraRequested && input.telemetry == null) {
-            invalidate(ModelId.ULTRA);
+            invalidateCapture("ultra");
             player.getUltraData().reset();
             telemetry.reset();
             ultraRequested = false;
@@ -210,13 +224,13 @@ public class CheckManager {
         var state = ultraRequested ? data.activate() : null;
         if (state != null) state.onFlying(input.rotated);
         if (!input.rotated) return;
-        if (isRequested(ModelId.PRO)) getAimAI().handleRotation(bukkit, input.yaw, input.pitch);
+        if (requestedCapture("pro")) getAimAI().handleRotation(bukkit, input.yaw, input.pitch);
         if (state != null) rotationData.captureUltra(bukkit, data, state, input.yaw, input.pitch);
     }
 
     private void resetWindows() {
         telemetry.reset();
-        for (ModelId model : ModelId.values()) invalidate(model);
+        for (ModelId model : aimChecks.keySet()) invalidate(model);
         player.getUltraData().reset();
         aimChecks.values().forEach(AimAI::resetRotation);
     }
@@ -225,6 +239,13 @@ public class CheckManager {
         pending.reset();
         resetWindows();
         ChecksConfigManager settings = Raveon.INSTANCE.getChecksConfigManager();
+        aimChecks.clear();
+        for (var model : settings.getModelSettings().keySet()) {
+            aimChecks.put(model, new AimAI(player, model));
+            generations.computeIfAbsent(model, ignored -> new AtomicLong()).incrementAndGet();
+        }
+        generations.keySet().retainAll(settings.getModelSettings().keySet());
+        captureBuffers.configure(settings.getRemoteProfile());
         detectionState.reload(settings);
         aimChecks.values().forEach(check -> check.reloadFrom(settings));
         activeConfig = settings;

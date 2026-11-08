@@ -34,6 +34,7 @@ public class RaveonPlayer {
     private Player bukkitPlayer;
 
     private volatile long lastCombatTime = 0L;
+    private volatile long lastAnalysisAttack;
     private volatile boolean isInCombat = false;
 
     public RaveonPlayer(User user) {
@@ -89,19 +90,22 @@ public class RaveonPlayer {
             trainData.writeFrame(rotationFrame);
         }
 
-        if (!checkManager.getAimAI().isEnabled() || !isInCombat()) {
+        if (!checkManager.requestedCapture("pro") || !isInCombat()) {
             return;
         }
 
         rotationBuffer.addFrame(rotationFrame);
-
-        if (rotationBuffer.isFull()) {
-            Raveon.INSTANCE.getAnalyzeService().analyzePlayerFrames(this);
-        }
+        checkManager.getCaptureBuffers().addPro(rotationFrame);
+        for (var model : checkManager.getActiveConfig().activeModels())
+            if (model.proCapture()) Raveon.INSTANCE.getAnalyzeService().analyzePlayerFrames(this, model);
     }
 
     public void markAttack(UUID targetUuid) {
         tagCombat();
+    }
+    public void noteAnalysisAttack() { lastAnalysisAttack = System.currentTimeMillis(); }
+    public boolean isModelInCombat(ModelId model) {
+        return System.currentTimeMillis() - lastAnalysisAttack <= checkManager.getActiveConfig().getCombatTimer(model);
     }
 
     public void tagCombat() {
@@ -130,7 +134,7 @@ public class RaveonPlayer {
     }
 
     private void resetCombatWindow() {
-        checkManager.invalidate(ModelId.PRO);
+        checkManager.invalidateCapture("pro");
         checkManager.getAimAI().resetRotation();
     }
 

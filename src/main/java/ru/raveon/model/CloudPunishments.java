@@ -55,8 +55,8 @@ public record CloudPunishments(String mode, int revision, Policy policy) {
             JsonObject g = element.getAsJsonObject();
             String name = g.get("name").getAsString();
             if (!name.matches("[a-z0-9_-]{1,64}") || !names.add(name)) throw new IllegalArgumentException("Invalid group name");
-            Set<ModelId> models = EnumSet.noneOf(ModelId.class);
-            for (String model : texts(g.getAsJsonArray("models"), 2))
+            Set<ModelId> models = new java.util.HashSet<>();
+            for (String model : texts(g.getAsJsonArray("models"), ModelId.MAX_MODELS))
                 if (!models.add(ModelId.parse(model))) throw new IllegalArgumentException("Duplicate model");
             int seconds = integer(g.get("remove_violations_after"));
             if (seconds < 1 || seconds > 604800) throw new IllegalArgumentException("Invalid violation lifetime");

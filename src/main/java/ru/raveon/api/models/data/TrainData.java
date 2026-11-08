@@ -200,7 +200,7 @@ public class TrainData {
     private @NotNull String generateInfoMessage() {
         int currentSize;
         synchronized (lock) {
-            currentSize = model == ModelId.PRO ? datasetFrames.size() : ultraFrames.size();
+            currentSize = model.equals(ModelId.PRO) ? datasetFrames.size() : ultraFrames.size();
         }
         return Raveon.INSTANCE
                 .getLanguageService().text("datacollect.statistics")
@@ -212,14 +212,14 @@ public class TrainData {
     }
 
     public void writeUltraFrame(UltraFrame frame) {
-        if (model != ModelId.ULTRA || !isDatasetsCollecting || !isInCombat()) return;
+        if (!model.equals(ModelId.ULTRA) || !isDatasetsCollecting || !isInCombat()) return;
         appendFrame(frame, ultraFrames);
     }
 
     public CompletableFuture<Boolean> writeDatasetFrames() {
         synchronized (lock) {
             if (saving) return saveFuture;
-            int count = model == ModelId.PRO ? datasetFrames.size() : ultraFrames.size();
+            int count = model.equals(ModelId.PRO) ? datasetFrames.size() : ultraFrames.size();
             if (count == 0) {
                 if (!isDatasetsCollecting) finishSession();
                 return CompletableFuture.completedFuture(true);
@@ -228,11 +228,11 @@ public class TrainData {
             int length = Math.min(count, Raveon.INSTANCE.getDataCollectConfigManager().getFramesToCollect(model));
             long generation = sessionGeneration;
             UploadService service = uploadService;
-            List<RotationFrame> proCopy = model == ModelId.PRO ? List.copyOf(datasetFrames.subList(0, length)) : List.of();
-            List<UltraFrame> ultraCopy = model == ModelId.ULTRA ? List.copyOf(ultraFrames.subList(0, length)) : List.of();
+            List<RotationFrame> proCopy = model.equals(ModelId.PRO) ? List.copyOf(datasetFrames.subList(0, length)) : List.of();
+            List<UltraFrame> ultraCopy = model.equals(ModelId.ULTRA) ? List.copyOf(ultraFrames.subList(0, length)) : List.of();
             saving = true;
             savingFrames = length;
-            saveFuture = model == ModelId.PRO
+            saveFuture = model.equals(ModelId.PRO)
                     ? service.uploadPlayerData(proCopy, isMarkedCheater)
                     : service.uploadUltraPlayerData(ultraCopy, isMarkedCheater);
             CompletableFuture<Boolean> submitted = saveFuture;
@@ -252,19 +252,19 @@ public class TrainData {
                 completion.complete(false);
                 Raveon.INSTANCE.getLogger().warning("Dataset save failed; unsaved frames retained for "
                         + playerName + " / " + model.displayName() + ": "
-                        + (model == ModelId.PRO ? datasetFrames.size() : ultraFrames.size())
+                        + (model.equals(ModelId.PRO) ? datasetFrames.size() : ultraFrames.size())
                         + " frames, " + service.getDatasetFile());
                 hideStatistics();
                 return;
             }
-            if (model == ModelId.PRO) datasetFrames.subList(0, count).clear();
+            if (model.equals(ModelId.PRO)) datasetFrames.subList(0, count).clear();
             else ultraFrames.subList(0, count).clear();
             totalFramesCollected += count;
             datasetsUploaded++;
             var config = Raveon.INSTANCE.getDataCollectConfigManager();
             if (config.isAutosaveStatus() && datasetsUploaded >= config.getAutosaveValue())
                 isDatasetsCollecting = false;
-            int remaining = model == ModelId.PRO ? datasetFrames.size() : ultraFrames.size();
+            int remaining = model.equals(ModelId.PRO) ? datasetFrames.size() : ultraFrames.size();
             flush = remaining > 0 && (!isDatasetsCollecting || remaining >= config.getFramesToCollect(model));
             if (!isDatasetsCollecting && remaining == 0) finishSession();
         }
@@ -340,7 +340,7 @@ public class TrainData {
                 isInCombat = false;
                 if (isDatasetsCollecting
                         && Raveon.INSTANCE.getDataCollectConfigManager().isClearBufferOnCombatTimeout()) {
-                    if (model == ModelId.PRO)
+                    if (model.equals(ModelId.PRO))
                         datasetFrames.subList(savingFrames, datasetFrames.size()).clear();
                     else ultraFrames.subList(savingFrames, ultraFrames.size()).clear();
                 }

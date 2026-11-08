@@ -15,7 +15,7 @@ public record ModelPolicy(boolean alert, boolean mitigate, boolean punish, doubl
         double threshold = number(b, "threshold", 0, 1);
         ModelId inherit = b.get("inherit") == null || b.get("inherit").isJsonNull()
                 ? null : ModelId.parse(b.get("inherit").getAsString());
-        if (inherit == model) throw new IllegalArgumentException("Self-inheriting buffer");
+        if (model.equals(inherit)) throw new IllegalArgumentException("Self-inheriting buffer");
         return new ModelPolicy(bool(roles, "alert"), bool(roles, "mitigate"), bool(roles, "punish"),
                 number(entry, "mitigation_weight", 0, 1000), new Buffer(flag,
                 number(b, "reset", 0, flag), number(b, "multiplier", 0, 1_000_000),

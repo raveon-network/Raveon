@@ -139,8 +139,8 @@ public class MonitorSubCommand implements BuildableCommand {
             if (args.length == 3) {
                 choices = Bukkit.getOnlinePlayers().stream().map(HumanEntity::getName);
                 if (args[1].equalsIgnoreCase("chat"))
-                    choices = Stream.concat(choices, Stream.of("pro", "ultra", "all"));
-            } else if (args.length == 4) choices = Stream.of("pro", "ultra", "all");
+                    choices = Stream.concat(choices, Stream.concat(Stream.of("all"), ru.raveon.Raveon.INSTANCE.getChecksConfigManager().activeModels().stream().map(ru.raveon.model.ModelId::key)));
+            } else if (args.length == 4) choices = Stream.concat(Stream.of("all"), ru.raveon.Raveon.INSTANCE.getChecksConfigManager().activeModels().stream().map(ru.raveon.model.ModelId::key));
             else return Collections.emptyList();
             String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);
             return choices.distinct()

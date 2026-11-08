@@ -37,7 +37,7 @@ public final class MonitorManager implements Listener {
 
     private final Map<UUID, MonitorSession> sessions = new HashMap<>();
     private final Map<UUID, AiSnapshot> snapshots = new HashMap<>();
-    private final Map<UUID, EnumMap<ModelId, AiSnapshot>> modelSnapshots = new HashMap<>();
+    private final Map<UUID, Map<ModelId, AiSnapshot>> modelSnapshots = new HashMap<>();
     private final Map<UUID, ChatSubscription> chatSubscriptions = new HashMap<>();
     private final Map<UUID, MonitorSelection> savedSessions = new HashMap<>();
     private final Map<UUID, ChatSubscription> savedChatSubscriptions = new HashMap<>();
@@ -62,7 +62,7 @@ public final class MonitorManager implements Listener {
 
         MonitorSelection saved = savedSessions.get(viewerId);
         if (saved != null && saved.targetId().equals(targetId)
-                && saved.modelFilter() == modelFilter) {
+                && saved.modelFilter().equals(modelFilter)) {
             stop(viewer);
             return ToggleResult.DISABLED;
         }
@@ -92,7 +92,7 @@ public final class MonitorManager implements Listener {
 
         if (current != null
                 && Objects.equals(current.targetId(), targetId)
-                && current.modelFilter() == modelFilter) {
+                && current.modelFilter().equals(modelFilter)) {
             chatSubscriptions.remove(viewerId);
             savedChatSubscriptions.remove(viewerId);
             pruneUnusedSnapshots();
@@ -167,7 +167,7 @@ public final class MonitorManager implements Listener {
                         .getAverageProbability(targetId, normalizedProbability, model);
 
         var perModel =
-                modelSnapshots.computeIfAbsent(targetId, ignored -> new EnumMap<>(ModelId.class));
+                modelSnapshots.computeIfAbsent(targetId, ignored -> new java.util.concurrent.ConcurrentHashMap<>());
         AiSnapshot previous = perModel.get(model);
         double trend = previous == null ? 0.0D : normalizedProbability - previous.probability();
         AiSnapshot snapshot =
@@ -401,7 +401,7 @@ public final class MonitorManager implements Listener {
         var perModel = modelSnapshots.get(session.getTargetId());
         if (perModel == null) return null;
         return perModel.get(
-                session.getModelFilter() == MonitorModelFilter.PRO ? ModelId.PRO : ModelId.ULTRA);
+                session.getModelFilter().model());
     }
 
     private String createActionBar(String targetName, AiSnapshot snapshot) {

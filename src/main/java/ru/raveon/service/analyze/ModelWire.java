@@ -64,7 +64,7 @@ public final class ModelWire {
         FlatBufferBuilder b = new FlatBufferBuilder(64 + values.length * 4);
         b.startVector(4, values.length, 4);
         for (int i = values.length - 1; i >= 0; i--) {
-            if (model == ModelId.ULTRA && !Float.isFinite(values[i]))
+            if (!Float.isFinite(values[i]))
                 throw new IllegalArgumentException("Nonfinite feature");
             b.addFloat(values[i]);
         }
@@ -75,7 +75,7 @@ public final class ModelWire {
         b.addInt(1, count, 0);
         b.addOffset(2, vector, 0);
         b.addInt(3, model.wireId(), 0);
-        b.addInt(4, model == ModelId.ULTRA ? 3 : 2, 0);
+        b.addInt(4, model.proCapture() ? 2 : 3, 0);
         b.finish(b.endTable(), "GAIQ");
         return b.sizedByteArray();
     }
@@ -104,7 +104,7 @@ public final class ModelWire {
         if (!in.hasRemaining()) {
             // An old backend can serve Pro only; Ultra may never silently fall back to Pro.
             for (int i = 0; i < count; i++) {
-                if (expected.get(i) != ModelId.PRO)
+                if (!expected.get(i).equals(ModelId.PRO))
                     throw new IllegalArgumentException("Ultra needs a typed backend response");
                 results[i] = new Result(ModelId.PRO, valid(scores[i]), 0);
             }
@@ -118,9 +118,10 @@ public final class ModelWire {
                 || Short.toUnsignedInt(in.getShort()) != count)
             throw new IllegalArgumentException("Invalid RVM2 metadata");
         for (int i = 0; i < count; i++) {
-            ModelId model = ModelId.fromWire(Byte.toUnsignedInt(in.get()));
+            int wireId = Byte.toUnsignedInt(in.get());
+            ModelId model = expected.get(i);
             int status = Byte.toUnsignedInt(in.get());
-            if (model != expected.get(i) || status > 2)
+            if (wireId != model.wireId() || status > 2)
                 throw new IllegalArgumentException("Model/result association mismatch");
             results[i] = new Result(model, status == 0 ? valid(scores[i]) : 0, status);
         }

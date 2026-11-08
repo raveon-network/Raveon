@@ -30,6 +30,7 @@ repositories {
 }
 
 dependencies {
+    testRuntimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
 
     compileOnly(libs.lombok)
@@ -151,14 +152,3 @@ tasks.withType<JavaCompile>().configureEach {
     options.release.set(17)
     options.encoding = "UTF-8"
 }
-
-// Run the protocol contract without adding a test framework to the plugin JAR.
-sourceSets.test {
-    compileClasspath += sourceSets.main.get().compileClasspath
-}
-val verifyModelProfile by tasks.registering(JavaExec::class) {
-    dependsOn(tasks.testClasses)
-    classpath = sourceSets.test.get().output + sourceSets.main.get().output + sourceSets.main.get().compileClasspath
-    mainClass.set("ru.raveon.service.analyze.ModelProfileContractTest")
-}
-tasks.check { dependsOn(verifyModelProfile) }

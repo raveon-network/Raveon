@@ -52,10 +52,18 @@ public final class PunishmentDatabase {
                     PreparedStatement statement = connection.prepareStatement(
                             "CREATE TABLE IF NOT EXISTS punishment_flags (id " + identity
                             + ", server_key VARCHAR(64) NOT NULL, player_uuid VARCHAR(36) NOT NULL,"
-                            + " group_name VARCHAR(64) NOT NULL, model VARCHAR(16) NOT NULL,"
+                            + " group_name VARCHAR(64) NOT NULL, model VARCHAR(32) NOT NULL,"
                             + " check_name VARCHAR(100) NOT NULL, expires_at BIGINT NOT NULL)"
                             + database.getSqlByDataType(" ENGINE=InnoDB", ""))) {
                 statement.execute();
+                String widen = database.getSqlByDataType("ALTER TABLE punishment_flags MODIFY model VARCHAR(32) NOT NULL", "");
+                if (!widen.isEmpty()) {
+                    try (ResultSet columns = connection.getMetaData().getColumns(connection.getCatalog(), null, "punishment_flags", "model")) {
+                        if (columns.next() && columns.getInt("COLUMN_SIZE") < 32) {
+                            try (var migration = connection.createStatement()) { migration.execute(widen); }
+                        }
+                    }
+                }
                 createIndex(connection, "idx_punishment_group",
                         "server_key, player_uuid, group_name, expires_at");
                 createIndex(connection, "idx_punishment_expiry", "expires_at");

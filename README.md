@@ -175,3 +175,5 @@ Holograms and `/raveon monitor prob` use API `short_title`; `/raveon monitor cha
 
 
 Punishment alerts use `[alert]`.
+
+API-defined inference models are supported in version 2.0.9 and later.

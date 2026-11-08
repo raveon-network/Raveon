@@ -61,7 +61,7 @@ public final class HologramManager {
         if (config == null || !config.isEnabled()) return null;
         var checks = Raveon.INSTANCE.getChecksConfigManager();
         var dispatcher = Raveon.INSTANCE.getAnalyzeBatchDispatcher();
-        List<ModelId> models = java.util.Arrays.stream(ModelId.values())
+        List<ModelId> models = checks.activeModels().stream()
                 .filter(checks::isModelEnabled)
                 .filter(dispatcher::isModelAvailable)
                 .toList();
@@ -227,8 +227,8 @@ public final class HologramManager {
             return;
         }
         var manager = Raveon.INSTANCE.getViolationManager();
-        Map<ModelId, HologramText> texts = new java.util.EnumMap<>(ModelId.class);
-        for (ModelId model : ModelId.values()) {
+        Map<ModelId, HologramText> texts = new java.util.concurrent.ConcurrentHashMap<>();
+        for (ModelId model : Raveon.INSTANCE.getChecksConfigManager().activeModels()) {
             var snapshot = manager.getAnalysisSnapshot(targetId, model);
             var probabilities = manager.getLocalProbabilities(targetId, model);
             boolean hasResult = !probabilities.isEmpty();

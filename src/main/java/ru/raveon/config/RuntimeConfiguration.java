@@ -24,7 +24,7 @@ public record RuntimeConfiguration(MainConfigManager main, ChecksConfigManager c
             throw new IllegalArgumentException("Changing analyze.server requires a restart");
         HologramConfigManager holograms = new HologramConfigManager(plugin, language);
         DataCollectConfigManager datasets = new DataCollectConfigManager(plugin);
-        PunishmentConfigManager punishments = new PunishmentConfigManager(plugin, language, profile.punishments());
+        PunishmentConfigManager punishments = new PunishmentConfigManager(plugin, language, profile.punishments(), profile.models().keySet());
         MainConfigManager main = new MainConfigManager(plugin, previous == null ? null : previous.main(), settings, language);
         return new RuntimeConfiguration(main, checks, holograms, datasets, punishments);
     }

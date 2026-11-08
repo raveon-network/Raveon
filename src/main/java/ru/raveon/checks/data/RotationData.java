@@ -24,10 +24,10 @@ public class RotationData extends Check implements PacketCheck {
         UltraData data = player.getUltraData();
         UltraState state = data.activate();
         if (!data.isCombatActive()) {
-            player.getCheckManager().invalidate(ModelId.ULTRA);
+            player.getCheckManager().invalidateCapture("ultra");
         }
         state.onAttack(targetId);
-        data.extendCombat(player.getCheckManager().getActiveConfig().getCombatTimer(ModelId.ULTRA));
+        data.extendCombat(player.getCheckManager().getActiveConfig().captureCombat("ultra"));
         player.getTrainData(ModelId.ULTRA).tagCombat();
     }
 
@@ -35,7 +35,7 @@ public class RotationData extends Check implements PacketCheck {
         if (!bukkit.isOnline() || !data.isCurrent(state)) return;
         var plugin = Raveon.INSTANCE;
         var training = player.getTrainData(ModelId.ULTRA);
-        boolean analyze = player.getCheckManager().getAimAI(ModelId.ULTRA).isEnabled();
+        boolean analyze = player.getCheckManager().requestedCapture("ultra");
         if (!analyze && !training.isDatasetsCollecting()) return;
         EntitySnapshot target = null;
         int nearby = 0;
@@ -47,7 +47,7 @@ public class RotationData extends Check implements PacketCheck {
                     ? plugin.getTargetEntityIndex().countNearbyTargets(bukkit) : 0;
             if (target == null || count == null) {
                 state.capture(bukkit, null, 0, yaw, pitch);
-                player.getCheckManager().invalidate(ModelId.ULTRA);
+                player.getCheckManager().invalidateCapture("ultra");
                 skippedSnapshots++;
                 long now = System.nanoTime();
                 if (now - lastSnapshotWarning >= 30_000_000_000L) {
@@ -78,7 +78,9 @@ public class RotationData extends Check implements PacketCheck {
         }
         data.resize(player.getCheckManager().getActiveConfig().getAnalysisSequence(ModelId.ULTRA));
         data.push(frame);
-        plugin.getAnalyzeService().analyzePlayerFrames(player, ModelId.ULTRA);
+        player.getCheckManager().getCaptureBuffers().addUltra(frame);
+        for (var model : player.getCheckManager().getActiveConfig().activeModels())
+            if (!model.proCapture()) plugin.getAnalyzeService().analyzePlayerFrames(player, model);
     }
 
     @Override
