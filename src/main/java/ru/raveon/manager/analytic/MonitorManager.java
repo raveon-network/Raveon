@@ -103,7 +103,7 @@ public final class MonitorManager implements Listener {
                 viewerId,
                 new ChatSubscription(
                         targetId,
-                        target == null ? plugin.getMainConfigManager().getLanguageService().text("monitor.chat.all_name") : target.getName(),
+                        target == null ? plugin.getMainConfigManager().message("monitor.chat.all_name") : target.getName(),
                         modelFilter));
         savedChatSubscriptions.put(viewerId, chatSubscriptions.get(viewerId));
         pruneUnusedSnapshots();
@@ -186,7 +186,7 @@ public final class MonitorManager implements Listener {
     }
 
     private void sendChat(Player target, AiSnapshot snapshot) {
-        String message = format(plugin.getMainConfigManager().getLanguageService().text("monitor.chat.format"),
+        String message = format(plugin.getMainConfigManager().message("monitor.chat.format"),
                 target.getName(), snapshot, plugin.getChecksConfigManager().getModelName(snapshot.model()));
 
         for (Map.Entry<UUID, ChatSubscription> entry : chatSubscriptions.entrySet()) {
@@ -278,7 +278,7 @@ public final class MonitorManager implements Listener {
             Player target = chat.targetId() == null ? null : Bukkit.getPlayer(chat.targetId());
             if (chat.targetId() == null || (target != null && target.isOnline()))
                 chatSubscriptions.put(id, new ChatSubscription(chat.targetId(),
-                        target == null ? plugin.getLanguageService().text("monitor.chat.all_name") : target.getName(),
+                        target == null ? plugin.getMainConfigManager().message("monitor.chat.all_name") : target.getName(),
                         chat.modelFilter()));
         }
         if (!sessions.isEmpty()) startUpdaterIfNeeded();
@@ -354,7 +354,7 @@ public final class MonitorManager implements Listener {
                 pruneUnusedSnapshots();
                 stopUpdaterIfIdle();
                 viewer.sendMessage(replacePlayer(
-                        plugin.getMainConfigManager().getLanguageService().text("monitor.target_left"),
+                        plugin.getMainConfigManager().message("monitor.target_left"),
                         session.getTargetName()));
                 return;
             }
@@ -380,7 +380,7 @@ public final class MonitorManager implements Listener {
             Player viewer = Bukkit.getPlayer(entry.getKey());
             if (viewer != null) {
                 String message = replacePlayer(
-                        plugin.getMainConfigManager().getLanguageService().text("monitor.target_left"),
+                        plugin.getMainConfigManager().message("monitor.target_left"),
                         session.getTargetName());
                 SchedulerUtils.runEntity(plugin, viewer, () -> {
                     if (viewer.isOnline()) viewer.sendMessage(message);
@@ -406,10 +406,10 @@ public final class MonitorManager implements Listener {
 
     private String createActionBar(String targetName, AiSnapshot snapshot) {
         if (snapshot == null) {
-            return replacePlayer(plugin.getMainConfigManager().getLanguageService().text("monitor.action_bar.waiting"), targetName);
+            return replacePlayer(plugin.getMainConfigManager().message("monitor.action_bar.waiting"), targetName);
         }
 
-        String template = plugin.getMainConfigManager().getLanguageService().text("monitor.action_bar.format");
+        String template = plugin.getMainConfigManager().message("monitor.action_bar.format");
         if (!template.contains("{model}")) {
             template = "\u00a77[{model}] \u00a7r" + template;
         }
@@ -434,11 +434,11 @@ public final class MonitorManager implements Listener {
         String format;
 
         if (trendPercent == 0) {
-            format = plugin.getMainConfigManager().getLanguageService().text("monitor.action_bar.trend.equal");
+            format = plugin.getMainConfigManager().message("monitor.action_bar.trend.equal");
         } else if (trendPercent > 0) {
-            format = plugin.getMainConfigManager().getLanguageService().text("monitor.action_bar.trend.up");
+            format = plugin.getMainConfigManager().message("monitor.action_bar.trend.up");
         } else {
-            format = plugin.getMainConfigManager().getLanguageService().text("monitor.action_bar.trend.down");
+            format = plugin.getMainConfigManager().message("monitor.action_bar.trend.down");
         }
 
         return format.replace("{value}", String.valueOf(trendPercent));

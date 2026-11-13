@@ -37,6 +37,7 @@ public class CheckManager {
     private final PacketWorkQueue<PacketInput> pending =
             new PacketWorkQueue<>(MAX_PENDING_PACKETS, PACKETS_PER_TICK);
     private final AtomicLong droppedPackets = new AtomicLong();
+    private final AtomicLong lastProcessingWarning = new AtomicLong(Long.MIN_VALUE / 2);
     private long lastOverflowWarning;
     private long reportedDroppedPackets;
     private volatile ChecksConfigManager activeConfig;
@@ -147,28 +148,53 @@ public class CheckManager {
             droppedPackets.addAndGet(MAX_PENDING_PACKETS);
             generations.values().forEach(AtomicLong::incrementAndGet);
         }
-        if (offered.schedule()) scheduleDrain(bukkit);
+        if (offered.schedule()) scheduleDrain(bukkit, offered.generation());
     }
 
-    private void scheduleDrain(Player bukkit) {
+    private void scheduleDrain(Player bukkit, long generation) {
+        if (!pending.isCurrent(generation)) return;
         try {
-            SchedulerUtils.runEntity(Raveon.INSTANCE, bukkit, () -> drain(bukkit), this::close);
+            SchedulerUtils.runEntity(Raveon.INSTANCE, bukkit, () -> drain(bukkit, generation),
+                    () -> retryDrain(generation, "entity task retired", null));
         } catch (RuntimeException exception) {
-            close();
-            Raveon.INSTANCE.getLogger().warning(
-                    "Cannot schedule packet processing for " + player.getName() + ": " + exception.getMessage());
+            retryDrain(generation, "cannot schedule entity task", exception);
         }
     }
 
-    private void drain(Player bukkit) {
-        if (Raveon.INSTANCE.getPlayerDataManager().getPlayer(player.getUuid()) != player
-                || !bukkit.isOnline()) {
+    private void retryDrain(long generation, String reason, RuntimeException error) {
+        if (!pending.retry(generation)) return;
+        generations.values().forEach(AtomicLong::incrementAndGet);
+        if (!Raveon.INSTANCE.isEnabled()
+                || Raveon.INSTANCE.getPlayerDataManager().getPlayer(player.getUuid()) != player) {
             close();
             return;
         }
-        refreshSettings();
-        PacketWorkQueue.Batch<PacketInput> batch = pending.takeBatch();
+        long now = System.nanoTime();
+        long previous = lastProcessingWarning.get();
+        if (now - previous >= 30_000_000_000L && lastProcessingWarning.compareAndSet(previous, now)) {
+            String message = "Packet analysis interrupted for " + player.getName() + " (" + reason
+                    + "); queued packets discarded, retrying on next packet";
+            if (error == null) Raveon.INSTANCE.getLogger().warning(message);
+            else Raveon.INSTANCE.getLogger().log(java.util.logging.Level.WARNING, message, error);
+        }
+    }
+
+    private void drain(Player bukkit, long generation) {
+        if (!pending.isCurrent(generation)) return;
+        if (!Raveon.INSTANCE.isEnabled()
+                || Raveon.INSTANCE.getPlayerDataManager().getPlayer(player.getUuid()) != player) {
+            close();
+            return;
+        }
+        if (!bukkit.isOnline()) {
+            retryDrain(generation, "player temporarily unavailable", null);
+            return;
+        }
         try {
+            refreshSettings();
+            PacketWorkQueue.Batch<PacketInput> batch = pending.takeBatch(generation);
+            if (batch == null) return;
+            player.setBukkitPlayer(bukkit);
             if (batch.reset()) {
                 resetWindows();
                 long now = System.nanoTime();
@@ -181,10 +207,21 @@ public class CheckManager {
                                     + "; discarded packets=" + droppedPackets.get());
                 }
             }
-            for (PacketInput input : batch.entries()) process(bukkit, input);
+            for (PacketInput input : batch.entries()) {
+                if (!pending.isCurrent(generation)) break;
+                process(bukkit, input);
+            }
+        } catch (RuntimeException exception) {
+            retryDrain(generation, "packet processing failed", exception);
         } finally {
-            if (pending.completeBatch()) scheduleDrain(bukkit);
+            if (pending.completeBatch(generation)) scheduleDrain(bukkit, generation);
         }
+    }
+
+    public void resetForRespawn() {
+        if (!pending.restart()) return;
+        resetWindows();
+        player.resetAnalysisCombat();
     }
 
     private void process(Player bukkit, PacketInput input) {

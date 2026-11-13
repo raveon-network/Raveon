@@ -21,6 +21,7 @@ public class DataCollectConfigManager extends ConfigManager {
     private int autosaveValue;
 
     private TrainStatisticInfoType infoType;
+    private String infoLine;
     public int getFramesToCollect(ModelId model) {
         return model.equals(ModelId.PRO) ? framesToCollect : ultraFramesToCollect;
     }
@@ -54,5 +55,10 @@ public class DataCollectConfigManager extends ConfigManager {
         if (!"BOSSBAR".equalsIgnoreCase(infoTypeStr) && !"ACTIONBAR".equalsIgnoreCase(infoTypeStr))
             throw new IllegalArgumentException("Unknown info_statistic.type");
         infoType = TrainStatisticInfoType.getByName(infoTypeStr);
+        infoLine = config.getString("info_statistic.line", "&7{player}&f collected: &7{frames_collecting}&f (buffer: &7{frames_size}&f) saved: &7{sending}");
+    }
+
+    public String message(String key, Object... placeholders) {
+        return getCustomConfig("features/datacollect.yml").message("messages." + key, placeholders);
     }
 }

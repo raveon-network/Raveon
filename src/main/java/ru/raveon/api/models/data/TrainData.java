@@ -203,8 +203,8 @@ public class TrainData {
             currentSize = model.equals(ModelId.PRO) ? datasetFrames.size() : ultraFrames.size();
         }
         return Raveon.INSTANCE
-                .getLanguageService().text("datacollect.statistics")
-                .replace("{model}", model.displayName())
+                .getDataCollectConfigManager().getInfoLine()
+                .replace("{model}", "")
                 .replace("{player}", playerName)
                 .replace("{frames_collecting}", String.valueOf(totalFramesCollected))
                 .replace("{frames_size}", String.valueOf(currentSize))
@@ -314,7 +314,7 @@ public class TrainData {
             synchronized (lock) {
                 if (sessionGeneration != generation) return;
             }
-            owner.sendMessage(Raveon.INSTANCE.getLanguageService().text("datacollect.stop.auto")
+            owner.sendMessage(Raveon.INSTANCE.getDataCollectConfigManager().message("stop.auto_stop")
                     .replace("{target}", playerName));
         });
         if (target != null) SchedulerUtils.runEntity(Raveon.INSTANCE, target, () -> {

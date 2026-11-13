@@ -8,7 +8,6 @@ import org.jetbrains.annotations.NotNull;
 
 import ru.raveon.api.menu.MenuItem;
 import ru.raveon.api.menu.MenuSettings;
-import ru.raveon.service.LanguageService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +25,7 @@ public class HistoryMenuSettings extends MenuSettings {
 
     private TreeMap<Double, Material> thresholds = new TreeMap<>();
 
-    public HistoryMenuSettings(@NotNull MenuSettings menuSettings, LanguageService language) {
+    public HistoryMenuSettings(@NotNull MenuSettings menuSettings) {
         super(
                 menuSettings.getTitle(),
                 menuSettings.getSize(),
@@ -34,9 +33,9 @@ public class HistoryMenuSettings extends MenuSettings {
                 menuSettings.getItems(),
                 menuSettings.getSection());
 
-        entryFormat = language.text("menus.history.entry");
-        emptyEntriesMessage = language.text("menus.history.empty_entries");
-        emptyServerValue = language.text("menus.history.empty_server");
+        entryFormat = "&7Probability: {chance}%\n&7Time: &f{time} ago";
+        emptyEntriesMessage = "&7No entries";
+        emptyServerValue = "—";
 
         ConfigurationSection settings =
                 menuSettings.getSection().getConfigurationSection("settings");
@@ -81,8 +80,8 @@ public class HistoryMenuSettings extends MenuSettings {
         return entry != null ? entry.getValue() : Material.GRAY_STAINED_GLASS_PANE;
     }
 
-    public static HistoryMenuSettings fromSection(@NotNull ConfigurationSection section, LanguageService language) {
-        return new HistoryMenuSettings(MenuSettings.fromSection(language.localizeMenu(section, "history")), language);
+    public static HistoryMenuSettings fromSection(@NotNull ConfigurationSection section) {
+        return new HistoryMenuSettings(MenuSettings.fromSection(section));
     }
 
     private static Material readMaterial(

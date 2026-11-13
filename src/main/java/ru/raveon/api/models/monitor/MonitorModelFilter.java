@@ -9,7 +9,7 @@ public record MonitorModelFilter(ModelId model) {
     public String fullDisplayName() { return title(true); }
     private String title(boolean full) {
         var checks = ru.raveon.Raveon.INSTANCE.getChecksConfigManager();
-        return model == null ? ru.raveon.Raveon.INSTANCE.getLanguageService().text("monitor.models.all")
+        return model == null ? ru.raveon.Raveon.INSTANCE.getMainConfigManager().message("monitor.models.all")
                 : full ? checks.getModelName(model) : checks.getModelShortTitle(model);
     }
     public static MonitorModelFilter parse(String argument) {

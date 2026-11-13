@@ -11,6 +11,7 @@ public final class PacketWorkQueue<T> {
     private boolean scheduled;
     private boolean resetNeeded;
     private boolean closed;
+    private long generation;
 
     public PacketWorkQueue(int capacity, int batchSize) {
         if (capacity < 1 || batchSize < 1 || batchSize > capacity) throw new IllegalArgumentException();
@@ -19,7 +20,7 @@ public final class PacketWorkQueue<T> {
     }
 
     public synchronized Offer offer(T entry) {
-        if (closed) return new Offer(false, false);
+        if (closed) return new Offer(false, false, generation);
         boolean overflow = entries.size() == capacity;
         if (overflow) {
             entries.clear();
@@ -27,11 +28,17 @@ public final class PacketWorkQueue<T> {
         }
         entries.addLast(entry);
         boolean start = !scheduled;
+        if (start) generation++;
         scheduled = true;
-        return new Offer(start, overflow);
+        return new Offer(start, overflow, generation);
     }
 
-    public synchronized Batch<T> takeBatch() {
+    public synchronized boolean isCurrent(long expectedGeneration) {
+        return !closed && scheduled && generation == expectedGeneration;
+    }
+
+    public synchronized Batch<T> takeBatch(long expectedGeneration) {
+        if (!isCurrent(expectedGeneration)) return null;
         List<T> batch = new ArrayList<>(Math.min(batchSize, entries.size()));
         for (int i = 0; i < batchSize && !entries.isEmpty(); i++) batch.add(entries.removeFirst());
         boolean reset = resetNeeded;
@@ -39,7 +46,8 @@ public final class PacketWorkQueue<T> {
         return new Batch<>(List.copyOf(batch), reset);
     }
 
-    public synchronized boolean completeBatch() {
+    public synchronized boolean completeBatch(long expectedGeneration) {
+        if (!isCurrent(expectedGeneration)) return false;
         if (closed || entries.isEmpty()) {
             scheduled = false;
             return false;
@@ -52,17 +60,34 @@ public final class PacketWorkQueue<T> {
         resetNeeded = true;
     }
 
+    /** Discards a failed task's work without permanently closing this connection's queue. */
+    public synchronized boolean retry(long expectedGeneration) {
+        if (!isCurrent(expectedGeneration)) return false;
+        return restart();
+    }
+
+    /** Invalidates callbacks from the previous entity lifetime; never reopens a disconnected session. */
+    public synchronized boolean restart() {
+        if (closed) return false;
+        generation++;
+        entries.clear();
+        scheduled = false;
+        resetNeeded = true;
+        return true;
+    }
+
     public synchronized void close() {
         entries.clear();
         scheduled = false;
         resetNeeded = false;
         closed = true;
+        generation++;
     }
 
     public synchronized int size() {
         return entries.size();
     }
 
-    public record Offer(boolean schedule, boolean overflow) {}
+    public record Offer(boolean schedule, boolean overflow, long generation) {}
     public record Batch<T>(List<T> entries, boolean reset) {}
 }

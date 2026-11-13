@@ -1,179 +1,69 @@
+# Raveon
 
-<div align="center">
-  <h1>Raveon</h1>
-  <p>An AI anticheat for Minecraft servers.</p>
+AI anticheat for Minecraft combat analysis.
 
-  <p>
-    <img alt="Minecraft" src="https://img.shields.io/badge/Minecraft-1.16+-62B47A?style=flat">
-    <img alt="Java" src="https://img.shields.io/badge/Java-17+-E76F00?style=flat&logo=openjdk&logoColor=white">
-    <img alt="Paper" src="https://img.shields.io/badge/Paper-supported-222222?style=flat">
-    <img alt="License" src="https://img.shields.io/badge/License-GPL--3.0-blue?style=flat">
-  </p>
-
-  <p>
-    <a href="https://discord.gg/RaveonAI">
-      <img alt="Discord" src="https://img.shields.io/badge/Discord-Raveon-5865F2?style=flat&logo=discord&logoColor=white">
-    </a>
-    <a href="https://t.me/raveonanticheat">
-      <img alt="Telegram" src="https://img.shields.io/badge/Telegram-Raveon-26A5E4?style=flat&logo=telegram&logoColor=white">
-    </a>
-  </p>
-</div>
-
-## What is Raveon?
-
-Raveon is an anticheat plugin for Minecraft servers. It collects player data during combat, sends it to an external inference API, and uses the returned cheating probabilities to update detection buffers, alerts, history, and punishments.
-
-The intended setup includes:
-
-- A Minecraft server with Raveon and PacketEvents installed.
-- Another anticheat for movement checks, such as GrimAC, Vulcan, or Intave.
-- An external inference API for AI aim analysis.
-
-## Features
-
-- Probability buffering before a flag to reduce isolated false positives.
-- Alerts and live monitoring of player probabilities.
-- Player menus and violation history.
-- MySQL and SQLite storage.
-- Redis for synchronization across servers.
-- WorldGuard region rules to disable AI checks in selected areas.
-
-## Before installation
-
-AI checks require an available inference API. The default configuration points to:
-
-```yaml
-analyze:
-  server: https://api.raveon.wtf/v1/inference
-```
-
-The model service is not included in the JAR. Checks stay off until the plugin is connected: get a code on your server's page on the website and run `/raveon connect <code>`. The plugin obtains an API key, stores it in `analyze.api-key` and enables analysis without a restart.
-
-## Model profile
-
-The plugin loads `id`, `name`, `short_title`, `primary`, capture window and step
-from the API at startup, `/raveon reload`, connection and automatic five-second CRC polling. Select the primary
-enabled model on the server's Models tab; administrators edit names/window/step
-in `/admin/model-cards`. Roles and buffer policies are saved separately for each
-server/model in the server panel; admin card policies provide defaults.
-Local model/role switches narrow API permissions.
-Old `analyze.primary`, model `step`, and hologram model-name overrides are ignored. Each model has its own buffer block in checks.yml. buffer.source: website uses the API policy (default); buffer.source: local selects that model’s local buffer. Shared buffers use both probability thresholds and arithmetic parameters of their owner; source weights remain independent. Detection buffers stay cached by UUID until the plugin stops, including reconnects and reloads; normal decreases and flag resets remain active. The Models tab also edits revisioned punishment groups (sync/upload/off). The plugin uses CRC-bound incremental streams with acknowledgements and persisted retry receipts on `/v1/inference` (application/x-raveon-stream). The first request sends a full capture; subsequent requests send verified new rows. Legacy full-window FlatBuffers clients remain supported on the same path.
-An invalid/unavailable profile leaves the previous configuration active; on the
-first startup detection waits for a valid profile. A failed reload reports an error.
-The backend and shared website database must be upgraded before installing this JAR.
-Current trained windows are Pro 50 and Ultra 64; capture windows may be increased
-up to 600 frames, with step between 1 and the capture window. Larger captures are
-split into trained windows on the backend. Smaller windows require different weights.
-
+Live monitoring, alerts, violation history and configurable punishments.
+Supports SQLite, MySQL, Redis synchronization and WorldGuard integration.
 
 ## Requirements
 
-- Java 17+ for Raveon; Java 21 for Minecraft 1.21.11.
-- Paper 1.16.5, 1.20.1, or 1.21.11; Folia 1.21.11.
+- Java 17+; your Minecraft version may require a newer Java.
+- Paper or Folia.
 - PacketEvents 2.12.1.
-- WorldGuard, optionally, for region bypass rules.
-- Redis, optionally, for synchronization across servers.
-
-Folia 1.16.5 does not exist. Paper 1.16.5 must run on Java 17+ to load Raveon; standard build 794 warns about this Java version. Check compatibility with your server build and other plugins separately.
+- Access to the Raveon analysis service.
 
 ## Installation
 
-1. Build `build/libs/Raveon-2.0.9.jar`.
-2. Install `packetevents` in the `plugins/` directory.
-3. Copy `Raveon-2.0.9.jar` to `plugins/`.
-4. Start the server once to generate the configuration files.
-5. Stop the server and edit the configuration.
-6. Connect the plugin with `/raveon connect <code>`.
-7. Start the server again.
+1. Install PacketEvents.
+2. Copy `Raveon-2.1.0.jar` into `plugins/`.
+3. Start the server to generate configuration files.
+4. Get a connection code from your server page on the website.
+5. Run `/raveon connect <code>`.
 
-Reload validates and applies the entire configuration together. If validation fails, the current settings remain active. Changes to `database`, `redis`, `placeholder`, or the inference API address require a restart. There are no automatic migrations from older plugin versions.
+Configuration is stored in `plugins/Raveon/`.
+Messages are configured in `translation.yml`, `menu/*.yml` and `features/datacollect.yml`.
 
-`database.retention_days: 0` disables history expiration. A positive value sets the retention period in days. Queue limits do not limit the size of the database or CSV files on disk.
-
-Probability history is stored separately for Pro and Ultra. The model selector in the player and history menus changes the displayed model; it defaults to the enabled primary model, or the other enabled model. Existing Pro history remains in its original tables. Ultra uses its own snapshot and entry tables. Paging the player ranking reuses the loaded list; use Refresh to load new results.
-
-The client supports one below-name slot. If another plugin uses it, Raveon yields the slot. A second line requires another display method.
-
-Floating holograms and below-name displays rotate through enabled, available models. Each selected model keeps showing its latest probability, average, and buffer and updates when a new result arrives. Configure the switch interval in ticks with `model_rotation.interval_ticks` (default 80) in `features/hologram.yml`. Displayed short titles come from the website (API `short_title`). Templates use `{model}`. A model without results shows `--`. All hologram text is configured directly in the `lines` list in `features/hologram.yml`. Each entry becomes a separate line, including static text and blank lines. A single line can use below-name; multiple lines automatically use a floating hologram. Hologram toggle messages live in each language's `translations.yml`. On upgrade, old language references are expanded into literal config text and old toggle messages are copied without replacing custom messages. The old language hologram files are preserved as backups.
-
-## Language and time format
-
-English is the default (`language: en` in `settings.yml`); use `language: ru` for Russian. Edit translations in `lang/en/` or `lang/ru/`: `history.yml`, `players.yml`, `datacollect.yml`, and `translations.yml`. Time uses the selected language, for example `8 min 10 sec` or `8 мин 10 сек`.
-
-On the first upgrade, translations from the old `lang/en.yml` and `lang/ru.yml` are copied into the new files. Original files are preserved as backups and are no longer read once the new catalogs exist. Existing custom text is retained; the previous default history layout is upgraded to the new two-line card. Reload applies translation edits.
-
-History cards show a colored probability and elapsed time since the last check. Back returns to the player list, keeping its page when history was opened from that list. Write punishment reasons directly in the commands in `features/punishments.yml`, for example `5:0 ban {player} Raveon detected unusual behavior`. Navigation labels are configured separately in each language's `history.yml` and `players.yml`.
-
-Alert, monitor (action bar and chat), and hologram preferences are cached by player UUID for the current plugin session. Reconnecting restores both enabled and disabled choices, including the monitor target and model filter. Monitoring pauses while its target is offline and resumes when the target returns. The cache resets when the plugin/server restarts.
+Use `/raveon reload` to apply configuration changes.
+Database, Redis and server identity changes require a restart.
 
 ## Commands
 
-| Command | Permission | Description |
-| --- | --- | --- |
-| `/raveon connect <code>` | `raveon.command.connect` | Connects the plugin with a one-time code from the website |
-| `/raveon alerts` | `raveon.command.alert` | Toggles alerts for the player |
-| `/raveon holo` | `raveon.command.holograms` | Toggles AI holograms |
-| `/raveon hologram` | `raveon.command.holograms` | Alias for the hologram command |
-| `/raveon menu [player]` | `raveon.command.menu` | Opens the player menu, or the named player's history |
-| `/raveon history <player> [page]` | `raveon.command.history` | Shows a player's violation history |
-| `/raveon monitor prob <player> [model]` | `raveon.command.monitor` | Shows the selected player's probabilities in an action bar: `last% \| avg% \| buffer` |
-| `/raveon monitor chat [player] [model]` | `raveon.command.monitor` | Shows probabilities in chat for one player, or all players when no name is given |
-| `/raveon monitor stop` | `raveon.command.monitor` | Stops action bar and chat monitoring |
-| `/raveon reload` | `raveon.command.reload` | Reloads the configuration |
+The root command requires `raveon.command.use`.
 
-The root command requires:
+| Command | Permission |
+| --- | --- |
+| `/raveon connect <code>` | `raveon.command.connect` |
+| `/raveon alerts` | `raveon.command.alert` |
+| `/raveon holo` | `raveon.command.holograms` |
+| `/raveon menu [player]` | `raveon.command.menu` |
+| `/raveon history <player> [page]` | `raveon.command.history` |
+| `/raveon monitor prob <player> [model]` | `raveon.command.monitor` |
+| `/raveon monitor chat [player] [model]` | `raveon.command.monitor` |
+| `/raveon monitor stop` | `raveon.command.monitor` |
+| `/raveon reload` | `raveon.command.reload` |
 
-```text
-raveon.command.use
-```
+## Build
 
-For monitoring, `model` accepts `pro`, `ultra`, or `all`.
+Linux / macOS:
 
-Dataset collection always uses Ultra. Dataset collection: `/raveon datacollect start <player> <cheat/legit> <dataset_name>` and `/raveon datacollect stop <player>`. These commands require `raveon.command.datacollect` and, respectively, `raveon.command.datacollect.start` or `raveon.command.datacollect.stop`.
-
-CSV files are stored in `plugins/Raveon/datasets/`. If a write fails, unconfirmed frames remain in memory; run stop again after resolving the cause. A forced JVM termination does not guarantee that these frames will be saved.
-
-## Building from source
-
-```bash
+```sh
 ./gradlew shadowJar
 ```
 
-On Windows:
+Windows:
 
 ```bat
 gradlew.bat shadowJar
 ```
 
-The resulting JAR is written to:
+Output: `build/libs/Raveon-2.1.0.jar`.
 
-```text
-build/libs/Raveon-2.0.9.jar
-```
+## Links
 
-Main classes are compiled with `--release 17`. GitHub Actions builds with JDK 21. The first Gradle run downloads public dependencies; with a populated local cache, add `--offline`.
-
-When reporting an issue, include:
-
-- Minecraft server version.
-- Java version.
-- Paper or Folia version.
-- PacketEvents version.
-- Raveon version.
-- `settings.yml` and `checks.yml`, with passwords and private tokens removed.
-- Startup logs and a stack trace, if available.
-- Steps to reproduce the problem.
+- [Website](https://raveon.wtf)
+- [Discord](https://discord.gg/RaveonAI)
+- [Telegram](https://t.me/raveonanticheat)
 
 ## License
 
-Raveon is distributed under the [GNU General Public License v3.0](LICENSE).
-
-Pro retains its original eight-feature format.
-
-Holograms and `/raveon monitor prob` use API `short_title`; `/raveon monitor chat` uses API `name`, including model selection confirmations. Obsolete local `model_rotation.names` and `monitor.models.pro/ultra` entries are removed on configuration load. Templates retain `{model}` for placement; the model name comes from the API profile.
-
-
-Punishment alerts use `[alert]`.
-
-API-defined inference models are supported in version 2.0.9 and later.
+[GNU General Public License v3.0](LICENSE).

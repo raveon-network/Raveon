@@ -7,7 +7,6 @@ import org.jetbrains.annotations.NotNull;
 
 import ru.raveon.api.menu.MenuItem;
 import ru.raveon.api.menu.MenuSettings;
-import ru.raveon.service.LanguageService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +25,7 @@ public class PlayersMenuSettings extends MenuSettings {
     private final String barSymbol;
     private final String emptyBarSymbol;
 
-    public PlayersMenuSettings(@NotNull MenuSettings menuSettings, LanguageService language) {
+    public PlayersMenuSettings(@NotNull MenuSettings menuSettings) {
         super(
                 menuSettings.getTitle(),
                 menuSettings.getSize(),
@@ -44,7 +43,7 @@ public class PlayersMenuSettings extends MenuSettings {
             this.probabilitiesPerLine = 5;
             this.probabilityMultiplier = 1.0D;
             this.emptyValue = "&7—";
-            this.noChecksMessage = language.text("menus.players.no_checks");
+            this.noChecksMessage = " &7No data";
             this.barSymbol = "■";
             this.emptyBarSymbol = "  ";
             return;
@@ -68,13 +67,13 @@ public class PlayersMenuSettings extends MenuSettings {
         }
 
         this.emptyValue = settings.getString("empty_value", "&7—");
-        this.noChecksMessage = settings.getString("no_checks_message", language.text("menus.players.no_checks"));
+        this.noChecksMessage = settings.getString("no_checks_message", " &7No data");
         this.barSymbol = settings.getString("bar_symbol", "■");
         this.emptyBarSymbol = settings.getString("empty_bar_symbol", "  ");
     }
 
-    public static PlayersMenuSettings fromSection(@NotNull ConfigurationSection section, LanguageService language) {
-        return new PlayersMenuSettings(MenuSettings.fromSection(language.localizeMenu(section, "players")), language);
+    public static PlayersMenuSettings fromSection(@NotNull ConfigurationSection section) {
+        return new PlayersMenuSettings(MenuSettings.fromSection(section));
     }
 
     public int getChecksLimit() {

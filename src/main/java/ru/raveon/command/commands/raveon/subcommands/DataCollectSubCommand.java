@@ -27,9 +27,9 @@ public final class DataCollectSubCommand implements BuildableCommand {
     public void handle(@NotNull CommandSender commandSender, @NotNull String[] args) {
         if (args.length < 2) {
             commandSender.sendMessage(
-                    Raveon.INSTANCE.getLanguageService().text("datacollect.start.help"));
+                    Raveon.INSTANCE.getDataCollectConfigManager().message("start.help"));
             commandSender.sendMessage(
-                    Raveon.INSTANCE.getLanguageService().text("datacollect.stop.help"));
+                    Raveon.INSTANCE.getDataCollectConfigManager().message("stop.help"));
             return;
         }
 
@@ -38,9 +38,9 @@ public final class DataCollectSubCommand implements BuildableCommand {
             case "stop" -> handleStop(commandSender, args);
             default -> {
                 commandSender.sendMessage(
-                        Raveon.INSTANCE.getLanguageService().text("datacollect.start.help"));
+                        Raveon.INSTANCE.getDataCollectConfigManager().message("start.help"));
                 commandSender.sendMessage(
-                        Raveon.INSTANCE.getLanguageService().text("datacollect.stop.help"));
+                        Raveon.INSTANCE.getDataCollectConfigManager().message("stop.help"));
             }
         }
     }
@@ -52,7 +52,7 @@ public final class DataCollectSubCommand implements BuildableCommand {
 
         if (args.length < 4 || args.length > 5) {
             commandSender.sendMessage(
-                    Raveon.INSTANCE.getLanguageService().text("datacollect.start.help"));
+                    Raveon.INSTANCE.getDataCollectConfigManager().message("start.help"));
             return;
         }
 
@@ -64,7 +64,7 @@ public final class DataCollectSubCommand implements BuildableCommand {
         if (targetPlayer == null) {
             commandSender.sendMessage(
                     Raveon.INSTANCE
-                            .getLanguageService().text("datacollect.offline")
+                            .getDataCollectConfigManager().message("all.offline")
                             .replace("{target}", targetName));
             return;
         }
@@ -78,20 +78,20 @@ public final class DataCollectSubCommand implements BuildableCommand {
         if (raveonPlayer.getTrainData(model).isDatasetsCollecting()) {
             commandSender.sendMessage(
                     Raveon.INSTANCE
-                            .getLanguageService().text("datacollect.already_collecting")
+                            .getDataCollectConfigManager().message("all.already_collecting")
                             .replace("{target}", targetName));
             return;
         }
 
         if (!type.equals("cheat") && !type.equals("legit")) {
             commandSender.sendMessage(
-                    Raveon.INSTANCE.getLanguageService().text("datacollect.invalid_type"));
+                    Raveon.INSTANCE.getDataCollectConfigManager().message("all.none_type"));
             return;
         }
 
         if (args.length < 5) {
             commandSender.sendMessage(
-                    Raveon.INSTANCE.getLanguageService().text("datacollect.start.none_selected"));
+                    Raveon.INSTANCE.getDataCollectConfigManager().message("start.none_selected"));
             return;
         }
 
@@ -99,8 +99,8 @@ public final class DataCollectSubCommand implements BuildableCommand {
         SchedulerUtils.runEntity(Raveon.INSTANCE, targetPlayer, () -> {
             boolean started = raveonPlayer.startDatasetsCollection(args[4], type.equals("cheat"), model, ownerUuid);
             reply(commandSender, started
-                    ? Raveon.INSTANCE.getLanguageService().text("datacollect.start.success").replace("{target}", raveonPlayer.getName())
-                    : Raveon.INSTANCE.getLanguageService().text("datacollect.start.pending"));
+                    ? Raveon.INSTANCE.getDataCollectConfigManager().message("start.start").replace("{target}", raveonPlayer.getName())
+                    : Raveon.INSTANCE.getDataCollectConfigManager().message("start.pending"));
         });
     }
 
@@ -111,7 +111,7 @@ public final class DataCollectSubCommand implements BuildableCommand {
 
         if (args.length != 3) {
             commandSender.sendMessage(
-                    Raveon.INSTANCE.getLanguageService().text("datacollect.stop.help"));
+                    Raveon.INSTANCE.getDataCollectConfigManager().message("stop.help"));
             return;
         }
 
@@ -122,7 +122,7 @@ public final class DataCollectSubCommand implements BuildableCommand {
         if (targetPlayer == null) {
             commandSender.sendMessage(
                     Raveon.INSTANCE
-                            .getLanguageService().text("datacollect.offline")
+                            .getDataCollectConfigManager().message("all.offline")
                             .replace("{target}", targetName));
             return;
         }
@@ -137,7 +137,7 @@ public final class DataCollectSubCommand implements BuildableCommand {
                 && !raveonPlayer.getTrainData(model).hasPendingFrames()) {
             commandSender.sendMessage(
                     Raveon.INSTANCE
-                            .getLanguageService().text("datacollect.stop.no_collecting")
+                            .getDataCollectConfigManager().message("stop.no_collecting")
                             .replace("{target}", targetName));
             return;
         }
@@ -145,8 +145,8 @@ public final class DataCollectSubCommand implements BuildableCommand {
         SchedulerUtils.runEntity(Raveon.INSTANCE, targetPlayer, () ->
                 raveonPlayer.getTrainData(model).stopCollecting().whenComplete((saved, error) ->
                         reply(commandSender, error == null && Boolean.TRUE.equals(saved)
-                                ? Raveon.INSTANCE.getLanguageService().text("datacollect.stop.success").replace("{target}", raveonPlayer.getName())
-                                : Raveon.INSTANCE.getLanguageService().text("datacollect.stop.failed"))));
+                                ? Raveon.INSTANCE.getDataCollectConfigManager().message("stop.stop").replace("{target}", raveonPlayer.getName())
+                                : Raveon.INSTANCE.getDataCollectConfigManager().message("stop.failed"))));
 
     }
 

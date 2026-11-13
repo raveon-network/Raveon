@@ -1,13 +1,13 @@
 package ru.raveon.api.database;
 
+import com.zaxxer.hikari.HikariDataSource;
+
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.plugin.Plugin;
 
 import java.io.File;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
@@ -20,12 +20,11 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 
 public class DatabaseManager {
+    private static final AtomicLong POOL_IDS = new AtomicLong();
     private final Plugin plugin;
-    private final String username;
-    private final String password;
     private final String table;
     private final DatabaseType dataType;
-    private final String url;
+    private final HikariDataSource dataSource;
     private final int retentionDays;
     private final ThreadPoolExecutor executor;
     private final Set<DatabaseTask<?>> pending = ConcurrentHashMap.newKeySet();
@@ -47,15 +46,32 @@ public class DatabaseManager {
     private DatabaseManager(Plugin plugin, String host, int port, String username, String password,
             String table, DatabaseType dataType, String url, int retentionDays) {
         this.plugin = plugin;
-        this.username = username;
-        this.password = password;
         this.table = table;
         this.dataType = dataType;
-        this.url = url != null ? url : dataType.generateUrl(host, port,
+        String jdbcUrl = url != null ? url : dataType.generateUrl(host, port,
                 dataType == DatabaseType.SQLITE
                         ? new File(plugin.getDataFolder(), table + ".db").getAbsolutePath() : table);
         this.retentionDays = retentionDays;
         int workers = dataType == DatabaseType.SQLITE ? 1 : 4;
+        // Start the pool on the first worker request, never while loading server configuration.
+        dataSource = new HikariDataSource();
+        dataSource.setPoolName("Raveon-database-" + POOL_IDS.incrementAndGet());
+        dataSource.setJdbcUrl(jdbcUrl);
+        dataSource.setMaximumPoolSize(workers);
+        dataSource.setMinimumIdle(workers);
+        dataSource.setConnectionTimeout(3000);
+        dataSource.setValidationTimeout(1000);
+        dataSource.setInitializationFailTimeout(-1);
+        if (dataType == DatabaseType.SQLITE) {
+            dataSource.addDataSourceProperty("busy_timeout", "5000");
+            dataSource.addDataSourceProperty("foreign_keys", "true");
+            dataSource.setMaxLifetime(0);
+            dataSource.setKeepaliveTime(0);
+        } else {
+            dataSource.setUsername(username);
+            dataSource.setPassword(password);
+            dataSource.addDataSourceProperty("tcpKeepAlive", "true");
+        }
         executor = new ThreadPoolExecutor(workers, workers, 0L, TimeUnit.MILLISECONDS,
                 new ArrayBlockingQueue<>(512), runnable -> {
                     Thread thread = new Thread(runnable, "Raveon-database");
@@ -88,20 +104,7 @@ public class DatabaseManager {
     }
 
     public Connection getConnection() throws SQLException {
-        Connection connection = dataType == DatabaseType.MYSQL
-                ? DriverManager.getConnection(url, username, password) : DriverManager.getConnection(url);
-        try {
-            if (dataType == DatabaseType.SQLITE) {
-                try (Statement statement = connection.createStatement()) {
-                    statement.execute("PRAGMA busy_timeout = 5000");
-                    statement.execute("PRAGMA foreign_keys = ON");
-                }
-            }
-            return connection;
-        } catch (SQLException exception) {
-            connection.close();
-            throw exception;
-        }
+        return dataSource.getConnection();
     }
 
     public <T> CompletableFuture<T> submit(Supplier<T> supplier) {
@@ -126,6 +129,7 @@ public class DatabaseManager {
         closing = new CompletableFuture<>();
         executor.shutdown();
         Thread closer = new Thread(() -> {
+            Throwable failure = null;
             try {
                 if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
                     executor.shutdownNow();
@@ -133,17 +137,24 @@ public class DatabaseManager {
                             new RejectedExecutionException("Database shutdown deadline exceeded");
                     pending.forEach(task -> task.result.completeExceptionally(error));
                     pending.clear();
-                    closing.completeExceptionally(error);
+                    failure = error;
                     plugin.getLogger().warning("Database shutdown timed out; unfinished operations cancelled");
-                } else {
-                    closing.complete(null);
                 }
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 executor.shutdownNow();
                 pending.forEach(task -> task.result.completeExceptionally(exception));
                 pending.clear();
-                closing.completeExceptionally(exception);
+                failure = exception;
+            } finally {
+                try {
+                    dataSource.close();
+                } catch (RuntimeException exception) {
+                    if (failure == null) failure = exception;
+                    else failure.addSuppressed(exception);
+                }
+                if (failure == null) closing.complete(null);
+                else closing.completeExceptionally(failure);
             }
         }, "Raveon-database-close");
         closer.setDaemon(true);

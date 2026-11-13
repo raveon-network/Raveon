@@ -49,7 +49,6 @@ public class Raveon extends JavaPlugin {
 
     private volatile RuntimeConfiguration configuration;
 
-    public ru.raveon.service.LanguageService getLanguageService() { return getMainConfigManager().getLanguageService(); }
 
     public MainConfigManager getMainConfigManager() { return configuration == null ? null : configuration.main(); }
     public ChecksConfigManager getChecksConfigManager() { return configuration.checks(); }
@@ -101,7 +100,7 @@ public class Raveon extends JavaPlugin {
                     hologramManager.handleConfigReload();
                     monitorManager.handleConfigReload();
                     if (requested.getApiKey().isEmpty())
-                        getLogger().warning(getLanguageService().plain("logs.plugin-not-connected"));
+                        getLogger().warning(getMainConfigManager().plainMessage("logs.plugin-not-connected"));
                     else getLogger().info("Applied model profile " + result.profile().crc() + ": " + result.modelNames());
                     applied.complete(null);
                 } catch (RuntimeException failure) { applied.completeExceptionally(failure); }

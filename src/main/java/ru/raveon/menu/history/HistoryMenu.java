@@ -150,7 +150,7 @@ public class HistoryMenu extends ActionMenu<PlayerHistoryPage> {
     @Override
     protected boolean applyData(PlayerHistoryPage result, Player viewer) {
         if (result == null || result.data() == null) {
-            viewer.sendMessage(Raveon.INSTANCE.getMainConfigManager().getLanguageService().text("history-no-data")
+            viewer.sendMessage(Raveon.INSTANCE.getMainConfigManager().message("history-no-data")
                     .replace("{player}", playerName));
             return false;
         }
@@ -195,7 +195,7 @@ public class HistoryMenu extends ActionMenu<PlayerHistoryPage> {
         var item = new YamlConfiguration();
         item.set("material", "ARROW");
         item.set("action", "back");
-        item.set("display_name", Raveon.INSTANCE.getLanguageService().text("menus.history.back"));
+        item.set("display_name", historyMenuSettings.getSection().getString("items.back-item.display_name", "&#36cbe9◀ &#F3F3F3Back"));
         item.set("slot", slot);
         menuButtons.add(createButton(MenuItem.fromSection(item)));
     }

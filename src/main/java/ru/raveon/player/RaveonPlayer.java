@@ -31,7 +31,7 @@ public class RaveonPlayer {
     private volatile RotationRingBuffer<RotationFrame> rotationBuffer;
     private final UltraData ultraData = new UltraData();
 
-    private Player bukkitPlayer;
+    private volatile Player bukkitPlayer;
 
     private volatile long lastCombatTime = 0L;
     private volatile long lastAnalysisAttack;
@@ -104,6 +104,11 @@ public class RaveonPlayer {
         tagCombat();
     }
     public void noteAnalysisAttack() { lastAnalysisAttack = System.currentTimeMillis(); }
+    public void resetAnalysisCombat() {
+        lastAnalysisAttack = 0;
+        lastCombatTime = 0;
+        isInCombat = false;
+    }
     public boolean isModelInCombat(ModelId model) {
         return System.currentTimeMillis() - lastAnalysisAttack <= checkManager.getActiveConfig().getCombatTimer(model);
     }

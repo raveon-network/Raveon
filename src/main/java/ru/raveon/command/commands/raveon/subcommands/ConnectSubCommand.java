@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import ru.raveon.Raveon;
 import ru.raveon.api.command.BuildableCommand;
 import ru.raveon.api.command.register.SubCommandRegister;
-import ru.raveon.service.LanguageService;
+import ru.raveon.config.MainConfigManager;
 import ru.raveon.service.analyze.AnalyzeConnection;
 import ru.raveon.utils.SchedulerUtils;
 
@@ -17,29 +17,29 @@ import java.util.List;
 public class ConnectSubCommand implements BuildableCommand {
     @Override
     public void handle(@NotNull CommandSender commandSender, @NotNull String[] args) {
-        LanguageService language = Raveon.INSTANCE.getLanguageService();
+        MainConfigManager messages = Raveon.INSTANCE.getMainConfigManager();
         if (args.length != 2) {
-            commandSender.sendMessage(language.text("connect.usage"));
+            commandSender.sendMessage(messages.message("connect.usage"));
             return;
         }
 
-        commandSender.sendMessage(language.text("connect.checking"));
+        commandSender.sendMessage(messages.message("connect.checking"));
         Raveon.INSTANCE.getAnalyzeConnection().connect(args[1]).whenComplete((result, error) ->
-                reply(commandSender, error == null ? message(language, result) : failure(language, error)));
+                reply(commandSender, error == null ? message(messages, result) : failure(messages, error)));
     }
 
-    private String message(LanguageService language, AnalyzeConnection.Result result) {
+    private String message(MainConfigManager messages, AnalyzeConnection.Result result) {
         return switch (result.status()) {
-            case CONNECTED -> language.text("connect.success",
+            case CONNECTED -> messages.message("connect.success",
                     "server", result.server(), "models", result.modelNames());
-            case REJECTED -> language.text("connect.rejected");
-            case UNAVAILABLE -> language.text("connect.unavailable", "error", result.detail());
+            case REJECTED -> messages.message("connect.rejected");
+            case UNAVAILABLE -> messages.message("connect.unavailable", "error", result.detail());
         };
     }
 
-    private String failure(LanguageService language, Throwable error) {
+    private String failure(MainConfigManager messages, Throwable error) {
         Throwable cause = error.getCause() == null ? error : error.getCause();
-        String message = language.text("connect.failed", "error", String.valueOf(cause.getMessage()));
+        String message = messages.message("connect.failed", "error", String.valueOf(cause.getMessage()));
         Raveon.INSTANCE.getLogger().warning(org.bukkit.ChatColor.stripColor(message));
         return message;
     }

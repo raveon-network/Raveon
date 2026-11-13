@@ -13,7 +13,7 @@ import ru.raveon.model.PluginModelProfile;
 import ru.raveon.model.CloudPunishments;
 import ru.raveon.config.RuntimeConfiguration;
 import ru.raveon.config.anticheat.PunishmentConfigManager;
-import ru.raveon.service.LanguageService;
+import ru.raveon.config.MainConfigManager;
 import ru.raveon.utils.SchedulerUtils;
 
 import java.net.URI;
@@ -69,9 +69,9 @@ public final class AnalyzeConnection {
 
     /** Fetches the same complete profile on startup and every explicit reload. */
     public void refresh() {
-        LanguageService language = Raveon.INSTANCE.getLanguageService();
+        MainConfigManager messages = Raveon.INSTANCE.getMainConfigManager();
         Raveon.INSTANCE.reloadConfigurationAsync().whenComplete((ignored, error) -> {
-            if (error != null) plugin.getLogger().warning(language.plain("logs.plugin-check-failed", "error", error.getMessage()));
+            if (error != null) plugin.getLogger().warning(messages.plainMessage("logs.plugin-check-failed", "error", error.getMessage()));
         });
     }
 
@@ -125,7 +125,7 @@ public final class AnalyzeConnection {
                 try {
                     if (stopped || Raveon.INSTANCE.getConfiguration() != previous)
                         throw new IllegalStateException("Settings changed while fetching profile");
-                    var local = new PunishmentConfigManager(plugin, previous.main().getLanguageService()).getLocalPolicy();
+                    var local = new PunishmentConfigManager(plugin).getLocalPolicy();
                     var cloud = result.profile().punishments();
                     RuleSyncPlan plan = RuleSyncPlan.decide(cloud, previous.checks().getRemoteProfile().punishments().revision(), local, observedLocal);
                     if (plan.conflict()) plugin.getLogger().warning("Punishment rules changed locally and in the panel; newer panel revision wins");
@@ -152,7 +152,7 @@ public final class AnalyzeConnection {
     public boolean localChanged(Prepared prepared) { return !prepared.local().equals(observedLocal); }
 
     public void commitRules(Prepared prepared, RuntimeConfiguration previous) {
-        var latest = new PunishmentConfigManager(plugin, previous.main().getLanguageService()).getLocalPolicy();
+        var latest = new PunishmentConfigManager(plugin).getLocalPolicy();
         if (!latest.equals(prepared.local())) throw new IllegalStateException("Local punishment file changed during sync; retry");
         var cloud = prepared.result().profile().punishments();
         if (cloud.mode().equals("sync") && cloud.policy() != null && !latest.equals(cloud.policy()))

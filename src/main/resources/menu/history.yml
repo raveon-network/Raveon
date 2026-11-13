@@ -1,5 +1,5 @@
-# {lang:key} resolves text from the selected language catalog.
-title: "{lang:menus.history.title}"
+# Menu text is configured directly in this file.
+title: "&8{player_name}: history ({model})"
 # Inventory slots; a multiple of 9 from 9 to 54.
 size: 54
 
@@ -14,15 +14,17 @@ settings:
   # Snapshot item template; thresholds select the material by average probability.
   snapshot_form:
     material: GREEN_STAINED_GLASS_PANE
-    display_name: "{lang:menus.history.snapshot.name}"
-    lore: "{lang:menus.history.snapshot.lore}"
+    display_name: "&fCheck #{snapshot_number}"
+    lore:
+      - "&7Probability: {snapshot_avg}%"
+      - "&7Time: &f{snapshot_last_update} ago"
 
   # Format of one probability entry in a snapshot.
-  entry_format: "{lang:menus.history.entry}"
+  entry_format: "&7Probability: {chance}%\n&7Time: &f{time} ago"
   # Text shown when a snapshot has no entries.
-  empty_entries_message: "{lang:menus.history.empty_entries}"
+  empty_entries_message: "&7No entries"
   # Replacement for a missing server name.
-  empty_server_value: "{lang:menus.history.empty_server}"
+  empty_server_value: "—"
 
   # Minimum average probability -> item material; the highest matching threshold is used.
   thresholds:
@@ -36,27 +38,27 @@ items:
   back-item:
     material: ARROW
     action: back
-    display_name: "{lang:menus.history.back}"
+    display_name: "&#36cbe9◀ &#F3F3F3Back"
     slot: 48
 
   previous-item:
     material: ARROW
     action: 'previous_page'
-    display_name: "{lang:menus.history.previous}"
+    display_name: "&#36cbe9◀ &#F3F3F3Previous page"
     slot: 47
 
   next-item:
     material: ARROW
     action: 'next_page'
-    display_name: "{lang:menus.history.next}"
+    display_name: "&#F3F3F3Next page &#36cbe9▶"
     slot: 51
   model-item:
     material: COMPARATOR
     action: 'switch_model'
-    display_name: "{lang:menus.history.model}"
+    display_name: "&fModel: {model} &7(click to switch)"
     slot: 49
   refresh-item:
     material: CLOCK
     action: 'refresh'
-    display_name: "{lang:menus.history.refresh}"
+    display_name: "&fRefresh"
     slot: 50

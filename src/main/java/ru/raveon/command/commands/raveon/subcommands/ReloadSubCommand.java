@@ -15,13 +15,13 @@ import java.util.List;
 public class ReloadSubCommand implements BuildableCommand {
     @Override
     public void handle(@NotNull CommandSender commandSender, @NotNull String[] args) {
-        commandSender.sendMessage(Raveon.INSTANCE.getMainConfigManager().getLanguageService().text("reloading"));
+        commandSender.sendMessage(Raveon.INSTANCE.getMainConfigManager().message("reloading"));
 
         SchedulerUtils.run(Raveon.INSTANCE, () -> {
             Raveon.INSTANCE.reloadConfigurationAsync().whenComplete((ignored, error) -> {
                 String message = error == null
-                        ? Raveon.INSTANCE.getLanguageService().text("reloaded")
-                        : Raveon.INSTANCE.getLanguageService().text("reload-failed", "error", error.getMessage());
+                        ? Raveon.INSTANCE.getMainConfigManager().message("reloaded")
+                        : Raveon.INSTANCE.getMainConfigManager().message("reload-failed", "error", error.getMessage());
                 if (error != null) Raveon.INSTANCE.getLogger().warning(org.bukkit.ChatColor.stripColor(message));
                 if (commandSender instanceof Player player)
                     SchedulerUtils.runEntity(Raveon.INSTANCE, player, () -> player.sendMessage(message));

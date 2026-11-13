@@ -173,6 +173,6 @@ public class HistoryMenuPlaceholders {
 
         long elapsedSeconds = Math.max(0L, (System.currentTimeMillis() - timestamp) / 1000L);
         int seconds = (int) Math.min(Integer.MAX_VALUE, elapsedSeconds);
-        return Raveon.INSTANCE.getLanguageService().duration(seconds);
+        return ru.raveon.utils.TimeUtils.formatSeconds(seconds);
     }
 }

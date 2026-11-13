@@ -9,7 +9,6 @@ import ru.raveon.api.configuration.ConfigManager;
 import ru.raveon.api.configuration.CustomConfig;
 import ru.raveon.model.ModelId;
 import ru.raveon.model.CloudPunishments;
-import ru.raveon.service.LanguageService;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -23,22 +22,20 @@ import java.util.TreeMap;
 @Getter
 public final class PunishmentConfigManager extends ConfigManager {
     private List<PunishGroupConfig> punishGroups = List.of();
-    private final LanguageService languageService;
     private final CloudPunishments cloud;
     private final Set<ModelId> availableModels;
     @Getter private CloudPunishments.Policy localPolicy;
 
-    public PunishmentConfigManager(Plugin plugin, LanguageService languageService) {
-        this(plugin, languageService, CloudPunishments.OFF);
+    public PunishmentConfigManager(Plugin plugin) {
+        this(plugin, CloudPunishments.OFF);
     }
 
-    public PunishmentConfigManager(Plugin plugin, LanguageService languageService, CloudPunishments cloud) {
-        this(plugin, languageService, cloud, ru.raveon.Raveon.INSTANCE.getConfiguration() == null
+    public PunishmentConfigManager(Plugin plugin, CloudPunishments cloud) {
+        this(plugin, cloud, ru.raveon.Raveon.INSTANCE.getConfiguration() == null
                 ? Set.of(ModelId.values()) : ru.raveon.Raveon.INSTANCE.getChecksConfigManager().activeModels());
     }
-    public PunishmentConfigManager(Plugin plugin, LanguageService languageService, CloudPunishments cloud, Set<ModelId> availableModels) {
+    public PunishmentConfigManager(Plugin plugin, CloudPunishments cloud, Set<ModelId> availableModels) {
         super(plugin);
-        this.languageService = languageService;
         this.cloud = cloud;
         this.availableModels = Set.copyOf(availableModels);
         initialize();
@@ -52,8 +49,7 @@ public final class PunishmentConfigManager extends ConfigManager {
     @Override
     public void loadValues() {
         List<PunishGroupConfig> loaded = new ArrayList<>();
-        ConfigurationSection root = languageService.localize(
-                getCustomConfig("features/punishments.yml").getConfig());
+        ConfigurationSection root = getCustomConfig("features/punishments.yml").getConfig();
         for (String groupName : root.getKeys(false)) {
             if (!groupName.matches("[a-z0-9_-]{1,64}"))
                 throw new IllegalArgumentException("Invalid punishment group name: " + groupName);

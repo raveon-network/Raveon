@@ -9,7 +9,7 @@ import ru.raveon.config.RuntimeConfiguration;
 import ru.raveon.config.anticheat.ChecksConfigManager.ModelActions;
 import ru.raveon.database.modules.PunishmentDatabase;
 import ru.raveon.model.ModelId;
-import ru.raveon.service.LanguageService;
+import ru.raveon.config.MainConfigManager;
 import ru.raveon.utils.ProbabilityUtils;
 import ru.raveon.utils.SchedulerUtils;
 
@@ -38,7 +38,7 @@ public final class PunishmentManager {
 
     private CompletableFuture<Void> handle(Flag flag, ModelActions roles, RuntimeConfiguration runtime) {
         if (!roles.punish()) {
-            if (roles.alert()) sendAlert(flag, runtime.main().getLanguageService(), "",
+            if (roles.alert()) sendAlert(flag, runtime.main(), "",
                     flag.checkVl(), flag.checkVl());
             return CompletableFuture.completedFuture(null);
         }
@@ -55,7 +55,7 @@ public final class PunishmentManager {
                         for (var counted : counts) {
                             for (String action : counted.group().actions(counted.total())) {
                                 try {
-                                    execute(action, flag, roles, runtime.main().getLanguageService(),
+                                    execute(action, flag, roles, runtime.main(),
                                             counted.group().name(), counted.checkViolations(), counted.total());
                                 } catch (RuntimeException error) {
                                     runtime.main().getDatabaseManager().logFailure(Level.WARNING,
@@ -72,11 +72,11 @@ public final class PunishmentManager {
         return result;
     }
 
-    private void execute(String action, Flag flag, ModelActions roles, LanguageService language,
+    private void execute(String action, Flag flag, ModelActions roles, MainConfigManager messages,
             String group, long checkViolations, long total) {
         switch (action.toLowerCase(Locale.ROOT)) {
             case "[alert]" -> {
-                if (roles.alert()) sendAlert(flag, language, group, checkViolations, total);
+                if (roles.alert()) sendAlert(flag, messages, group, checkViolations, total);
             }
             case "[log]" -> plugin.getViolationManager().getViolationStorage().logAlert(
                     flag.uuid(), plugin.getDescription().getVersion(),
@@ -96,11 +96,11 @@ public final class PunishmentManager {
         double probability = check instanceof AimAI ai ? ai.getLastProbability() : -1;
         double buffer = check instanceof AimAI ai ? ai.getBuffer() : 0;
         Flag flag = snapshot(check, model, probability, buffer, verbose);
-        sendAlert(flag, plugin.getLanguageService(), "", flag.checkVl(), flag.checkVl());
+        sendAlert(flag, plugin.getMainConfigManager(), "", flag.checkVl(), flag.checkVl());
     }
 
-    private void sendAlert(Flag flag, LanguageService language, String group, long checkVl, long total) {
-        plugin.getAlertManager().sendAlert(format(language.text("ai-alert"), flag, group, checkVl, total));
+    private void sendAlert(Flag flag, MainConfigManager messages, String group, long checkVl, long total) {
+        plugin.getAlertManager().sendAlert(format(messages.message("ai-alert"), flag, group, checkVl, total));
     }
 
     private Flag snapshot(Check check, ModelId model,

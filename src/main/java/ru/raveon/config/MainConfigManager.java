@@ -12,7 +12,6 @@ import ru.raveon.api.database.DatabaseManager;
 import ru.raveon.menu.history.HistoryMenuSettings;
 import ru.raveon.menu.players.PlayersMenuSettings;
 import ru.raveon.utils.StringColorize;
-import ru.raveon.service.LanguageService;
 
 import java.util.TreeMap;
 
@@ -20,7 +19,7 @@ import java.util.TreeMap;
 public class MainConfigManager extends ConfigManager {
     private MainConfigManager previous;
     private final CustomConfig settingsConfig;
-    private final LanguageService languageService;
+    private CustomConfig messagesConfig;
     private DatabaseManager databaseManager;
     private RedisConfig redisConfig;
 
@@ -35,11 +34,10 @@ public class MainConfigManager extends ConfigManager {
     private HistoryMenuSettings historySettings;
 
     public MainConfigManager(Plugin plugin, MainConfigManager previous,
-            CustomConfig settingsConfig, LanguageService languageService) {
+            CustomConfig settingsConfig) {
         super(plugin);
         this.previous = previous;
         this.settingsConfig = settingsConfig;
-        this.languageService = languageService;
         initialize();
         this.previous = null;
     }
@@ -47,6 +45,8 @@ public class MainConfigManager extends ConfigManager {
     @Override
     public void loadConfigs() {
         addCustomConfig(settingsConfig);
+        messagesConfig = new CustomConfig("translation.yml", plugin);
+        addCustomConfig(messagesConfig);
 
         addCustomConfig(new CustomConfig("menu/players.yml", plugin));
         addCustomConfig(new CustomConfig("menu/history.yml", plugin));
@@ -89,9 +89,9 @@ public class MainConfigManager extends ConfigManager {
         }
 
         menuSettings =
-                PlayersMenuSettings.fromSection(getCustomConfig("menu/players.yml").getConfig(), languageService);
+                PlayersMenuSettings.fromSection(getCustomConfig("menu/players.yml").getConfig());
         historySettings =
-                HistoryMenuSettings.fromSection(getCustomConfig("menu/history.yml").getConfig(), languageService);
+                HistoryMenuSettings.fromSection(getCustomConfig("menu/history.yml").getConfig());
         databaseManager = previous == null
                 ? DatabaseManager.fromSection(settings.getConfigurationSection("database"), plugin)
                 : previous.getDatabaseManager();
@@ -100,5 +100,13 @@ public class MainConfigManager extends ConfigManager {
     public String getChanceColor(double chance) {
         var entry = aiChanceColors.floorEntry(chance);
         return entry != null ? entry.getValue() : "§f";
+    }
+
+    public String message(String key, Object... placeholders) {
+        return messagesConfig.message(key, placeholders);
+    }
+
+    public String plainMessage(String key, Object... placeholders) {
+        return org.bukkit.ChatColor.stripColor(message(key, placeholders));
     }
 }

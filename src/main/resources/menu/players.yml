@@ -1,5 +1,5 @@
-# {lang:key} resolves text from the selected language catalog.
-title: "{lang:menus.players.title}"
+# Menu text is configured directly in this file.
+title: "&8Suspects: {model}"
 # Inventory slots; a multiple of 9 from 9 to 54.
 size: 54
 
@@ -13,8 +13,23 @@ settings:
   # Appearance and click actions of each player entry.
   player_form:
     material: PLAYER_HEAD
-    display_name: "{lang:menus.players.player.name}"
-    lore: "{lang:menus.players.player.lore}"
+    display_name: " &#36cbe9▶ &#F3F3F3{player_name} &#F3F3F3[{cheat_bar}&#F3F3F3] {avg_percent}%"
+    lore:
+      - ""
+      - " &#c1dce7Recent checks:"
+      - "{checks}"
+      - ""
+      - " &#c1dce7Average probability"
+      - " &#e2c46eAVG: {avg}%"
+      - ""
+      - " &#c1dce7Last server:"
+      - " &f{last_server}"
+      - ""
+      - " &#c1dce7Last hit:"
+      - " &f{last_check}"
+      - ""
+      - " &#36cbe9▶ &#F3F3F3LEFT click &7to spectate"
+      - " &#36cbe9▶ &#F3F3F3RIGHT click &7to view history"
 
     # [player] executes as the viewer; {player_name} is the selected player.
     # [open-history] opens the selected player's history.
@@ -26,9 +41,9 @@ settings:
         - '[open-history]'
 
   # Replacement for unavailable player values.
-  empty_value: "{lang:menus.players.empty}"
+  empty_value: " &7—"
   # Text shown when no probability results are available.
-  no_checks_message: "{lang:menus.players.no_checks}"
+  no_checks_message: " &7No data"
 
   # Filled and empty segments of the probability bar.
   bar_symbol: '■'
@@ -44,20 +59,20 @@ items:
   previous-item:
     material: ARROW
     action: 'previous_page'
-    display_name: "{lang:menus.players.previous}"
+    display_name: "&#36cbe9◀ &#F3F3F3Previous page"
     slot: 47
   next-item:
     material: ARROW
     action: 'next_page'
-    display_name: "{lang:menus.players.next}"
+    display_name: "&#F3F3F3Next page &#36cbe9▶"
     slot: 51
   model-item:
     material: COMPARATOR
     action: 'switch_model'
-    display_name: "{lang:menus.players.model}"
+    display_name: "&fModel: {model} &7(click to switch)"
     slot: 49
   refresh-item:
     material: CLOCK
     action: 'refresh'
-    display_name: "{lang:menus.players.refresh}"
+    display_name: "&fRefresh"
     slot: 50

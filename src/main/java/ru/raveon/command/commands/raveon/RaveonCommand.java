@@ -8,7 +8,7 @@ import ru.raveon.command.handler.BaseCommandExecutor;
 public class RaveonCommand extends BaseCommandExecutor {
     @Override
     public String getNoPermissionMessage() {
-        return ru.raveon.Raveon.INSTANCE.getLanguageService().text("errors.no-permission");
+        return ru.raveon.Raveon.INSTANCE.getMainConfigManager().message("errors.no-permission");
     }
 
     @Override

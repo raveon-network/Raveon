@@ -5,9 +5,10 @@ plugins {
 }
 
 group = "ru.raveon"
-version = "2.0.9"
+version = "2.1.0"
 
 repositories {
+    mavenCentral()
     exclusiveContent {
         forRepository {
             maven { url = uri("https://maven.enginehub.org/repo/") }
@@ -26,11 +27,11 @@ repositories {
     maven { url = uri("https://repo.opencollab.dev/maven-snapshots/") }
     maven { url = uri("https://repo.opencollab.dev/maven-releases/") }
     maven { url = uri("https://libraries.minecraft.net/") }
-    mavenCentral()
 }
 
 dependencies {
-    testRuntimeOnly("org.xerial:sqlite-jdbc:3.49.1.0")
+    testImplementation("org.xerial:sqlite-jdbc:3.49.1.0")
+    testImplementation("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
     compileOnly("io.papermc.paper:paper-api:1.20.1-R0.1-SNAPSHOT")
 
     compileOnly(libs.lombok)
@@ -58,6 +59,8 @@ dependencies {
 
     implementation("com.google.flatbuffers:flatbuffers-java:25.2.10")
     implementation("io.lettuce:lettuce-core:7.4.0.RELEASE")
+    implementation("com.zaxxer:HikariCP:7.1.0")
+    implementation("org.slf4j:slf4j-jdk14:2.0.17")
 
     implementation(libs.relocations)
     compileOnly(fileTree("libs") {
@@ -72,6 +75,7 @@ tasks {
 
     shadowJar {
         archiveClassifier.set("")
+        includeEmptyDirs = false
         isPreserveFileTimestamps = false
         isReproducibleFileOrder = true
 
@@ -85,6 +89,8 @@ tasks {
 
         relocate("io.lettuce", "ru.raveon.shade.lettuce")
         relocate("io.netty", "ru.raveon.shade.netty")
+        relocate("com.zaxxer.hikari", "ru.raveon.shade.hikari")
+        relocate("org.slf4j", "ru.raveon.shade.slf4j")
 
         exclude("META-INF/*.SF")
         exclude("META-INF/*.DSA")
@@ -151,4 +157,62 @@ artifacts {
 tasks.withType<JavaCompile>().configureEach {
     options.release.set(17)
     options.encoding = "UTF-8"
+}
+
+val queueRegressionTest by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Checks packet queue recovery and stale scheduler callback isolation."
+    dependsOn(tasks.testClasses)
+    classpath = files(sourceSets["test"].output, sourceSets["main"].output)
+    mainClass.set("ru.raveon.manager.anticheat.PacketWorkQueueRegression")
+}
+
+tasks.check {
+    dependsOn(queueRegressionTest)
+}
+
+val databaseRegressionTest by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Checks pooled database connections, transactions and shutdown."
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ru.raveon.api.database.DatabaseManagerRegression")
+}
+
+tasks.check {
+    dependsOn(databaseRegressionTest)
+}
+
+val databaseJarSmokeTest by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Checks pooled SQL and isolated logging in the packaged plugin."
+    dependsOn(tasks.shadowJar, tasks.testClasses)
+    classpath = files(tasks.shadowJar.flatMap { it.archiveFile }, sourceSets["test"].output) +
+            configurations.testRuntimeClasspath.get().filter { !it.name.startsWith("HikariCP-") }
+    mainClass.set("ru.raveon.api.database.ShadedDatabaseSmoke")
+}
+
+tasks.check {
+    dependsOn(databaseJarSmokeTest)
+}
+
+tasks.register<JavaExec>("databaseLoadTest") {
+    group = "verification"
+    description = "Runs concurrent SQL, overload and shutdown stress scenarios."
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ru.raveon.api.database.DatabaseLoadTest")
+    args(layout.buildDirectory.dir("reports/database-load").get().asFile.absolutePath)
+}
+
+val configurationRegressionTest by tasks.registering(JavaExec::class) {
+    group = "verification"
+    description = "Checks English-only configuration and migration from catalog references."
+    dependsOn(tasks.testClasses)
+    classpath = sourceSets["test"].runtimeClasspath
+    mainClass.set("ru.raveon.config.ConfigurationRegression")
+}
+
+tasks.check {
+    dependsOn(configurationRegressionTest)
 }

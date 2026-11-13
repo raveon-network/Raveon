@@ -25,7 +25,7 @@ public class MonitorSubCommand implements BuildableCommand {
     public void handle(@NotNull CommandSender sender, @NotNull String[] args) {
         MainConfigManager config = Raveon.INSTANCE.getMainConfigManager();
         if (!(sender instanceof Player viewer)) {
-            sender.sendMessage(config.getLanguageService().text("monitor.only_player"));
+            sender.sendMessage(config.message("monitor.only_player"));
             return;
         }
         if (args.length < 2) {
@@ -42,8 +42,8 @@ public class MonitorSubCommand implements BuildableCommand {
                     }
                     viewer.sendMessage(
                             manager.stop(viewer)
-                                    ? config.getLanguageService().text("monitor.disabled")
-                                    : config.getLanguageService().text("monitor.not_running"));
+                                    ? config.message("monitor.disabled")
+                                    : config.message("monitor.not_running"));
                 }
                 case "prob" -> prob(viewer, args, config, manager);
                 case "chat" -> chat(viewer, args, config, manager);
@@ -64,15 +64,15 @@ public class MonitorSubCommand implements BuildableCommand {
                 args.length == 4 ? MonitorModelFilter.parse(args[3]) : MonitorModelFilter.ALL;
         Player target = findPlayer(args[2]);
         if (target == null || !target.isOnline()) {
-            viewer.sendMessage(config.getLanguageService().text("monitor.player_not_found"));
+            viewer.sendMessage(config.message("monitor.player_not_found"));
             return;
         }
         ToggleResult result = manager.toggle(viewer, target, filter);
         String response =
                 switch (result) {
-                    case ENABLED -> config.getLanguageService().text("monitor.enabled");
-                    case SWITCHED -> config.getLanguageService().text("monitor.switched");
-                    case DISABLED -> config.getLanguageService().text("monitor.disabled");
+                    case ENABLED -> config.message("monitor.enabled");
+                    case SWITCHED -> config.message("monitor.switched");
+                    case DISABLED -> config.message("monitor.disabled");
                 };
         viewer.sendMessage(selection(response, target.getName(), filter.displayName()));
     }
@@ -95,21 +95,21 @@ public class MonitorSubCommand implements BuildableCommand {
             if (args.length == 4) filter = MonitorModelFilter.parse(args[3]);
             target = findPlayer(args[2]);
             if (target == null || !target.isOnline()) {
-                viewer.sendMessage(config.getLanguageService().text("monitor.player_not_found"));
+                viewer.sendMessage(config.message("monitor.player_not_found"));
                 return;
             }
         }
         ToggleResult result = manager.toggleChat(viewer, target, filter);
         String response =
                 switch (result) {
-                    case ENABLED -> config.getLanguageService().text("monitor.chat.enabled");
-                    case SWITCHED -> config.getLanguageService().text("monitor.chat.switched");
-                    case DISABLED -> config.getLanguageService().text("monitor.chat.disabled");
+                    case ENABLED -> config.message("monitor.chat.enabled");
+                    case SWITCHED -> config.message("monitor.chat.switched");
+                    case DISABLED -> config.message("monitor.chat.disabled");
                 };
         viewer.sendMessage(
                 selection(
                         response,
-                        target == null ? config.getLanguageService().text("monitor.chat.all_name") : target.getName(),
+                        target == null ? config.message("monitor.chat.all_name") : target.getName(),
                         filter.fullDisplayName()));
     }
 
@@ -123,7 +123,7 @@ public class MonitorSubCommand implements BuildableCommand {
     }
 
     private static void usage(Player viewer, MainConfigManager config) {
-        String message = config.getLanguageService().text("monitor.usage");
+        String message = config.message("monitor.usage");
         viewer.sendMessage(message);
     }
 

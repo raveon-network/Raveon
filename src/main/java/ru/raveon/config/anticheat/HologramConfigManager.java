@@ -1,28 +1,16 @@
 package ru.raveon.config.anticheat;
 
 import lombok.Getter;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import ru.raveon.api.configuration.ConfigManager;
 import ru.raveon.api.configuration.CustomConfig;
 import ru.raveon.model.ModelId;
-import ru.raveon.service.LanguageService;
 import ru.raveon.utils.StringColorize;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.List;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 @Getter
 public class HologramConfigManager extends ConfigManager {
-    private static final String DEFAULT_LINE =
-            "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}";
-    private static final Pattern LEGACY_REFERENCE = Pattern.compile("\\{lang:(holograms\\.[a-zA-Z0-9_.-]+)}");
+    private static final String DEFAULT_LINE = "&7[{model}] {prob_color}&l{prob}% &7| {avg_color}&l{avg}% &7| &f{buffer}";
     private boolean enabled;
     private double lineSpacing;
     private double offset;
@@ -31,26 +19,30 @@ public class HologramConfigManager extends ConfigManager {
     private List<String> lines;
     private String belowNameLine;
     private int modelRotationIntervalTicks;
-    private final LanguageService languageService;
 
-    public HologramConfigManager(Plugin plugin, LanguageService languageService) {
+    public HologramConfigManager(Plugin plugin) {
         super(plugin);
-        this.languageService = languageService;
         initialize();
     }
 
     @Override
     public void loadConfigs() {
         CustomConfig config = new CustomConfig("features/hologram.yml", plugin);
-        for (String path : List.of("model_rotation"))
-            if (config.getConfig().contains(path) && !config.getConfig().isConfigurationSection(path))
-                throw new IllegalArgumentException(path + " must be a section");
-        boolean migrate = hasLanguageReferences(config) || config.getConfig().contains("floating_line")
-                || config.getConfig().contains("floating_lines");
-        boolean changed = inlineLegacyTranslations(config);
+        if (config.getConfig().contains("model_rotation") && !config.getConfig().isConfigurationSection("model_rotation"))
+            throw new IllegalArgumentException("model_rotation must be a section");
+        boolean changed = false;
         if (!config.getConfig().contains("lines")) {
             config.getConfig().set("lines", List.of(config.getRawString("floating_line", DEFAULT_LINE)));
             changed = true;
+        }
+        Object raw = config.getConfig().get("lines");
+        if (raw instanceof List<?> entries && entries.stream().allMatch(String.class::isInstance)) {
+            List<String> literal = entries.stream().map(String.class::cast)
+                    .map(line -> line.replaceAll("\\{lang:[^}]+}", java.util.regex.Matcher.quoteReplacement(DEFAULT_LINE))).toList();
+            if (!literal.equals(entries)) {
+                config.getConfig().set("lines", literal);
+                changed = true;
+            }
         }
         for (String obsolete : List.of("floating_line", "floating_lines", "model_rotation.names")) {
             if (config.getConfig().contains(obsolete)) {
@@ -62,70 +54,8 @@ public class HologramConfigManager extends ConfigManager {
             config.getConfig().set("model_rotation.interval_ticks", 80);
             changed = true;
         }
-        if (changed) {
-            if (migrate) {
-                var original = config.getFile().toPath();
-                var backup = original.resolveSibling("hologram.yml.bak");
-                try {
-                    if (!Files.exists(backup)) Files.copy(original, backup);
-                } catch (IOException error) {
-                    throw new IllegalArgumentException("Cannot back up the old hologram configuration", error);
-                }
-            }
-            config.save();
-        }
+        if (changed) config.save();
         addCustomConfig(config);
-    }
-
-    private static boolean hasLanguageReferences(CustomConfig config) {
-        return config.getConfig().getValues(true).values().stream()
-                .anyMatch(value -> value != null && !(value instanceof ConfigurationSection)
-                        && value.toString().contains("{lang:"));
-    }
-
-    private boolean inlineLegacyTranslations(CustomConfig config) {
-        if (!hasLanguageReferences(config)) return false;
-        YamlConfiguration legacy = new YamlConfiguration();
-        var file = plugin.getDataFolder().toPath().resolve("lang")
-                .resolve(languageService.language()).resolve("hologram.yml");
-        if (!Files.exists(file))
-            file = plugin.getDataFolder().toPath().resolve("lang").resolve(languageService.language() + ".yml");
-        try {
-            if (Files.exists(file))
-                try (var reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
-                    legacy.load(reader);
-                }
-        } catch (IOException | InvalidConfigurationException error) {
-            throw new IllegalArgumentException("Cannot migrate hologram translations", error);
-        }
-        YamlConfiguration prepared = new YamlConfiguration();
-        for (String key : config.getConfig().getKeys(true)) {
-            Object value = config.getConfig().get(key);
-            if (!(value instanceof ConfigurationSection)) prepared.set(key, inlineLegacyValue(value, legacy));
-        }
-        ConfigurationSection localized = languageService.localize(prepared);
-        boolean changed = false;
-        for (String key : localized.getKeys(true)) {
-            Object value = localized.get(key);
-            if (!(value instanceof ConfigurationSection) && !Objects.equals(config.getConfig().get(key), value)) {
-                config.getConfig().set(key, value);
-                changed = true;
-            }
-        }
-        return changed;
-    }
-
-    private static Object inlineLegacyValue(Object value, YamlConfiguration legacy) {
-        if (value instanceof List<?> list)
-            return list.stream().map(line -> inlineLegacyValue(line, legacy)).toList();
-        if (!(value instanceof String text)) return value;
-        return LEGACY_REFERENCE.matcher(text).replaceAll(match -> {
-            String template = legacy.getString(match.group(1), DEFAULT_LINE);
-            for (ModelId model : ModelId.values())
-                template = template.replace("[" + model.displayName() + "]", "[{model}]");
-            if (!template.contains("{model}")) template = "&7[{model}] " + template;
-            return Matcher.quoteReplacement(template);
-        });
     }
 
     @Override

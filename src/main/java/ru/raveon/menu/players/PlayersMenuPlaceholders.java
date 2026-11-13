@@ -134,7 +134,7 @@ public class PlayersMenuPlaceholders {
                         - Optional.ofNullable(playerData)
                                 .map(PlayerAIProbabilityData::getUpdatedAt)
                                 .orElse(System.currentTimeMillis());
-        placeholders.put("last_check", Raveon.INSTANCE.getLanguageService().duration((int) Math.min(Integer.MAX_VALUE, Math.max(0L, lastCheckTime / 1000L))));
+        placeholders.put("last_check", ru.raveon.utils.TimeUtils.formatSeconds((int) Math.min(Integer.MAX_VALUE, Math.max(0L, lastCheckTime / 1000L))));
 
         placeholders.put(
                 "last_server",

@@ -1,8 +1,7 @@
-# Message catalog: ru or en. Reload applies language changes.
-language: en
-
 # Storage configuration. Changes in this section require a restart.
 database:
+  # HikariCP reuses connections: SQLite uses 1, MySQL uses 4.
+  # SQL tasks run asynchronously; connection acquisition timeout is 3000 ms.
   # Storage backend: SQLITE or MYSQL.
   data_type: 'SQLITE'
   # MySQL host; unused by SQLite.

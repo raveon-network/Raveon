@@ -74,7 +74,7 @@ public abstract class AsyncMenu<T> extends AbstractMenu {
                 pending.remove(id, request);
                 if (Raveon.INSTANCE.isEnabled()) {
                     Raveon.INSTANCE.getLogger().log(Level.WARNING,
-                            Raveon.INSTANCE.getLanguageService().plain("logs.menu-open"), failure);
+                            Raveon.INSTANCE.getMainConfigManager().plainMessage("logs.menu-open"), failure);
                 }
             }
         });
@@ -97,8 +97,8 @@ public abstract class AsyncMenu<T> extends AbstractMenu {
     protected abstract boolean applyData(T data, Player player);
 
     private void failed(Player player, Throwable error) {
-        Raveon.INSTANCE.getLogger().log(Level.WARNING, Raveon.INSTANCE.getLanguageService().plain("logs.menu-load"), error);
-        player.sendMessage(Raveon.INSTANCE.getLanguageService().text("errors.data-load"));
+        Raveon.INSTANCE.getLogger().log(Level.WARNING, Raveon.INSTANCE.getMainConfigManager().plainMessage("logs.menu-load"), error);
+        player.sendMessage(Raveon.INSTANCE.getMainConfigManager().message("errors.data-load"));
     }
 
     private static final class PendingOpen {

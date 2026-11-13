@@ -46,7 +46,7 @@ public class CommandManager {
                     plugin.getLogger()
                             .log(
                                     Level.WARNING,
-                                    Raveon.INSTANCE.getLanguageService().plain("logs.command-missing-annotation", "class", commandClass.getName()));
+                                    Raveon.INSTANCE.getMainConfigManager().plainMessage("logs.command-missing-annotation", "class", commandClass.getName()));
                     continue;
                 }
 
@@ -54,7 +54,7 @@ public class CommandManager {
                     plugin.getLogger()
                             .log(
                                     Level.WARNING,
-                                    Raveon.INSTANCE.getLanguageService().plain("logs.command-invalid-class", "class", commandClass.getName()));
+                                    Raveon.INSTANCE.getMainConfigManager().plainMessage("logs.command-invalid-class", "class", commandClass.getName()));
                     continue;
                 }
 
@@ -74,18 +74,18 @@ public class CommandManager {
                 plugin.getLogger()
                         .log(
                                 Level.INFO,
-                                Raveon.INSTANCE.getLanguageService().plain("logs.command-registered", "command", commandName));
+                                Raveon.INSTANCE.getMainConfigManager().plainMessage("logs.command-registered", "command", commandName));
 
             } catch (Exception e) {
                 plugin.getLogger()
                         .log(
                                 Level.SEVERE,
-                                Raveon.INSTANCE.getLanguageService().plain("logs.command-failed", "class", commandClass.getName()),
+                                Raveon.INSTANCE.getMainConfigManager().plainMessage("logs.command-failed", "class", commandClass.getName()),
                                 e);
             }
         }
 
-        plugin.getLogger().log(Level.INFO, Raveon.INSTANCE.getLanguageService().plain("logs.commands-registered", "count", commands.size()));
+        plugin.getLogger().log(Level.INFO, Raveon.INSTANCE.getMainConfigManager().plainMessage("logs.commands-registered", "count", commands.size()));
     }
 
     public void registerWrappers() {

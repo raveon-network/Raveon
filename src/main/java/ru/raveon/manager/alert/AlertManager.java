@@ -65,8 +65,8 @@ public class AlertManager {
             if (player != null && player.isOnline()) {
                 ru.raveon.utils.SchedulerUtils.runEntity(ru.raveon.Raveon.INSTANCE, player, () -> player.sendMessage(
                         enabled
-                                ? configManager.get().getLanguageService().text("alerts-enabled")
-                                : configManager.get().getLanguageService().text("alerts-disabled")));
+                                ? configManager.get().message("alerts-enabled")
+                                : configManager.get().message("alerts-disabled")));
             }
         }
     }

@@ -127,8 +127,8 @@ public final class HologramManager {
             if (!enabled) removeViewer(viewer);
             if (!silent) {
                 viewer.sendMessage(enabled
-                        ? Raveon.INSTANCE.getMainConfigManager().getLanguageService().text("holograms-enabled")
-                        : Raveon.INSTANCE.getMainConfigManager().getLanguageService().text("holograms-disabled"));
+                        ? Raveon.INSTANCE.getMainConfigManager().message("holograms-enabled")
+                        : Raveon.INSTANCE.getMainConfigManager().message("holograms-disabled"));
             }
         });
         if (enabled) scheduleViewer(viewerId, true, null);

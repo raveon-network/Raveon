@@ -12,10 +12,18 @@ import ru.raveon.utils.StringColorize;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.logging.Level;
 
 @Getter
 public class CustomConfig {
+    private static final Pattern PLACEHOLDER = Pattern.compile("\\{([a-zA-Z0-9_]+)}");
     private final File file;
     private final String name;
     private final boolean dataConfig;
@@ -63,6 +71,55 @@ public class CustomConfig {
             }
         }
         this.config = readConfiguration();
+        if (name.equals("settings.yml") && config.isSet("language")) {
+            config.set("language", null);
+            save();
+        }
+        loadTextDefaults(plugin);
+    }
+
+    private void loadTextDefaults(Plugin plugin) {
+        boolean menu = name.equals("menu/history.yml") || name.equals("menu/players.yml");
+        if (!menu && !name.equals("translation.yml") && !name.equals("features/datacollect.yml")) return;
+        try (var input = plugin.getResource(getFileName(name))) {
+            if (input == null) throw new IllegalArgumentException("Missing configuration resource " + name);
+            YamlConfiguration defaults = new YamlConfiguration();
+            try (var reader = new InputStreamReader(input, StandardCharsets.UTF_8)) { defaults.load(reader); }
+            if (menu) {
+                boolean changed = false;
+                for (String key : config.getKeys(true)) {
+                    Object value = config.get(key);
+                    if (value instanceof org.bukkit.configuration.ConfigurationSection || value == null
+                            || !value.toString().contains("{lang:")) continue;
+                    Object replacement = defaults.get(key);
+                    if (replacement == null) throw new IllegalArgumentException("Unknown legacy menu text: " + key);
+                    if (!changed) {
+                        var original = file.toPath();
+                        var backup = original.resolveSibling(file.getName() + ".before-english.bak");
+                        if (!Files.exists(backup)) Files.copy(original, backup);
+                    }
+                    config.set(key, replacement);
+                    changed = true;
+                }
+                if (changed) save();
+            } else {
+                // Missing messages in pre-existing feature configs use the English defaults.
+                config.setDefaults(defaults);
+            }
+        } catch (IOException | org.bukkit.configuration.InvalidConfigurationException error) {
+            throw new IllegalArgumentException("Cannot load configuration defaults " + name, error);
+        }
+    }
+
+    public String message(String path, Object... placeholders) {
+        if (placeholders.length % 2 != 0) throw new IllegalArgumentException("Placeholders require name/value pairs");
+        String text = StringColorize.parse(getRawString(path, null).replace("{prefix}", getRawString("prefix", "")));
+        if (placeholders.length == 0) return text;
+        Map<String, String> values = new LinkedHashMap<>();
+        for (int i = 0; i < placeholders.length; i += 2)
+            values.put(String.valueOf(placeholders[i]), java.util.Objects.toString(placeholders[i + 1], ""));
+        return PLACEHOLDER.matcher(text).replaceAll(match ->
+                Matcher.quoteReplacement(values.getOrDefault(match.group(1), match.group())));
     }
 
     public void save() {

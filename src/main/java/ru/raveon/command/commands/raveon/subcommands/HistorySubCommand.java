@@ -31,7 +31,7 @@ public class HistorySubCommand implements BuildableCommand {
             if (sender instanceof Player player) {
                 openHistoryMenu(player, targetName);
             } else {
-                sender.sendMessage(Raveon.INSTANCE.getMainConfigManager().getLanguageService().text("history-only-player"));
+                sender.sendMessage(Raveon.INSTANCE.getMainConfigManager().message("history-only-player"));
             }
             return;
         }
@@ -51,20 +51,20 @@ public class HistorySubCommand implements BuildableCommand {
         resolved.thenCompose(uuid -> {
             if (uuid == null) {
                 return CompletableFuture.completedFuture(
-                        List.of(config.getLanguageService().text("history-no-data").replace("{player}", targetName)));
+                        List.of(config.message("history-no-data").replace("{player}", targetName)));
             }
             return storage.getLogCount(uuid).thenCompose(count -> {
                 int pages = Math.max(1, (int) Math.ceil((double) count / limit));
                 int page = Math.min(requestedPage, pages - 1);
                 return storage.getViolations(uuid, page, limit).thenApply(records -> {
                     List<String> messages = new ArrayList<>();
-                    messages.add(config.getLanguageService().text("history-header")
+                    messages.add(config.message("history-header")
                             .replace("{player}", targetName)
                             .replace("{page}", String.valueOf(page + 1))
                             .replace("{max_pages}", String.valueOf(pages)));
                     for (int i = records.size() - 1; i >= 0; i--) {
                         var record = records.get(i);
-                        messages.add(config.getLanguageService().text("history-entry")
+                        messages.add(config.message("history-entry")
                                 .replace("{check_name}", record.checkName())
                                 .replace("{vl}", String.valueOf(record.vls()))
                                 .replace("{verbose}", record.verbose())
@@ -77,8 +77,8 @@ public class HistorySubCommand implements BuildableCommand {
         }).whenComplete((messages, failure) -> {
             pending.remove(requestKey);
             if (failure != null) {
-                plugin.getLogger().log(Level.WARNING, plugin.getLanguageService().plain("logs.history-load"), failure);
-                sendMessages(sender, List.of(Raveon.INSTANCE.getLanguageService().text("errors.data-load")));
+                plugin.getLogger().log(Level.WARNING, plugin.getMainConfigManager().plainMessage("logs.history-load"), failure);
+                sendMessages(sender, List.of(Raveon.INSTANCE.getMainConfigManager().message("errors.data-load")));
             } else {
                 sendMessages(sender, messages);
             }
@@ -113,7 +113,7 @@ public class HistorySubCommand implements BuildableCommand {
     }
 
     private String formatTimeAgo(long timestamp) {
-        return Raveon.INSTANCE.getLanguageService().duration(
+        return ru.raveon.utils.TimeUtils.formatSeconds(
                 Math.max(0L, System.currentTimeMillis() - timestamp) / 1000L);
     }
 
